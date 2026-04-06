@@ -68,32 +68,22 @@ export async function signUpWithInvite(formData: FormData, token: string) {
     options: {
       data: {
         full_name: fullName,
+        role: "teacher",
+        sex,
+        birth_date: birthDate,
+        whatsapp,
+        invite_token: token,
       },
     },
   });
 
   if (authError) return { error: "Não foi possível criar a conta com esse convite." };
+  if (!authData.user) return { error: "Erro ao criar conta com o convite." };
 
-  // Redeem invite - this will link the user to the class and set last_class_id
-  const { error: inviteError } = await supabase.rpc("redeem_invite", {
-    p_token: token,
-  });
-
-  if (inviteError) return { error: "Convite inválido para este e-mail ou já utilizado." };
-
-  // Update profile with additional info
-  const { error: profileError } = await supabase
-    .from("profiles")
-    .update({
-      sex: sex as "masculino" | "feminino",
-      birth_date: birthDate,
-      whatsapp,
-    })
-    .eq("id", authData.user!.id);
-
-  if (profileError) return { error: "Conta criada, mas não foi possível concluir o perfil." };
-
-  return { success: true };
+  return {
+    success: true,
+    requiresEmailConfirmation: !authData.session,
+  };
 }
 
 export async function updateProfile(formData: FormData) {
@@ -143,6 +133,8 @@ export async function signUpAsGuardian(formData: FormData) {
     options: {
       data: {
         full_name: fullName,
+        role: "guardian",
+        whatsapp: whatsapp || null,
       },
     },
   });
@@ -150,16 +142,8 @@ export async function signUpAsGuardian(formData: FormData) {
   if (authError) return { error: "Não foi possível criar a conta." };
   if (!authData.user) return { error: "Erro ao criar conta." };
 
-  // Set role to guardian and additional profile data
-  const { error: profileError } = await supabase
-    .from("profiles")
-    .update({
-      role: "guardian",
-      whatsapp: whatsapp || null,
-    })
-    .eq("id", authData.user.id);
-
-  if (profileError) return { error: "Conta criada, mas não foi possível concluir o cadastro." };
-
-  return { success: true };
+  return {
+    success: true,
+    requiresEmailConfirmation: !authData.session,
+  };
 }

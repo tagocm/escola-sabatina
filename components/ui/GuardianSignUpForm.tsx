@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { signUpAsGuardian } from "@/app/actions/auth";
 import { useRouter } from "next/navigation";
 import { ArrowRight } from "lucide-react";
+import Link from "next/link";
 import {
   fieldLabelClass,
   primaryActionCenteredBlockClass,
@@ -15,18 +16,36 @@ export default function GuardianSignUpForm() {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [requiresEmailConfirmation, setRequiresEmailConfirmation] = useState(false);
 
   const handleSubmit = (formData: FormData) => {
     setError(null);
+    setRequiresEmailConfirmation(false);
     startTransition(async () => {
       const result = await signUpAsGuardian(formData);
       if (result.error) {
         setError(result.error);
+      } else if (result.requiresEmailConfirmation) {
+        setRequiresEmailConfirmation(true);
       } else {
-        router.push("/");
+        router.push("/responsavel");
       }
     });
   };
+
+  if (requiresEmailConfirmation) {
+    return (
+      <div className="flex w-full max-w-md flex-col gap-5">
+        <div className={`${statusMessageClass} border-es-green bg-green-100 text-green-800`}>
+          Conta criada. Confirme seu e-mail para concluir o cadastro como responsável.
+        </div>
+        <Link href="/login" className={primaryActionCenteredBlockClass}>
+          <span>Ir para o Login</span>
+          <ArrowRight className="h-5 w-5 stroke-[3]" />
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <form action={handleSubmit} className="flex flex-col gap-6 w-full max-w-md">

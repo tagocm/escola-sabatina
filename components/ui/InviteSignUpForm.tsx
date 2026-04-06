@@ -3,6 +3,7 @@
 import { useTransition, useState } from "react";
 import { ArrowRight, AlertTriangle, Loader2 } from "lucide-react";
 import { signUpWithInvite } from "@/app/actions/auth";
+import Link from "next/link";
 import {
   alertClass,
   compactInputClass,
@@ -13,22 +14,42 @@ import {
 export default function InviteSignUpForm({ token }: { token: string }) {
   const [isPending, startTransition] = useTransition();
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [requiresEmailConfirmation, setRequiresEmailConfirmation] = useState(false);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setErrorMsg(null);
+    setRequiresEmailConfirmation(false);
     const formData = new FormData(e.currentTarget);
     
     startTransition(async () => {
       const result = await signUpWithInvite(formData, token);
       if (result?.error) {
         setErrorMsg(result.error);
+      } else if (result.requiresEmailConfirmation) {
+        setRequiresEmailConfirmation(true);
       } else {
-        // Redireciona manualmente para garantir que a sessão seja capturada
         window.location.href = "/";
       }
     });
   };
+
+  if (requiresEmailConfirmation) {
+    return (
+      <div className="flex flex-col gap-5">
+        <div className={`${alertClass} border-es-green bg-green-100 text-green-800`}>
+          <AlertTriangle className="h-6 w-6 stroke-[3]" />
+          <p className="text-[11px] font-black uppercase tracking-widest">
+            Conta criada. Confirme seu e-mail para concluir o convite.
+          </p>
+        </div>
+        <Link href="/login" className={primaryActionBlockClass}>
+          <span>Ir para o Login</span>
+          <ArrowRight className="h-6 w-6 stroke-[3]" />
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
