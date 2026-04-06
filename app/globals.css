@@ -1,0 +1,108 @@
+@import "tailwindcss";
+
+:root {
+  /* Fundo principal em tom creme sólido e preto profundo */
+  --background: #F7F6EF; 
+  --foreground: #111111;
+  
+  /* Core Brand Colors (Fortes e Chapadas) */
+  --es-orange: #F47A3A;
+  --es-yellow: #F2D230;
+  --es-lilac:  #8F96F4;
+  --es-green:  #19BF1A;
+  --es-blue:   #72B7E6;
+
+  /* UI Tokens baseados em editorial estruturado */
+  --primary: var(--es-orange);
+  --primary-foreground: #111111;
+  
+  --secondary: var(--es-lilac);
+  --secondary-foreground: #111111;
+
+  --card: #FFFFFF; 
+  --card-foreground: #111111;
+  
+  /* Bordas mais afirmativas, sem tons pastéis fracos */
+  --border: #111111;
+  --input: #FFFFFF;
+  --ring: var(--foreground);
+  
+  /* Raios menos fofinhos, mais estruturados */
+  --radius: 0;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  --color-es-orange: var(--es-orange);
+  --color-es-yellow: var(--es-yellow);
+  --color-es-lilac: var(--es-lilac);
+  --color-es-green: var(--es-green);
+  --color-es-blue: var(--es-blue);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius: var(--radius);
+  
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+  overflow-x: clip;
+  text-rendering: optimizeLegibility;
+}
+
+html {
+  scroll-behavior: smooth;
+  overflow-x: clip;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+input,
+select,
+textarea {
+  font-size: 16px;
+}
+
+button,
+a,
+[role="button"] {
+  touch-action: manipulation;
+}
+
+/* Utilitários editoriais/brutalistas customizados para forte presença gráfica */
+@utility shadow-editorial {
+  box-shadow: 6px 6px 0px 0px var(--foreground);
+}
+@utility shadow-editorial-sm {
+  box-shadow: 4px 4px 0px 0px var(--foreground);
+}
+@utility shadow-editorial-hover {
+  box-shadow: 2px 2px 0px 0px var(--foreground);
+}
