@@ -23,6 +23,24 @@ function validatePassword(password: string) {
   return null;
 }
 
+function mapSignUpError(error: { message?: string; code?: string; status?: number } | null) {
+  if (!error) return "Não foi possível criar a conta.";
+
+  if (error.code === "over_email_send_rate_limit" || error.status === 429) {
+    return "Muitas tentativas de cadastro em pouco tempo. Aguarde alguns minutos e tente novamente.";
+  }
+
+  if (error.code === "user_already_exists") {
+    return "Já existe uma conta com este e-mail.";
+  }
+
+  if ((error.message || "").toLowerCase().includes("user already registered")) {
+    return "Já existe uma conta com este e-mail.";
+  }
+
+  return "Não foi possível criar a conta.";
+}
+
 export async function signInWithPassword(formData: FormData) {
   const email = normalizeEmail(formData.get("email"));
   const password = formData.get("password") as string;
@@ -77,7 +95,7 @@ export async function signUpWithInvite(formData: FormData, token: string) {
     },
   });
 
-  if (authError) return { error: "Não foi possível criar a conta com esse convite." };
+  if (authError) return { error: mapSignUpError(authError) };
   if (!authData.user) return { error: "Erro ao criar conta com o convite." };
 
   return {
@@ -139,7 +157,7 @@ export async function signUpAsGuardian(formData: FormData) {
     },
   });
 
-  if (authError) return { error: "Não foi possível criar a conta." };
+  if (authError) return { error: mapSignUpError(authError) };
   if (!authData.user) return { error: "Erro ao criar conta." };
 
   return {
