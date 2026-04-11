@@ -22,7 +22,7 @@ function mapSignUpError(error: { message?: string; code?: string; status?: numbe
     return "Muitas tentativas de cadastro em pouco tempo. Aguarde alguns minutos e tente novamente.";
   }
 
-  if (error.code === "user_already_exists") {
+  if (error.code === "user_already_exists" || error.code === "email_exists") {
     return "Já existe uma conta com este e-mail.";
   }
 
