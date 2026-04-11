@@ -78,8 +78,9 @@ export default function GuardianSignUpForm() {
           type="password"
           required
           minLength={6}
+          maxLength={6}
           className={textInputClass}
-          placeholder="Mínimo 6 caracteres"
+          placeholder="Exatamente 6 caracteres"
         />
       </div>
 

@@ -7,17 +7,8 @@ function normalizeEmail(value: FormDataEntryValue | null) {
 }
 
 function validatePassword(password: string) {
-  if (password.length < 8) {
-    return "A senha deve ter pelo menos 8 caracteres.";
-  }
-
-  const hasUpper = /[A-Z]/.test(password);
-  const hasLower = /[a-z]/.test(password);
-  const hasNumber = /\d/.test(password);
-  const hasSpecial = /[^A-Za-z0-9]/.test(password);
-
-  if (!hasUpper || !hasLower || !hasNumber || !hasSpecial) {
-    return "A senha deve conter maiúscula, minúscula, número e caractere especial.";
+  if (password.length !== 6) {
+    return "A senha deve ter exatamente 6 caracteres.";
   }
 
   return null;
