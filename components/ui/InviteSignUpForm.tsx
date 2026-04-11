@@ -71,7 +71,15 @@ export default function InviteSignUpForm({ token }: { token: string }) {
         </div>
         <div className="flex flex-col gap-1 md:col-span-2">
           <label className={fieldLabelClass}>Senha</label>
-          <input name="password" type="password" required placeholder="••••••••" className={compactInputClass} />
+          <input
+            name="password"
+            type="password"
+            required
+            minLength={6}
+            maxLength={6}
+            placeholder="Exatamente 6 caracteres"
+            className={compactInputClass}
+          />
         </div>
         <div className="flex flex-col gap-1">
           <label className={fieldLabelClass}>Sexo</label>
