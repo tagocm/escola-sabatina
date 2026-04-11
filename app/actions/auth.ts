@@ -1,5 +1,6 @@
 "use server";
 
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 
 function normalizeEmail(value: FormDataEntryValue | null) {
@@ -30,6 +31,90 @@ function mapSignUpError(error: { message?: string; code?: string; status?: numbe
   }
 
   return "Não foi possível criar a conta.";
+}
+
+function createAdminClient() {
+  const serviceRoleKey =
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY;
+
+  if (!serviceRoleKey) return null;
+
+  return createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    serviceRoleKey,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    }
+  );
+}
+
+async function signUpWithoutEmailConfirmation({
+  email,
+  password,
+  userMetadata,
+  fallbackError,
+}: {
+  email: string;
+  password: string;
+  userMetadata: Record<string, string | null>;
+  fallbackError: string;
+}) {
+  const adminClient = createAdminClient();
+
+  if (adminClient) {
+    const { data, error } = await adminClient.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: userMetadata,
+    });
+
+    if (error) return { error: mapSignUpError(error) };
+    if (!data.user) return { error: fallbackError };
+
+    const supabase = await createClient();
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (signInError) {
+      return { error: "Conta criada, mas não foi possível iniciar a sessão automaticamente." };
+    }
+
+    return { success: true };
+  }
+
+  const supabase = await createClient();
+
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: userMetadata,
+    },
+  });
+
+  if (error) return { error: mapSignUpError(error) };
+  if (!data.user) return { error: fallbackError };
+  if (data.session) return { success: true };
+
+  const { error: signInError } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (signInError) {
+    return {
+      error:
+        "Este ambiente ainda exige confirmação de e-mail no Supabase Auth. Desative essa exigência ou configure SUPABASE_SERVICE_ROLE_KEY.",
+    };
+  }
+
+  return { success: true };
 }
 
 export async function signInWithPassword(formData: FormData) {
@@ -69,30 +154,19 @@ export async function signUpWithInvite(formData: FormData, token: string) {
   const passwordValidationError = validatePassword(password);
   if (passwordValidationError) return { error: passwordValidationError };
 
-  const supabase = await createClient();
-
-  const { data: authData, error: authError } = await supabase.auth.signUp({
+  return signUpWithoutEmailConfirmation({
     email,
     password,
-    options: {
-      data: {
-        full_name: fullName,
-        role: "teacher",
-        sex,
-        birth_date: birthDate,
-        whatsapp,
-        invite_token: token,
-      },
+    userMetadata: {
+      full_name: fullName,
+      role: "teacher",
+      sex,
+      birth_date: birthDate,
+      whatsapp,
+      invite_token: token,
     },
+    fallbackError: "Erro ao criar conta com o convite.",
   });
-
-  if (authError) return { error: mapSignUpError(authError) };
-  if (!authData.user) return { error: "Erro ao criar conta com o convite." };
-
-  return {
-    success: true,
-    requiresEmailConfirmation: !authData.session,
-  };
 }
 
 export async function updateProfile(formData: FormData) {
@@ -134,25 +208,14 @@ export async function signUpAsGuardian(formData: FormData) {
   const passwordValidationError = validatePassword(password);
   if (passwordValidationError) return { error: passwordValidationError };
 
-  const supabase = await createClient();
-
-  const { data: authData, error: authError } = await supabase.auth.signUp({
+  return signUpWithoutEmailConfirmation({
     email,
     password,
-    options: {
-      data: {
-        full_name: fullName,
-        role: "guardian",
-        whatsapp: whatsapp || null,
-      },
+    userMetadata: {
+      full_name: fullName,
+      role: "guardian",
+      whatsapp: whatsapp || null,
     },
+    fallbackError: "Erro ao criar conta.",
   });
-
-  if (authError) return { error: mapSignUpError(authError) };
-  if (!authData.user) return { error: "Erro ao criar conta." };
-
-  return {
-    success: true,
-    requiresEmailConfirmation: !authData.session,
-  };
 }
