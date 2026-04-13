@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Escola Sabatina",
-  description: "Gestão completa para a Escola Sabatina",
+  description: "Gestão Escola Sabatina",
 };
 
 export default function RootLayout({
