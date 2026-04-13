@@ -227,20 +227,14 @@ export async function generateInviteAction(classId: string) {
 
 export async function getInviteData(token: string) {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("class_invites")
-    .select(`
-      token,
-      class_id,
-      classes (name),
-      invited_by:profiles!class_invites_invited_by_user_id_fkey (full_name)
-    `)
-    .eq("token", token)
-    .eq("is_active", true)
-    .single();
+  const { data, error } = await supabase.rpc("get_invite_data", {
+    p_token: token,
+  });
 
   if (error) return null;
-  return data;
+  if (!data || (Array.isArray(data) && data.length === 0)) return null;
+
+  return Array.isArray(data) ? data[0] : data;
 }
 
 export async function getActiveClassContext() {

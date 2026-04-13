@@ -35,8 +35,8 @@ export default async function ConvitePage({ params }: Params) {
 
   // Tipagem manual para o retorno complexo do Supabase
   const inviteData = invite as unknown as {
-    classes: { name: string };
-    invited_by: { full_name: string };
+    class_name: string;
+    invited_by_full_name: string | null;
   };
 
   return (
@@ -57,13 +57,13 @@ export default async function ConvitePage({ params }: Params) {
           <div className="mt-8 border-l-8 border-foreground pl-6">
             <p className="text-[1.5rem] font-bold uppercase tracking-tight leading-none italic opacity-60 mb-2">Junte-se à unidade:</p>
             <p className="text-[2.5rem] font-black uppercase leading-none underline decoration-foreground underline-offset-8">
-              {inviteData.classes.name}
+              {inviteData.class_name}
             </p>
           </div>
         </div>
 
         <div className="relative z-10 max-w-sm bg-white border-4 border-foreground p-6 shadow-editorial-sm">
-          <p className="text-lg font-black uppercase">Por: {inviteData.invited_by.full_name}</p>
+          <p className="text-lg font-black uppercase">Por: {inviteData.invited_by_full_name || "Escola Sabatina"}</p>
           <div className="h-1 bg-foreground w-full my-3" />
           <p className="text-xs font-bold uppercase text-foreground/60 leading-tight">
             Complete seus dados no formulário ao lado para começar sua jornada administrativa nesta unidade escolar.
