@@ -1,0 +1,20 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <clipPath id="round-corner">
+      <rect x="0" y="0" width="512" height="512" rx="120" ry="120" />
+    </clipPath>
+  </defs>
+  <g clip-path="url(#round-corner)">
+    <!-- Quadrants -->
+    <rect x="0" y="0" width="256" height="256" fill="#F47A3A" />
+    <rect x="256" y="0" width="256" height="256" fill="#F4CA31" />
+    <rect x="0" y="256" width="256" height="256" fill="#87BCE4" />
+    <rect x="256" y="256" width="256" height="256" fill="#87C73A" />
+    
+    <!-- Central square with border -->
+    <rect x="136" y="136" width="240" height="240" fill="white" stroke="#1A1A1A" stroke-width="28" stroke-linejoin="miter" />
+    
+    <!-- ES Text -->
+    <text x="256" y="260" font-family="'Arial Black', 'Impact', system-ui, sans-serif" font-weight="900" font-size="144" fill="#1A1A1A" text-anchor="middle" dominant-baseline="central" alignment-baseline="central" letter-spacing="-4" dy="14">ES</text>
+  </g>
+</svg>
