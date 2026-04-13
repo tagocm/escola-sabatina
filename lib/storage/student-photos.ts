@@ -38,7 +38,13 @@ export function normalizeStudentPhotoPath(value: string | null | undefined) {
 }
 
 export function getStudentPhotoSrc(studentId: string, photoPath: string | null | undefined) {
-  return normalizeStudentPhotoPath(photoPath) ? `/student-photos/${studentId}` : null;
+  const normalized = normalizeStudentPhotoPath(photoPath);
+  if (!normalized) return null;
+
+  // Usa o fim do path (geralmente UUID) como um timestamp/hash quebrando agressivamente o cache antigo.
+  const versionHash = normalized.split("/").pop()?.replace(/[^a-zA-Z0-9]/g, "").substring(0, 8) || "1";
+
+  return `/student-photos/${studentId}?v=${versionHash}`;
 }
 
 function getFileExtension(file: File) {

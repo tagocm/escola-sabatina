@@ -3,7 +3,8 @@
 import type { ReactNode } from "react";
 import { useState, useRef } from "react";
 import Image from "next/image";
-import { Camera, X, Image as ImageIcon } from "lucide-react";
+import { Camera, X, Image as ImageIcon, Loader2 } from "lucide-react";
+import { compressImage } from "@/lib/utils/image";
 
 interface PolaroidPhotoProps {
   currentPhotoUrl?: string | null;
@@ -23,15 +24,27 @@ export default function PolaroidPhoto({
   footerLabel,
 }: PolaroidPhotoProps) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(currentPhotoUrl || null);
+  const [isProcessing, setIsProcessing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const isInteractive = Boolean(onFileChange) && !disabled;
+  const isInteractive = Boolean(onFileChange) && !disabled && !isProcessing;
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
     if (file) {
-      const url = URL.createObjectURL(file);
-      setPreviewUrl(url);
-      if (onFileChange) onFileChange(file);
+      setIsProcessing(true);
+      try {
+        const compressedFile = await compressImage(file, 400, 400, 0.85);
+        const url = URL.createObjectURL(compressedFile);
+        setPreviewUrl(url);
+        if (onFileChange) onFileChange(compressedFile);
+      } catch (error) {
+        console.error("Falha na compressão. Usando arquivo original.", error);
+        const url = URL.createObjectURL(file);
+        setPreviewUrl(url);
+        if (onFileChange) onFileChange(file);
+      } finally {
+        setIsProcessing(false);
+      }
     }
   };
 
@@ -57,12 +70,19 @@ export default function PolaroidPhoto({
               fill
               unoptimized
               sizes="224px"
-              className="object-cover grayscale-[20%] hover:grayscale-0 transition-all"
+              className={`object-cover transition-all ${isProcessing ? "opacity-50 blur-sm grayscale-[80%]" : "grayscale-[20%] hover:grayscale-0"}`}
             />
           ) : (
-            <div className="flex flex-col items-center gap-3 text-foreground/30">
+            <div className={`flex flex-col items-center gap-3 transition-opacity ${isProcessing ? "opacity-50" : "text-foreground/30"}`}>
               {emptyState ?? <Camera className="w-12 h-12 stroke-[1.5]" />}
               <span className="text-[10px] font-black uppercase tracking-widest px-2">{emptyLabel}</span>
+            </div>
+          )}
+
+          {/* Loading overlay */}
+          {isProcessing && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/10">
+              <Loader2 className="w-8 h-8 animate-spin text-foreground" />
             </div>
           )}
 
