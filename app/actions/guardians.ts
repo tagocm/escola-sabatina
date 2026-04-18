@@ -327,6 +327,32 @@ export async function getGuardianStudentProgress(studentId: string): Promise<Gua
   return (data || []) as GuardianStudentProgressPoint[];
 }
 
+export interface GuardianMailboxMessage {
+  message_id: string;
+  message_type: "indisciplina" | "calendario" | "aviso";
+  title: string;
+  body: string;
+  happened_at: string;
+}
+
+export async function getGuardianStudentMailbox(studentId: string): Promise<GuardianMailboxMessage[]> {
+  const auth = await requireGuardianAction();
+  if ("error" in auth) return [];
+
+  const { supabase } = auth;
+
+  const { data, error } = await supabase.rpc("get_guardian_student_mailbox", {
+    p_student_id: studentId,
+  });
+
+  if (error) {
+    console.error("Error fetching guardian mailbox:", error);
+    return [];
+  }
+
+  return (data || []) as GuardianMailboxMessage[];
+}
+
 // ============================================================
 // READ: Get user role
 // ============================================================

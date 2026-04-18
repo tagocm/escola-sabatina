@@ -1,4 +1,4 @@
-import { Activity, ArrowLeft, BarChart3, Thermometer, TrendingUp, Trophy } from "lucide-react";
+import { Activity, AlertTriangle, BarChart3, CalendarClock, Inbox, Thermometer, TrendingUp, Trophy } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { notFound } from "next/navigation";
@@ -6,9 +6,11 @@ import PageHeader from "@/components/ui/PageHeader";
 import PerformanceChartDrilldown from "@/components/ui/PerformanceChartDrilldown";
 import {
   getGuardianClassOfferingSummary,
+  getGuardianStudentMailbox,
   getGuardianStudentProgress,
   getGuardianStudents,
   getMyEnrollmentRequests,
+  type GuardianMailboxMessage,
   type GuardianStudentProgressPoint,
 } from "@/app/actions/guardians";
 import {
@@ -49,6 +51,30 @@ interface EnrollmentRequest {
 function average(values: number[]) {
   if (values.length === 0) return 0;
   return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function getMailboxTypeMeta(type: GuardianMailboxMessage["message_type"]) {
+  if (type === "indisciplina") {
+    return {
+      icon: AlertTriangle,
+      label: "Indisciplina",
+      badgeClass: "bg-es-orange",
+    };
+  }
+
+  if (type === "calendario") {
+    return {
+      icon: CalendarClock,
+      label: "Calendário",
+      badgeClass: "bg-es-blue",
+    };
+  }
+
+  return {
+    icon: Inbox,
+    label: "Aviso",
+    badgeClass: "bg-es-yellow",
+  };
 }
 
 export default async function GuardianStudentProgressPage({ params }: Props) {
@@ -113,6 +139,7 @@ export default async function GuardianStudentProgressPage({ params }: Props) {
     minimumFractionDigits: 2,
   });
   const offeringSummary = await getGuardianClassOfferingSummary(id);
+  const mailboxMessages = await getGuardianStudentMailbox(id);
   const offeringGoal = Number(offeringSummary?.offering_goal || 0);
   const accumulatedOffering = Number(offeringSummary?.accumulated_offering || 0);
   const trimesterGoal = Number(offeringSummary?.trimester_goal || offeringGoal * 13);
@@ -182,32 +209,61 @@ export default async function GuardianStudentProgressPage({ params }: Props) {
         <div className={`${surfaceSoftClass} p-4 md:p-6 flex flex-col gap-4`}>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 border-4 border-foreground bg-es-yellow flex items-center justify-center shadow-editorial-sm">
-              <ArrowLeft className="w-4 h-4 rotate-180 stroke-[3]" />
+              <Inbox className="w-4 h-4 stroke-[3]" />
             </div>
             <div className="flex flex-col">
-              <h3 className="text-lg font-black uppercase tracking-tight">Resumo</h3>
+              <h3 className="text-lg font-black uppercase tracking-tight">Caixa postal</h3>
               <span className="text-[9px] font-bold uppercase tracking-[0.18em] opacity-40">
-                Situação atual do aluno
+                Recados da coordenação e da classe
               </span>
             </div>
           </div>
 
-          <div className="flex flex-col gap-3">
-            <div className="border-2 border-foreground bg-white px-4 py-3">
-              <p className="text-[9px] font-black uppercase tracking-[0.18em] opacity-40">Aluno</p>
-              <p className="mt-1 text-lg font-black uppercase tracking-tight">{student.full_name}</p>
+          {mailboxMessages.length > 0 ? (
+            <div className="flex max-h-[22rem] flex-col gap-3 overflow-y-auto pr-1">
+              {mailboxMessages.map((message) => {
+                const meta = getMailboxTypeMeta(message.message_type);
+                const Icon = meta.icon;
+
+                return (
+                  <article
+                    key={message.message_id}
+                    className="border-2 border-foreground bg-white px-4 py-3 shadow-editorial-sm"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <div className={`flex h-8 w-8 items-center justify-center border-2 border-foreground ${meta.badgeClass}`}>
+                          <Icon className="w-3.5 h-3.5 stroke-[3]" />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-[9px] font-black uppercase tracking-[0.18em] opacity-40">
+                            {meta.label}
+                          </span>
+                          <h4 className="text-sm font-black uppercase tracking-tight">
+                            {message.title}
+                          </h4>
+                        </div>
+                      </div>
+                      <span className="shrink-0 text-[9px] font-black uppercase tracking-[0.18em] opacity-40">
+                        {format(new Date(message.happened_at), "dd/MM", { locale: ptBR })}
+                      </span>
+                    </div>
+
+                    <p className="mt-3 text-[11px] font-bold uppercase leading-relaxed tracking-[0.08em] opacity-70">
+                      {message.body}
+                    </p>
+                  </article>
+                );
+              })}
             </div>
-            <div className="border-2 border-foreground bg-white px-4 py-3">
-              <p className="text-[9px] font-black uppercase tracking-[0.18em] opacity-40">Turma</p>
-              <p className="mt-1 text-lg font-black uppercase tracking-tight">{className}</p>
-            </div>
-            <div className="border-2 border-foreground bg-white px-4 py-3">
-              <p className="text-[9px] font-black uppercase tracking-[0.18em] opacity-40">Pico da turma no último registro</p>
-              <p className="mt-1 text-lg font-black uppercase tracking-tight">
-                {latestEntry?.class_highest ?? "--"}
+          ) : (
+            <div className="border-4 border-dashed border-foreground/25 bg-background px-5 py-10 text-center shadow-editorial-sm">
+              <p className="text-lg font-black uppercase tracking-tight">Nenhum recado por enquanto</p>
+              <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.18em] opacity-40">
+                Avisos de indisciplina, agenda da classe e outros comunicados aparecerão aqui.
               </p>
             </div>
-          </div>
+          )}
         </div>
       </section>
 
