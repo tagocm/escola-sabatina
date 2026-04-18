@@ -57,7 +57,7 @@ export async function getStudentById(id: string) {
   return data;
 }
 
-export async function upsertStudentAction(studentId: string | undefined, formData: FormData) {
+async function persistStudent(studentId: string | undefined, formData: FormData) {
   const auth = await requireTeacherAction();
   if ("error" in auth) {
     return auth;
@@ -66,7 +66,8 @@ export async function upsertStudentAction(studentId: string | undefined, formDat
   const { supabase } = auth;
   
   const classId = formData.get("classId") as string;
-  const fullName = formData.get("fullName") as string;
+  const rawFullName = formData.get("fullName") as string;
+  const fullName = rawFullName.replace(/\s+/g, " ").trim();
   const birthDate = formData.get("birthDate") as string;
   const sex = formData.get("sex") as "masculino" | "feminino";
   const guardianName = formData.get("guardianName") as string;
@@ -120,6 +121,18 @@ export async function upsertStudentAction(studentId: string | undefined, formDat
   revalidatePath("/classes");
   revalidatePath("/relatorios/lancamento");
   revalidatePath("/relatorios/ofertas");
+  return { success: true };
+}
+
+export async function upsertStudentInlineAction(studentId: string | undefined, formData: FormData) {
+  return persistStudent(studentId, formData);
+}
+
+export async function upsertStudentAction(studentId: string | undefined, formData: FormData) {
+  const result = await persistStudent(studentId, formData);
+  if (result?.error) {
+    return result;
+  }
   redirect("/alunos");
 }
 

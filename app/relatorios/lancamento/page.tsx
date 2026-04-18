@@ -88,6 +88,14 @@ export default async function LancamentoFrequenciaPage({ searchParams }: Params)
 
   const pendingStudents = students.filter((student) => !recordsByStudentId.has(student.id));
   const savedStudents = students.filter((student) => recordsByStudentId.has(student.id));
+  const getRecordAdjustments = (studentId: string) => {
+    const record = recordsByStudentId.get(studentId);
+
+    return {
+      extraActivityPoints: record?.extra_activity_points ?? 0,
+      disciplinePenaltyPoints: record?.discipline_penalty_points ?? 0,
+    };
+  };
 
   const displayDate = format(targetDate, "dd 'de' MMMM", { locale: ptBR });
 
@@ -148,16 +156,21 @@ export default async function LancamentoFrequenciaPage({ searchParams }: Params)
             </div>
           ) : pendingStudents.length > 0 ? (
             <div className="flex flex-col gap-5">
-              {pendingStudents.map((student) => (
-                <AttendanceCard
-                  key={student.id}
-                  classId={classId}
-                  date={saturdayStr}
-                  student={student}
-                  rules={rules}
-                  initialSelectedRuleIds={selectedRuleIdsByStudentId[student.id] || []}
-                />
-              ))}
+              {pendingStudents.map((student) => {
+                const adjustments = getRecordAdjustments(student.id);
+                return (
+                  <AttendanceCard
+                    key={student.id}
+                    classId={classId}
+                    date={saturdayStr}
+                    student={student}
+                    rules={rules}
+                    initialSelectedRuleIds={selectedRuleIdsByStudentId[student.id] || []}
+                    initialExtraActivityPoints={adjustments.extraActivityPoints}
+                    initialDisciplinePenaltyPoints={adjustments.disciplinePenaltyPoints}
+                  />
+                );
+              })}
             </div>
           ) : (
             <div className="border-4 border-dashed border-foreground/30 bg-white px-6 py-12 text-center">
@@ -186,17 +199,22 @@ export default async function LancamentoFrequenciaPage({ searchParams }: Params)
 
           {savedStudents.length > 0 ? (
             <div className="flex flex-col gap-5">
-              {savedStudents.map((student) => (
-                <AttendanceCard
-                  key={student.id}
-                  classId={classId}
-                  date={saturdayStr}
-                  student={student}
-                  rules={rules}
-                  initialSelectedRuleIds={selectedRuleIdsByStudentId[student.id] || []}
-                  isSaved
-                />
-              ))}
+              {savedStudents.map((student) => {
+                const adjustments = getRecordAdjustments(student.id);
+                return (
+                  <AttendanceCard
+                    key={student.id}
+                    classId={classId}
+                    date={saturdayStr}
+                    student={student}
+                    rules={rules}
+                    initialSelectedRuleIds={selectedRuleIdsByStudentId[student.id] || []}
+                    initialExtraActivityPoints={adjustments.extraActivityPoints}
+                    initialDisciplinePenaltyPoints={adjustments.disciplinePenaltyPoints}
+                    isSaved
+                  />
+                );
+              })}
             </div>
           ) : (
             <div className="border-4 border-dashed border-foreground/20 bg-white px-6 py-12 text-center">

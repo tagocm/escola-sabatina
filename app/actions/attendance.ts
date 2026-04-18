@@ -67,7 +67,9 @@ export async function saveStudentAttendanceRecord(
   date: string,
   studentId: string,
   ruleIds: string[],
-  rulesMetadata: { id: string, points: number }[]
+  rulesMetadata: { id: string, points: number }[],
+  extraActivityPoints = 0,
+  disciplinePenaltyPoints = 0,
 ) {
   const auth = await requireTeacherAction();
   if ("error" in auth) return auth;
@@ -86,7 +88,15 @@ export async function saveStudentAttendanceRecord(
 
   // 3. Calculate total points
   const selectedRules = rulesMetadata.filter(r => ruleIds.includes(r.id));
-  const totalPoints = selectedRules.reduce((sum, r) => sum + r.points, 0);
+  const basePoints = selectedRules.reduce((sum, r) => sum + r.points, 0);
+  const safeExtraActivityPoints = Number.isFinite(extraActivityPoints)
+    ? Math.max(0, Math.trunc(extraActivityPoints))
+    : 0;
+  const maxDisciplinePenalty = basePoints + safeExtraActivityPoints;
+  const safeDisciplinePenaltyPoints = Number.isFinite(disciplinePenaltyPoints)
+    ? Math.min(Math.max(0, Math.trunc(disciplinePenaltyPoints)), maxDisciplinePenalty)
+    : 0;
+  const totalPoints = basePoints + safeExtraActivityPoints - safeDisciplinePenaltyPoints;
 
   // 4a. Cleanup existing scores for this student on this day
   // Since we are updating, we clear the items and re-insert the new set
@@ -119,6 +129,8 @@ export async function saveStudentAttendanceRecord(
       day_id: day.id,
       class_id: classId,
       student_id: studentId,
+      extra_activity_points: safeExtraActivityPoints,
+      discipline_penalty_points: safeDisciplinePenaltyPoints,
       total_points: totalPoints,
       saved_by: user.id
     }, { onConflict: "day_id,student_id" });
