@@ -94,6 +94,8 @@ export default async function LancamentoFrequenciaPage({ searchParams }: Params)
     return {
       extraActivityPoints: record?.extra_activity_points ?? 0,
       disciplinePenaltyPoints: record?.discipline_penalty_points ?? 0,
+      disciplinePenaltyReason: record?.discipline_penalty_reason ?? "",
+      disciplinePenaltyAppliedByName: record?.discipline_penalty_applied_by_name ?? "",
     };
   };
 
@@ -168,6 +170,8 @@ export default async function LancamentoFrequenciaPage({ searchParams }: Params)
                     initialSelectedRuleIds={selectedRuleIdsByStudentId[student.id] || []}
                     initialExtraActivityPoints={adjustments.extraActivityPoints}
                     initialDisciplinePenaltyPoints={adjustments.disciplinePenaltyPoints}
+                    initialDisciplinePenaltyReason={adjustments.disciplinePenaltyReason}
+                    initialDisciplinePenaltyAppliedByName={adjustments.disciplinePenaltyAppliedByName}
                   />
                 );
               })}
@@ -211,6 +215,8 @@ export default async function LancamentoFrequenciaPage({ searchParams }: Params)
                     initialSelectedRuleIds={selectedRuleIdsByStudentId[student.id] || []}
                     initialExtraActivityPoints={adjustments.extraActivityPoints}
                     initialDisciplinePenaltyPoints={adjustments.disciplinePenaltyPoints}
+                    initialDisciplinePenaltyReason={adjustments.disciplinePenaltyReason}
+                    initialDisciplinePenaltyAppliedByName={adjustments.disciplinePenaltyAppliedByName}
                     isSaved
                   />
                 );

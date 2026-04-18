@@ -70,6 +70,7 @@ export async function saveStudentAttendanceRecord(
   rulesMetadata: { id: string, points: number }[],
   extraActivityPoints = 0,
   disciplinePenaltyPoints = 0,
+  disciplinePenaltyReason = "",
 ) {
   const auth = await requireTeacherAction();
   if ("error" in auth) return auth;
@@ -86,6 +87,18 @@ export async function saveStudentAttendanceRecord(
 
   if (!day) return { error: "Dia de presença não inicializado." };
 
+  const { data: existingRecord } = await supabase
+    .from("student_attendance_records")
+    .select(`
+      discipline_penalty_points,
+      discipline_penalty_reason,
+      discipline_penalty_applied_by,
+      discipline_penalty_applied_by_name
+    `)
+    .eq("day_id", day.id)
+    .eq("student_id", studentId)
+    .maybeSingle();
+
   // 3. Calculate total points
   const selectedRules = rulesMetadata.filter(r => ruleIds.includes(r.id));
   const basePoints = selectedRules.reduce((sum, r) => sum + r.points, 0);
@@ -96,6 +109,39 @@ export async function saveStudentAttendanceRecord(
   const safeDisciplinePenaltyPoints = Number.isFinite(disciplinePenaltyPoints)
     ? Math.min(Math.max(0, Math.trunc(disciplinePenaltyPoints)), maxDisciplinePenalty)
     : 0;
+  const normalizedDisciplinePenaltyReason = String(disciplinePenaltyReason || "").trim();
+
+  if (safeDisciplinePenaltyPoints > 0 && !normalizedDisciplinePenaltyReason) {
+    return { error: "Informe o motivo do desconto por indisciplina." };
+  }
+
+  const { data: teacherProfile } = await supabase
+    .from("profiles")
+    .select("full_name")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const currentTeacherName = String(
+    teacherProfile?.full_name ||
+    user.user_metadata?.full_name ||
+    user.email ||
+    "Professor não identificado",
+  ).trim();
+  const disciplinePenaltyChanged =
+    safeDisciplinePenaltyPoints !== Number(existingRecord?.discipline_penalty_points || 0) ||
+    normalizedDisciplinePenaltyReason !== String(existingRecord?.discipline_penalty_reason || "").trim();
+  const disciplinePenaltyAppliedBy =
+    safeDisciplinePenaltyPoints > 0
+      ? (disciplinePenaltyChanged
+        ? user.id
+        : existingRecord?.discipline_penalty_applied_by || user.id)
+      : null;
+  const disciplinePenaltyAppliedByName =
+    safeDisciplinePenaltyPoints > 0
+      ? (disciplinePenaltyChanged
+        ? currentTeacherName
+        : String(existingRecord?.discipline_penalty_applied_by_name || currentTeacherName).trim())
+      : null;
   const totalPoints = basePoints + safeExtraActivityPoints - safeDisciplinePenaltyPoints;
 
   // 4a. Cleanup existing scores for this student on this day
@@ -131,6 +177,9 @@ export async function saveStudentAttendanceRecord(
       student_id: studentId,
       extra_activity_points: safeExtraActivityPoints,
       discipline_penalty_points: safeDisciplinePenaltyPoints,
+      discipline_penalty_reason: safeDisciplinePenaltyPoints > 0 ? normalizedDisciplinePenaltyReason : null,
+      discipline_penalty_applied_by: disciplinePenaltyAppliedBy,
+      discipline_penalty_applied_by_name: disciplinePenaltyAppliedByName,
       total_points: totalPoints,
       saved_by: user.id
     }, { onConflict: "day_id,student_id" });
@@ -139,7 +188,10 @@ export async function saveStudentAttendanceRecord(
 
   revalidatePath(`/relatorios/lancamento`);
   revalidatePath(`/relatorios/ofertas`);
-  return { success: true };
+  return {
+    success: true,
+    disciplinePenaltyAppliedByName,
+  };
 }
 
 export async function updateOfferingAction(classId: string, date: string, amount: number) {

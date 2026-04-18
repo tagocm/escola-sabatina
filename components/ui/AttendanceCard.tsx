@@ -31,6 +31,8 @@ interface AttendanceCardProps {
   initialSelectedRuleIds: string[];
   initialExtraActivityPoints?: number;
   initialDisciplinePenaltyPoints?: number;
+  initialDisciplinePenaltyReason?: string;
+  initialDisciplinePenaltyAppliedByName?: string;
   isSaved?: boolean;
 }
 
@@ -49,11 +51,15 @@ export default function AttendanceCard({
   initialSelectedRuleIds,
   initialExtraActivityPoints = 0,
   initialDisciplinePenaltyPoints = 0,
+  initialDisciplinePenaltyReason = "",
+  initialDisciplinePenaltyAppliedByName = "",
   isSaved = false
 }: AttendanceCardProps) {
   const [selectedIds, setSelectedIds] = useState<string[]>(initialSelectedRuleIds);
   const [extraActivityPoints, setExtraActivityPoints] = useState(initialExtraActivityPoints);
   const [disciplinePenaltyPoints, setDisciplinePenaltyPoints] = useState(initialDisciplinePenaltyPoints);
+  const [disciplinePenaltyReason, setDisciplinePenaltyReason] = useState(initialDisciplinePenaltyReason);
+  const [disciplinePenaltyAppliedByName, setDisciplinePenaltyAppliedByName] = useState(initialDisciplinePenaltyAppliedByName);
   const [isPending, startTransition] = useTransition();
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -95,6 +101,12 @@ export default function AttendanceCard({
 
   const handleSave = () => {
     setSaveError(null);
+
+    if (disciplinePenaltyPoints > 0 && !disciplinePenaltyReason.trim()) {
+      setSaveError("Informe o motivo do desconto por indisciplina.");
+      return;
+    }
+
     startTransition(async () => {
       const result = await saveStudentAttendanceRecord(
         classId,
@@ -104,11 +116,15 @@ export default function AttendanceCard({
         rules.map(r => ({ id: r.id, points: r.points })),
         extraActivityPoints,
         disciplinePenaltyPoints,
+        disciplinePenaltyReason,
       );
 
-      if (result.error) {
+      if ("error" in result && result.error) {
         setSaveError(result.error);
       } else {
+        setDisciplinePenaltyAppliedByName(
+          ("disciplinePenaltyAppliedByName" in result ? result.disciplinePenaltyAppliedByName : "") || "",
+        );
         setIsEditing(false);
       }
     });
@@ -271,7 +287,16 @@ export default function AttendanceCard({
                <div className="mt-3 grid grid-cols-[48px_1fr_48px] gap-2">
                  <button
                    type="button"
-                   onClick={() => setDisciplinePenaltyPoints((current) => Math.max(0, current - 1))}
+                   onClick={() => {
+                     setDisciplinePenaltyPoints((current) => {
+                       const nextValue = Math.max(0, current - 1);
+                       if (nextValue === 0) {
+                         setDisciplinePenaltyReason("");
+                         setDisciplinePenaltyAppliedByName("");
+                       }
+                       return nextValue;
+                     });
+                   }}
                    disabled={!canInteract || disciplinePenaltyPoints === 0}
                    className="flex h-11 items-center justify-center border-4 border-foreground bg-white text-xl font-black shadow-editorial-sm disabled:opacity-30"
                  >
@@ -294,6 +319,43 @@ export default function AttendanceCard({
                    +
                  </button>
                </div>
+
+               {disciplinePenaltyPoints > 0 ? (
+                 <div className="mt-3 flex flex-col gap-2">
+                   {canInteract ? (
+                     <label className="flex flex-col gap-2">
+                       <span className="text-[9px] font-black uppercase tracking-[0.16em] opacity-50">
+                         Motivo obrigatório
+                       </span>
+                       <textarea
+                         value={disciplinePenaltyReason}
+                         onChange={(event) => setDisciplinePenaltyReason(event.target.value)}
+                         placeholder="Informe o motivo do desconto"
+                         rows={3}
+                         className="min-h-[88px] w-full resize-none border-4 border-foreground bg-white px-3 py-2 text-sm font-bold leading-relaxed outline-none transition-colors focus:bg-es-orange/10"
+                       />
+                     </label>
+                   ) : null}
+
+                   <div className="border-2 border-foreground bg-background px-3 py-2">
+                     <p className="text-[8px] font-black uppercase tracking-[0.18em] opacity-40">
+                       Motivo registrado
+                     </p>
+                     <p className="mt-1 text-[10px] font-bold uppercase leading-relaxed tracking-[0.08em]">
+                       {disciplinePenaltyReason || "Motivo não informado"}
+                     </p>
+                   </div>
+
+                   <div className="border-2 border-foreground bg-background px-3 py-2">
+                     <p className="text-[8px] font-black uppercase tracking-[0.18em] opacity-40">
+                       Professor responsável
+                     </p>
+                     <p className="mt-1 text-[10px] font-bold uppercase leading-relaxed tracking-[0.08em]">
+                       {disciplinePenaltyAppliedByName || "Será registrado ao salvar"}
+                     </p>
+                   </div>
+                 </div>
+               ) : null}
              </div>
            </div>
          </div>

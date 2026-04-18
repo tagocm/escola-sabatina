@@ -260,7 +260,7 @@ export default async function GuardianStudentProgressPage({ params }: Props) {
             <div className="border-4 border-dashed border-foreground/25 bg-background px-5 py-10 text-center shadow-editorial-sm">
               <p className="text-lg font-black uppercase tracking-tight">Nenhum recado por enquanto</p>
               <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.18em] opacity-40">
-                Avisos de indisciplina, agenda da classe e outros comunicados aparecerão aqui.
+                Agenda da classe, avisos e outros comunicados aparecerão aqui.
               </p>
             </div>
           )}
