@@ -63,8 +63,6 @@ export default async function LancamentoFrequenciaPage({ searchParams }: Params)
 
   const [tY, tM, tD] = saturdayStr.split("-").map(Number);
   const targetDate = new Date(tY, tM - 1, tD, 12, 0, 0);
-  const [vY, vM, vD] = verseWeekStr.split("-").map(Number);
-  const verseWeekDate = new Date(vY, vM - 1, vD, 12, 0, 0);
   const prevSat = shiftSaturday(saturdayStr, -1);
   const nextSat = shiftSaturday(saturdayStr, 1);
 
@@ -92,7 +90,6 @@ export default async function LancamentoFrequenciaPage({ searchParams }: Params)
   const savedStudents = students.filter((student) => recordsByStudentId.has(student.id));
 
   const displayDate = format(targetDate, "dd 'de' MMMM", { locale: ptBR });
-  const verseWeekDisplayDate = format(verseWeekDate, "dd 'de' MMMM", { locale: ptBR });
 
   return (
     <div className={pageShellClass}>
@@ -124,9 +121,6 @@ export default async function LancamentoFrequenciaPage({ searchParams }: Params)
         </div>
 
         <WeeklyBibleVerseStickyCard
-          classId={classId}
-          displayDate={displayDate}
-          verseWeekDisplayDate={verseWeekDisplayDate}
           verse={weeklyBibleVerse}
         />
 
