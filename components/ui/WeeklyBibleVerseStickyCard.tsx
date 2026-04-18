@@ -23,7 +23,7 @@ export default function WeeklyBibleVerseStickyCard({
   }
 
   return (
-    <section className="fixed inset-x-3 top-[max(env(safe-area-inset-top),0.75rem)] z-50 mx-auto w-auto max-w-md md:left-1/2 md:right-auto md:w-[min(30rem,calc(100vw-2rem))] md:-translate-x-1/2">
+    <section className="sticky top-3 z-40 w-full self-center md:max-w-md">
       <div className="relative overflow-hidden border-2 border-foreground bg-white shadow-editorial-sm supports-[backdrop-filter]:bg-white/92 supports-[backdrop-filter]:backdrop-blur-sm">
         <button
           type="button"
