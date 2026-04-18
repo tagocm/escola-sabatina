@@ -4,13 +4,17 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ArrowLeft, ArrowRight, Check, Clock3 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { getActiveClassContext } from "@/app/actions/classes";
+import {
+  getActiveClassContext,
+  getClassWeeklyBibleVerseByWeek,
+} from "@/app/actions/classes";
 import { getAttendanceContext } from "@/app/actions/attendance";
 import { getStudents } from "@/app/actions/students";
 import { getScoringRules } from "@/app/actions/scoring";
 import Header from "@/components/ui/Header";
 import PageHeader from "@/components/ui/PageHeader";
 import AttendanceCard from "@/components/ui/AttendanceCard";
+import WeeklyBibleVerseStickyCard from "@/components/ui/WeeklyBibleVerseStickyCard";
 import { pageMainClass, pageShellClass } from "@/components/ui/design-system";
 
 interface Params {
@@ -56,10 +60,11 @@ export default async function LancamentoFrequenciaPage({ searchParams }: Params)
   const prevSat = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, "0")}-${String(prevDate.getDate()).padStart(2, "0")}`;
   const nextSat = `${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, "0")}-${String(nextDate.getDate()).padStart(2, "0")}`;
 
-  const [attendanceData, students, rules] = await Promise.all([
+  const [attendanceData, students, rules, weeklyBibleVerse] = await Promise.all([
     getAttendanceContext(classId, saturdayStr),
     getStudents(classId),
     getScoringRules(classId),
+    getClassWeeklyBibleVerseByWeek(classId, saturdayStr),
   ]);
 
   if ("error" in attendanceData) {
@@ -108,6 +113,12 @@ export default async function LancamentoFrequenciaPage({ searchParams }: Params)
             </Link>
           </div>
         </div>
+
+        <WeeklyBibleVerseStickyCard
+          classId={classId}
+          displayDate={displayDate}
+          verse={weeklyBibleVerse}
+        />
 
         <section className="flex flex-col gap-5">
           <div className="flex items-end justify-between gap-4 border-b-4 border-foreground/10 pb-4">

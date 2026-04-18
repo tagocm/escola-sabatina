@@ -123,33 +123,21 @@ export async function createGuardianStudent(formData: FormData) {
 
   const studentId = crypto.randomUUID();
 
-  // 1. Create student record without RETURNING.
-  // Guardians only gain SELECT access after the guardian_students link exists.
-  const { error: studentError } = await supabase
-    .from("students")
-    .insert({
-      id: studentId,
-      full_name: fullName,
-      birth_date: birthDate || null,
-      sex,
-      guardian_name: user.user_metadata?.full_name || null,
-      whatsapp: whatsapp || null,
-      photo_url: photoPath,
-      class_id: resolvedClassId,
-      is_active: true,
-    });
+  const { error: rpcError } = await supabase.rpc("register_guardian_student", {
+    p_id: studentId,
+    p_full_name: fullName,
+    p_birth_date: birthDate || null,
+    p_sex: sex,
+    p_guardian_name: user.user_metadata?.full_name || null,
+    p_whatsapp: whatsapp || null,
+    p_photo_url: photoPath,
+    p_class_id: resolvedClassId,
+  });
 
-  if (studentError) return { error: "Não foi possível cadastrar o dependente." };
-
-  // 2. Link guardian → student
-  const { error: linkError } = await supabase
-    .from("guardian_students")
-    .insert({
-      guardian_id: user.id,
-      student_id: studentId,
-    });
-
-  if (linkError) return { error: "Não foi possível vincular o dependente ao responsável." };
+  if (rpcError) {
+    console.error("Erro ao registrar aluno no DB:", rpcError);
+    return { error: "Não foi possível cadastrar e vincular o dependente." };
+  }
 
   revalidatePath("/responsavel");
   revalidatePath("/responsavel/filhos");

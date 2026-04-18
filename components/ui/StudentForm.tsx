@@ -41,6 +41,8 @@ export default function StudentForm({ classes = [], defaultClassId, initialData 
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const availableClasses = Array.isArray(classes) ? classes : [];
   const previewPhotoUrl = initialData ? getStudentPhotoSrc(initialData.id, initialData.photo_url) : null;
+  const dateInputClass =
+    `${compactInputClass} min-w-0 max-w-full pr-2 text-[13px] tracking-normal sm:text-base md:pr-4 md:text-sm`;
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -83,9 +85,9 @@ export default function StudentForm({ classes = [], defaultClassId, initialData 
           />
         </div>
 
-        <div className="flex flex-col gap-6 md:gap-8">
-           <div className="grid grid-cols-1 gap-x-6 gap-y-4 md:grid-cols-2 md:gap-x-8 md:gap-y-5">
-              <div className="flex flex-col gap-2 md:col-span-2">
+        <div className="flex min-w-0 flex-col gap-6 md:gap-8">
+           <div className="grid min-w-0 grid-cols-1 gap-x-6 gap-y-4 md:grid-cols-2 md:gap-x-8 md:gap-y-5">
+              <div className="flex min-w-0 flex-col gap-2 md:col-span-2">
                 <label className={fieldLabelClass}>Nome do Aluno</label>
                 <input 
                   name="fullName" 
@@ -96,18 +98,18 @@ export default function StudentForm({ classes = [], defaultClassId, initialData 
                 />
               </div>
 
-              <div className="flex flex-col gap-2">
+              <div className="flex min-w-0 flex-col gap-2">
                  <label className={fieldLabelClass}>Data de Nascimento</label>
                  <input 
                    name="birthDate" 
                    type="date" 
                    defaultValue={initialData?.birth_date || ""} 
                    disabled={isPending}
-                   className={compactInputClass} 
+                   className={dateInputClass} 
                  />
               </div>
 
-              <div className="flex flex-col gap-2">
+              <div className="flex min-w-0 flex-col gap-2">
                  <label className={fieldLabelClass}>Sexo</label>
                  <select 
                    name="sex" 
@@ -120,7 +122,7 @@ export default function StudentForm({ classes = [], defaultClassId, initialData 
                  </select>
               </div>
 
-              <div className="flex flex-col gap-2 md:col-span-2">
+              <div className="flex min-w-0 flex-col gap-2 md:col-span-2">
                 <label className={fieldLabelClass}>Classe</label>
                 <select
                   name="classId"
@@ -138,7 +140,7 @@ export default function StudentForm({ classes = [], defaultClassId, initialData 
                 </select>
               </div>
 
-              <div className="flex flex-col gap-2 md:col-span-2">
+              <div className="flex min-w-0 flex-col gap-2 md:col-span-2">
                 <label className={fieldLabelClass}>Nome do Responsável</label>
                 <input 
                   name="guardianName" 
@@ -148,7 +150,7 @@ export default function StudentForm({ classes = [], defaultClassId, initialData 
                 />
               </div>
 
-              <div className="flex flex-col gap-2 md:col-span-2">
+              <div className="flex min-w-0 flex-col gap-2 md:col-span-2">
                 <label className={fieldLabelClass}>WhatsApp</label>
                 <input 
                   name="whatsapp" 

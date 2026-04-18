@@ -23,6 +23,29 @@ function parseCurrencyInput(value: FormDataEntryValue | null) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function parsePositiveInt(value: FormDataEntryValue | null) {
+  const parsed = Number.parseInt(String(value || "").trim(), 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+function normalizeWeekDateInput(value: FormDataEntryValue | null) {
+  const raw = String(value || "").trim();
+  if (!raw) return null;
+
+  const baseDate = new Date(`${raw}T12:00:00`);
+  if (Number.isNaN(baseDate.getTime())) return null;
+
+  const saturday = new Date(baseDate);
+  saturday.setHours(12, 0, 0, 0);
+  saturday.setDate(saturday.getDate() + (6 - saturday.getDay()));
+
+  return `${saturday.getFullYear()}-${String(saturday.getMonth() + 1).padStart(2, "0")}-${String(saturday.getDate()).padStart(2, "0")}`;
+}
+
+function isUniqueConstraintError(error: { code?: string } | null) {
+  return error?.code === "23505";
+}
+
 export async function getClasses() {
   const auth = await requireTeacherAction();
   if ("error" in auth) return [];
@@ -98,6 +121,131 @@ export async function getClassById(id: string) {
   }
   
   return data;
+}
+
+export async function getClassWeeklyBibleVerses(classId: string) {
+  const auth = await requireTeacherAction();
+  if ("error" in auth) return [];
+
+  const { supabase } = auth;
+  const { data, error } = await supabase
+    .from("class_weekly_bible_verses")
+    .select("id, week_date, verse_text, bible_book, chapter_number, verse_reference")
+    .eq("class_id", classId)
+    .order("week_date", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching class weekly bible verses:", error);
+    return [];
+  }
+
+  return data || [];
+}
+
+export async function getClassWeeklyBibleVerseByWeek(classId: string, weekDate: string) {
+  const auth = await requireTeacherAction();
+  if ("error" in auth) return null;
+
+  const normalizedWeekDate = normalizeWeekDateInput(weekDate);
+  if (!normalizedWeekDate) return null;
+
+  const { supabase } = auth;
+  const { data, error } = await supabase
+    .from("class_weekly_bible_verses")
+    .select("id, week_date, verse_text, bible_book, chapter_number, verse_reference")
+    .eq("class_id", classId)
+    .eq("week_date", normalizedWeekDate)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Error fetching weekly bible verse by week:", error);
+    return null;
+  }
+
+  return data;
+}
+
+export async function saveClassWeeklyBibleVerseAction(classId: string, formData: FormData) {
+  const auth = await requireTeacherAction();
+  if ("error" in auth) return auth;
+
+  const { supabase } = auth;
+  const verseId = String(formData.get("id") || "").trim() || null;
+  const weekDate = normalizeWeekDateInput(formData.get("week_date"));
+  const verseText = String(formData.get("verse_text") || "").replace(/\r\n/g, "\n").trim();
+  const bibleBook = String(formData.get("bible_book") || "").trim();
+  const chapterNumber = parsePositiveInt(formData.get("chapter_number"));
+  const verseReference = String(formData.get("verse_reference") || "").trim();
+
+  if (!weekDate) {
+    return { error: "Selecione uma semana válida para o verso." };
+  }
+
+  if (!verseText || !bibleBook || !chapterNumber || !verseReference) {
+    return { error: "Preencha semana, verso, livro, capítulo e versículo." };
+  }
+
+  const payload = {
+    class_id: classId,
+    week_date: weekDate,
+    verse_text: verseText,
+    bible_book: bibleBook,
+    chapter_number: chapterNumber,
+    verse_reference: verseReference,
+  };
+
+  if (verseId) {
+    const { error } = await supabase
+      .from("class_weekly_bible_verses")
+      .update(payload)
+      .eq("id", verseId)
+      .eq("class_id", classId);
+
+    if (error) {
+      console.error("Error updating weekly bible verse:", error);
+      if (isUniqueConstraintError(error)) {
+        return { error: "Já existe um verso cadastrado para esta semana." };
+      }
+      return { error: "Não foi possível atualizar o verso da semana." };
+    }
+  } else {
+    const { error } = await supabase
+      .from("class_weekly_bible_verses")
+      .insert(payload);
+
+    if (error) {
+      console.error("Error creating weekly bible verse:", error);
+      if (isUniqueConstraintError(error)) {
+        return { error: "Já existe um verso cadastrado para esta semana." };
+      }
+      return { error: "Não foi possível cadastrar o verso da semana." };
+    }
+  }
+
+  revalidatePath(`/classes/${classId}`);
+  revalidatePath("/relatorios/lancamento");
+  return { success: true };
+}
+
+export async function deleteClassWeeklyBibleVerseAction(classId: string, verseId: string) {
+  const auth = await requireTeacherAction();
+  if ("error" in auth) return auth;
+
+  const { supabase } = auth;
+  const { error } = await supabase
+    .from("class_weekly_bible_verses")
+    .delete()
+    .eq("id", verseId)
+    .eq("class_id", classId);
+
+  if (error) {
+    console.error("Error deleting weekly bible verse:", error);
+    return { error: "Não foi possível remover o verso da semana." };
+  }
+
+  revalidatePath(`/classes/${classId}`);
+  revalidatePath("/relatorios/lancamento");
+  return { success: true };
 }
 
 export async function createClassAction(formData: FormData) {

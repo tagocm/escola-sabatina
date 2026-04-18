@@ -1,5 +1,12 @@
 import ClassForm from "@/components/ui/ClassForm";
-import { getClassById, updateClassAction, getPendingEnrollmentRequests, getClassOptions, transferStudentsToClassAction } from "@/app/actions/classes";
+import {
+  getClassById,
+  getClassOptions,
+  getClassWeeklyBibleVerses,
+  getPendingEnrollmentRequests,
+  transferStudentsToClassAction,
+  updateClassAction,
+} from "@/app/actions/classes";
 import { getScoringRules } from "@/app/actions/scoring";
 import { getStudents } from "@/app/actions/students";
 import { notFound } from "next/navigation";
@@ -14,6 +21,7 @@ import {
   deleteResponsibilityTemplateAction,
   getResponsibilityTemplates,
 } from "@/app/actions/responsibilities";
+import WeeklyBibleVerseSection from "@/components/ui/WeeklyBibleVerseSection";
 import { pageMainClass, pageShellClass, surfaceClass } from "@/components/ui/design-system";
 
 interface Params {
@@ -22,13 +30,22 @@ interface Params {
 
 export default async function EditarClassePage({ params }: Params) {
   const { id } = await params;
-  const [classData, scoringRules, pendingRequests, classOptions, classStudents, responsibilityTemplates] = await Promise.all([
+  const [
+    classData,
+    scoringRules,
+    pendingRequests,
+    classOptions,
+    classStudents,
+    responsibilityTemplates,
+    weeklyBibleVerses,
+  ] = await Promise.all([
     getClassById(id),
     getScoringRules(id),
     getPendingEnrollmentRequests(id),
     getClassOptions(),
     getStudents(id),
     getResponsibilityTemplates(id),
+    getClassWeeklyBibleVerses(id),
   ]);
 
   if (!classData) {
@@ -66,6 +83,18 @@ export default async function EditarClassePage({ params }: Params) {
             </div>
             <div className={`${surfaceClass} p-4 md:p-8 lg:p-10`}>
               <ClassForm initialData={classData} action={updateAction} />
+            </div>
+          </section>
+
+          <section id="weekly-bible-verse-section" className="flex flex-col gap-5 scroll-mt-6">
+            <div className="flex items-center gap-3">
+              <div className="h-6 w-2 border-2 border-foreground bg-es-yellow" />
+              <h3 className="text-xl font-black uppercase tracking-tighter">
+                Verso Bíblico da Semana
+              </h3>
+            </div>
+            <div className={`${surfaceClass} p-4 md:p-8 lg:p-10`}>
+              <WeeklyBibleVerseSection classId={id} verses={weeklyBibleVerses} />
             </div>
           </section>
 
