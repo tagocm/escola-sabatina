@@ -6,6 +6,7 @@ import { saveStudentAttendanceRecord } from "@/app/actions/attendance";
 import { UserCircle, Loader2, Check, Save, Lock, Settings } from "lucide-react";
 import { getStudentPhotoSrc } from "@/lib/storage/student-photos";
 import AttendanceStudentEditModal from "@/components/ui/AttendanceStudentEditModal";
+import AttendanceDisciplinePenaltyModal from "@/components/ui/AttendanceDisciplinePenaltyModal";
 
 interface Rule {
   id: string;
@@ -64,6 +65,7 @@ export default function AttendanceCard({
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
+  const [isDisciplineModalOpen, setIsDisciplineModalOpen] = useState(false);
 
   // Helper to simplify names
   const getShortName = (name: string) => {
@@ -101,11 +103,6 @@ export default function AttendanceCard({
 
   const handleSave = () => {
     setSaveError(null);
-
-    if (disciplinePenaltyPoints > 0 && !disciplinePenaltyReason.trim()) {
-      setSaveError("Informe o motivo do desconto por indisciplina.");
-      return;
-    }
 
     startTransition(async () => {
       const result = await saveStudentAttendanceRecord(
@@ -287,11 +284,11 @@ export default function AttendanceCard({
                <div className="mt-3 grid grid-cols-[48px_1fr_48px] gap-2">
                  <button
                    type="button"
-                   onClick={() => {
-                     setDisciplinePenaltyPoints((current) => {
-                       const nextValue = Math.max(0, current - 1);
-                       if (nextValue === 0) {
-                         setDisciplinePenaltyReason("");
+                  onClick={() => {
+                    setDisciplinePenaltyPoints((current) => {
+                      const nextValue = Math.max(0, current - 1);
+                      if (nextValue === 0) {
+                        setDisciplinePenaltyReason("");
                          setDisciplinePenaltyAppliedByName("");
                        }
                        return nextValue;
@@ -304,7 +301,10 @@ export default function AttendanceCard({
                  </button>
                  <button
                    type="button"
-                   onClick={() => setDisciplinePenaltyPoints((current) => Math.min(current + 1, maxDisciplinePenaltyPoints))}
+                   onClick={() => {
+                     setSaveError(null);
+                     setIsDisciplineModalOpen(true);
+                   }}
                    disabled={!canInteract || disciplinePenaltyPoints >= maxDisciplinePenaltyPoints}
                    className="flex h-11 items-center justify-center border-4 border-foreground bg-es-orange text-[10px] font-black uppercase tracking-[0.18em] shadow-editorial-sm disabled:opacity-30"
                  >
@@ -312,7 +312,10 @@ export default function AttendanceCard({
                  </button>
                  <button
                    type="button"
-                   onClick={() => setDisciplinePenaltyPoints((current) => Math.min(current + 1, maxDisciplinePenaltyPoints))}
+                   onClick={() => {
+                     setSaveError(null);
+                     setIsDisciplineModalOpen(true);
+                   }}
                    disabled={!canInteract || disciplinePenaltyPoints >= maxDisciplinePenaltyPoints}
                    className="flex h-11 items-center justify-center border-4 border-foreground bg-white text-xl font-black shadow-editorial-sm disabled:opacity-30"
                  >
@@ -322,21 +325,6 @@ export default function AttendanceCard({
 
                {disciplinePenaltyPoints > 0 ? (
                  <div className="mt-3 flex flex-col gap-2">
-                   {canInteract ? (
-                     <label className="flex flex-col gap-2">
-                       <span className="text-[9px] font-black uppercase tracking-[0.16em] opacity-50">
-                         Motivo obrigatório
-                       </span>
-                       <textarea
-                         value={disciplinePenaltyReason}
-                         onChange={(event) => setDisciplinePenaltyReason(event.target.value)}
-                         placeholder="Informe o motivo do desconto"
-                         rows={3}
-                         className="min-h-[88px] w-full resize-none border-4 border-foreground bg-white px-3 py-2 text-sm font-bold leading-relaxed outline-none transition-colors focus:bg-es-orange/10"
-                       />
-                     </label>
-                   ) : null}
-
                    <div className="border-2 border-foreground bg-background px-3 py-2">
                      <p className="text-[8px] font-black uppercase tracking-[0.18em] opacity-40">
                        Motivo registrado
@@ -423,6 +411,22 @@ export default function AttendanceCard({
         <AttendanceStudentEditModal
           student={student}
           onClose={() => setIsStudentModalOpen(false)}
+        />
+      ) : null}
+
+      {isDisciplineModalOpen ? (
+        <AttendanceDisciplinePenaltyModal
+          studentName={student.full_name}
+          currentPenaltyPoints={disciplinePenaltyPoints}
+          initialReason={disciplinePenaltyReason}
+          initialAppliedByName={disciplinePenaltyAppliedByName}
+          onClose={() => setIsDisciplineModalOpen(false)}
+          onConfirm={(reason) => {
+            setDisciplinePenaltyPoints((current) => Math.min(current + 1, maxDisciplinePenaltyPoints));
+            setDisciplinePenaltyReason(reason);
+            setDisciplinePenaltyAppliedByName("");
+            setIsDisciplineModalOpen(false);
+          }}
         />
       ) : null}
     </>
