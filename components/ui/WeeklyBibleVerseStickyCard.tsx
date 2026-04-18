@@ -4,6 +4,7 @@ import { BookOpen, Settings } from "lucide-react";
 interface WeeklyBibleVerseStickyCardProps {
   classId: string;
   displayDate: string;
+  verseWeekDisplayDate: string;
   verse: {
     week_date: string;
     verse_text: string;
@@ -23,6 +24,7 @@ function formatWeekLabel(weekDate: string) {
 export default function WeeklyBibleVerseStickyCard({
   classId,
   displayDate,
+  verseWeekDisplayDate,
   verse,
 }: WeeklyBibleVerseStickyCardProps) {
   const classSettingsHref = `/classes/${classId}#weekly-bible-verse-section`;
@@ -65,10 +67,16 @@ export default function WeeklyBibleVerseStickyCard({
           <div className="flex flex-col gap-4 border-t-4 border-foreground bg-background p-4 lg:border-l-4 lg:border-t-0">
             <div className="flex flex-col gap-2">
               <span className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/45">
-                Semana em Exibição
+                Sábado da Frequência
               </span>
               <span className="text-xl font-black uppercase leading-none tracking-tighter">
                 {displayDate}
+              </span>
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/45">
+                Verso esperado da semana
+              </span>
+              <span className="text-base font-black uppercase leading-none tracking-tighter">
+                {verseWeekDisplayDate}
               </span>
               <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-foreground/45">
                 {verse ? `Registrado para ${formatWeekLabel(verse.week_date)}` : "Sem referência cadastrada"}

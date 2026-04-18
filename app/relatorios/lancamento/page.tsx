@@ -35,6 +35,13 @@ function computeSaturday(input?: string) {
   return `${saturday.getFullYear()}-${String(saturday.getMonth() + 1).padStart(2, "0")}-${String(saturday.getDate()).padStart(2, "0")}`;
 }
 
+function shiftSaturday(input: string, weeks: number) {
+  const [year, month, day] = input.split("-").map(Number);
+  const shiftedDate = new Date(year, month - 1, day + (weeks * 7), 12, 0, 0);
+
+  return `${shiftedDate.getFullYear()}-${String(shiftedDate.getMonth() + 1).padStart(2, "0")}-${String(shiftedDate.getDate()).padStart(2, "0")}`;
+}
+
 export default async function LancamentoFrequenciaPage({ searchParams }: Params) {
   const supabase = await createClient();
   const {
@@ -48,6 +55,7 @@ export default async function LancamentoFrequenciaPage({ searchParams }: Params)
 
   const d = (await searchParams).d;
   const saturdayStr = computeSaturday(d);
+  const verseWeekStr = shiftSaturday(saturdayStr, -1);
 
   if (d !== saturdayStr) {
     redirect(`/relatorios/lancamento?d=${saturdayStr}`);
@@ -55,16 +63,16 @@ export default async function LancamentoFrequenciaPage({ searchParams }: Params)
 
   const [tY, tM, tD] = saturdayStr.split("-").map(Number);
   const targetDate = new Date(tY, tM - 1, tD, 12, 0, 0);
-  const prevDate = new Date(tY, tM - 1, tD - 7, 12, 0, 0);
-  const nextDate = new Date(tY, tM - 1, tD + 7, 12, 0, 0);
-  const prevSat = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, "0")}-${String(prevDate.getDate()).padStart(2, "0")}`;
-  const nextSat = `${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, "0")}-${String(nextDate.getDate()).padStart(2, "0")}`;
+  const [vY, vM, vD] = verseWeekStr.split("-").map(Number);
+  const verseWeekDate = new Date(vY, vM - 1, vD, 12, 0, 0);
+  const prevSat = shiftSaturday(saturdayStr, -1);
+  const nextSat = shiftSaturday(saturdayStr, 1);
 
   const [attendanceData, students, rules, weeklyBibleVerse] = await Promise.all([
     getAttendanceContext(classId, saturdayStr),
     getStudents(classId),
     getScoringRules(classId),
-    getClassWeeklyBibleVerseByWeek(classId, saturdayStr),
+    getClassWeeklyBibleVerseByWeek(classId, verseWeekStr),
   ]);
 
   if ("error" in attendanceData) {
@@ -84,6 +92,7 @@ export default async function LancamentoFrequenciaPage({ searchParams }: Params)
   const savedStudents = students.filter((student) => recordsByStudentId.has(student.id));
 
   const displayDate = format(targetDate, "dd 'de' MMMM", { locale: ptBR });
+  const verseWeekDisplayDate = format(verseWeekDate, "dd 'de' MMMM", { locale: ptBR });
 
   return (
     <div className={pageShellClass}>
@@ -117,6 +126,7 @@ export default async function LancamentoFrequenciaPage({ searchParams }: Params)
         <WeeklyBibleVerseStickyCard
           classId={classId}
           displayDate={displayDate}
+          verseWeekDisplayDate={verseWeekDisplayDate}
           verse={weeklyBibleVerse}
         />
 
