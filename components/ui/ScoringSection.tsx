@@ -31,6 +31,11 @@ export default function ScoringSection({ classId, rules }: ScoringSectionProps) 
   const [isAdding, setIsAdding] = useState(false);
   const [editingRule, setEditingRule] = useState<Rule | null>(null);
 
+  const openRuleEditor = (rule: Rule) => {
+    setIsAdding(false);
+    setEditingRule(rule);
+  };
+
   const handleLoadDefaults = () => {
     if (confirm("Deseja carregar os itens de avaliação padrão? Isso adicionará as 8 regras base à sua classe.")) {
       startTransition(async () => {
@@ -105,7 +110,16 @@ export default function ScoringSection({ classId, rules }: ScoringSectionProps) 
             return (
               <div 
                 key={rule.id}
-                className={`group bg-white border-4 border-foreground shadow-editorial flex flex-col transition-all overflow-hidden ${!rule.is_active ? "opacity-60 grayscale" : "hover:shadow-editorial-hover active:translate-y-0.5"}`}
+                role="button"
+                tabIndex={0}
+                onClick={() => openRuleEditor(rule)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    openRuleEditor(rule);
+                  }
+                }}
+                className={`group bg-white border-4 border-foreground shadow-editorial flex flex-col transition-all overflow-hidden cursor-pointer focus:outline-none focus:shadow-editorial-hover ${!rule.is_active ? "opacity-60 grayscale" : "hover:shadow-editorial-hover active:translate-y-0.5"}`}
               >
                 <div className={`h-2 w-full ${style.color} border-b-4 border-foreground`} />
                 <div className="p-5 flex-1 flex flex-col gap-4">
@@ -116,14 +130,20 @@ export default function ScoringSection({ classId, rules }: ScoringSectionProps) 
                         </span>
                         <div className="flex items-center gap-1">
                            <button 
-                             onClick={() => handleReorder(rule.id, "up")} 
+                             onClick={(event) => {
+                               event.stopPropagation();
+                               handleReorder(rule.id, "up");
+                             }} 
                              disabled={index === 0 || isPending}
                              className="p-1 hover:bg-background border border-transparent hover:border-foreground disabled:opacity-30"
                            >
                               <ArrowUp className="w-3 h-3" />
                            </button>
                            <button 
-                             onClick={() => handleReorder(rule.id, "down")} 
+                             onClick={(event) => {
+                               event.stopPropagation();
+                               handleReorder(rule.id, "down");
+                             }} 
                              disabled={index === rules.length - 1 || isPending}
                              className="p-1 hover:bg-background border border-transparent hover:border-foreground disabled:opacity-30"
                            >
@@ -132,10 +152,22 @@ export default function ScoringSection({ classId, rules }: ScoringSectionProps) 
                         </div>
                      </div>
                      <div className="flex items-center gap-2 text-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity">
-                       <button onClick={() => setEditingRule(rule)} className="p-1 hover:bg-es-yellow transition-colors border-2 border-transparent hover:border-foreground">
+                       <button
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            openRuleEditor(rule);
+                          }}
+                          className="p-1 hover:bg-es-yellow transition-colors border-2 border-transparent hover:border-foreground"
+                       >
                           <Edit2 className="w-4 h-4 text-foreground stroke-[2.5]" />
                        </button>
-                       <button onClick={() => handleDelete(rule.id)} className="p-1 hover:bg-es-orange transition-colors border-2 border-transparent hover:border-foreground">
+                       <button
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleDelete(rule.id);
+                          }}
+                          className="p-1 hover:bg-es-orange transition-colors border-2 border-transparent hover:border-foreground"
+                       >
                           <Trash2 className="w-4 h-4 text-foreground stroke-[2.5]" />
                        </button>
                      </div>
