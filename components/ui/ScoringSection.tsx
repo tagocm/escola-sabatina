@@ -31,6 +31,11 @@ export default function ScoringSection({ classId, rules }: ScoringSectionProps) 
   const [isAdding, setIsAdding] = useState(false);
   const [editingRule, setEditingRule] = useState<Rule | null>(null);
 
+  const closeEditor = () => {
+    setIsAdding(false);
+    setEditingRule(null);
+  };
+
   const openRuleEditor = (rule: Rule) => {
     setIsAdding(false);
     setEditingRule(rule);
@@ -85,15 +90,19 @@ export default function ScoringSection({ classId, rules }: ScoringSectionProps) 
       </div>
 
       {(isAdding || editingRule) && (
-        <div className="bg-[#FFFCEE] border-4 border-foreground p-6 shadow-editorial animate-in zoom-in-95 duration-200">
-           <ScoringRuleForm 
-             classId={classId} 
-             initialData={editingRule || undefined} 
-             onClose={() => {
-               setIsAdding(false);
-               setEditingRule(null);
-             }}
-           />
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/25 p-3 backdrop-blur-[2px] md:items-center md:p-6">
+          <div
+            className="absolute inset-0"
+            aria-hidden="true"
+            onClick={closeEditor}
+          />
+          <div className="relative z-10 max-h-[calc(100svh-1.5rem)] w-full max-w-2xl overflow-y-auto border-4 border-foreground bg-[#FFFCEE] p-5 shadow-editorial animate-in zoom-in-95 duration-200 md:max-h-[85svh] md:p-6">
+            <ScoringRuleForm
+              classId={classId}
+              initialData={editingRule || undefined}
+              onClose={closeEditor}
+            />
+          </div>
         </div>
       )}
 
