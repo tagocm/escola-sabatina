@@ -56,6 +56,95 @@ function normalizeDisciplineEvent(event: AttendanceDisciplineEvent): AttendanceD
   };
 }
 
+interface AttendanceAdjustmentPanelProps {
+  title: string;
+  subtitle: string;
+  value: string;
+  tone: "green" | "orange";
+  actionLabel: string;
+  onDecrease: () => void;
+  onPrimary: () => void;
+  onIncrease: () => void;
+  decreaseDisabled?: boolean;
+  primaryDisabled?: boolean;
+  increaseDisabled?: boolean;
+}
+
+const ADJUSTMENT_PANEL_STYLES = {
+  green: {
+    title: "text-es-green",
+    primary: "bg-es-green text-foreground",
+  },
+  orange: {
+    title: "text-es-orange",
+    primary: "bg-es-orange text-foreground",
+  },
+};
+
+function AttendanceAdjustmentPanel({
+  title,
+  subtitle,
+  value,
+  tone,
+  actionLabel,
+  onDecrease,
+  onPrimary,
+  onIncrease,
+  decreaseDisabled = false,
+  primaryDisabled = false,
+  increaseDisabled = false,
+}: AttendanceAdjustmentPanelProps) {
+  const toneStyles = ADJUSTMENT_PANEL_STYLES[tone];
+
+  return (
+    <div className="flex h-[88px] flex-col justify-between border-4 border-foreground bg-white px-3 py-2.5 shadow-editorial-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-col gap-1">
+          <span className={`text-[9px] font-black uppercase tracking-[0.14em] leading-none ${toneStyles.title}`}>
+            {title}
+          </span>
+          <span className="text-[8px] font-bold uppercase tracking-[0.14em] leading-none text-foreground/40">
+            {subtitle}
+          </span>
+        </div>
+
+        <span className="flex h-7 min-w-9 items-center justify-center border-2 border-foreground bg-background px-2 text-[13px] font-black uppercase tracking-tight">
+          {value}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-[34px_1fr_34px] items-center gap-2">
+        <button
+          type="button"
+          onClick={onDecrease}
+          disabled={decreaseDisabled}
+          className="flex h-9 items-center justify-center border-4 border-foreground bg-white text-[18px] font-black leading-none shadow-editorial-sm transition-all hover:bg-background disabled:opacity-30"
+        >
+          -
+        </button>
+
+        <button
+          type="button"
+          onClick={onPrimary}
+          disabled={primaryDisabled}
+          className={`flex h-9 items-center justify-center border-4 border-foreground px-3 text-[10px] font-black uppercase tracking-[0.08em] shadow-editorial-sm transition-all disabled:opacity-30 ${toneStyles.primary}`}
+        >
+          {actionLabel}
+        </button>
+
+        <button
+          type="button"
+          onClick={onIncrease}
+          disabled={increaseDisabled}
+          className="flex h-9 items-center justify-center border-4 border-foreground bg-white text-[18px] font-black leading-none shadow-editorial-sm transition-all hover:bg-background disabled:opacity-30"
+        >
+          +
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function AttendanceCard({
   classId,
   date,
@@ -249,111 +338,53 @@ export default function AttendanceCard({
           </div>
 
           <div className="grid grid-cols-1 gap-2.5 items-stretch lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_88px]">
-            <div className="flex h-[88px] flex-col justify-between border-4 border-foreground bg-white px-3 py-2.5 shadow-editorial-sm self-stretch">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex flex-col">
-                  <span className="text-[9px] font-black uppercase tracking-[0.18em] text-es-green">
-                    Atividade extra
-                  </span>
-                  <span className="text-[8px] font-bold uppercase tracking-[0.16em] opacity-40">
-                    Pontos fora da lista
-                  </span>
-                </div>
-                <span className="min-w-8 text-right text-[15px] font-black uppercase tracking-tight">
-                  +{extraActivityPoints}
-                </span>
-              </div>
+            <AttendanceAdjustmentPanel
+              title="Atividade Extra"
+              subtitle="Pontos fora da lista"
+              value={`+${extraActivityPoints}`}
+              tone="green"
+              actionLabel="Adicionar +1"
+              onDecrease={() => setExtraActivityPoints((current) => Math.max(0, current - 1))}
+              onPrimary={() => setExtraActivityPoints((current) => current + 1)}
+              onIncrease={() => setExtraActivityPoints((current) => current + 1)}
+              decreaseDisabled={!canInteract || extraActivityPoints === 0}
+              primaryDisabled={!canInteract}
+              increaseDisabled={!canInteract}
+            />
 
-              <div className="mt-2 grid grid-cols-[36px_1fr_36px] gap-2">
-                <button
-                  type="button"
-                  onClick={() => setExtraActivityPoints((current) => Math.max(0, current - 1))}
-                  disabled={!canInteract || extraActivityPoints === 0}
-                  className="flex h-9 items-center justify-center border-4 border-foreground bg-white text-base font-black shadow-editorial-sm disabled:opacity-30"
-                >
-                  -
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setExtraActivityPoints((current) => current + 1)}
-                  disabled={!canInteract}
-                  className="flex h-9 items-center justify-center border-4 border-foreground bg-es-green text-[8px] font-black uppercase tracking-[0.14em] shadow-editorial-sm disabled:opacity-30"
-                >
-                  Adicionar +1
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setExtraActivityPoints((current) => current + 1)}
-                  disabled={!canInteract}
-                  className="flex h-9 items-center justify-center border-4 border-foreground bg-white text-base font-black shadow-editorial-sm disabled:opacity-30"
-                >
-                  +
-                </button>
-              </div>
-            </div>
+            <AttendanceAdjustmentPanel
+              title="Indisciplina"
+              subtitle="Descontos por ocorrência"
+              value={`-${disciplinePenaltyPoints}`}
+              tone="orange"
+              actionLabel="Descontar -1"
+              onDecrease={() => {
+                setDisciplineEvents((current) => {
+                  if (current.length === 0) return current;
 
-            <div className="flex h-[88px] flex-col justify-between border-4 border-foreground bg-white px-3 py-2.5 shadow-editorial-sm self-stretch">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex flex-col">
-                  <span className="text-[9px] font-black uppercase tracking-[0.18em] text-es-orange">
-                    Indisciplina
-                  </span>
-                  <span className="text-[8px] font-bold uppercase tracking-[0.16em] opacity-40">
-                    Descontos por ocorrência
-                  </span>
-                </div>
-                <span className="min-w-8 text-right text-[15px] font-black uppercase tracking-tight">
-                  -{disciplinePenaltyPoints}
-                </span>
-              </div>
+                  const nextEvents = [...current];
+                  const lastEventIndex = nextEvents.length - 1;
+                  const lastEvent = nextEvents[lastEventIndex];
+                  const nextPoints = Math.max(0, Math.trunc((lastEvent.points || 1) - 1));
 
-              <div className="mt-2 grid grid-cols-[36px_1fr_36px] gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDisciplineEvents((current) => {
-                      if (current.length === 0) return current;
+                  if (nextPoints === 0) {
+                    nextEvents.pop();
+                  } else {
+                    nextEvents[lastEventIndex] = {
+                      ...lastEvent,
+                      points: nextPoints,
+                    };
+                  }
 
-                      const nextEvents = [...current];
-                      const lastEventIndex = nextEvents.length - 1;
-                      const lastEvent = nextEvents[lastEventIndex];
-                      const nextPoints = Math.max(0, Math.trunc((lastEvent.points || 1) - 1));
-
-                      if (nextPoints === 0) {
-                        nextEvents.pop();
-                      } else {
-                        nextEvents[lastEventIndex] = {
-                          ...lastEvent,
-                          points: nextPoints,
-                        };
-                      }
-
-                      return nextEvents;
-                    });
-                  }}
-                  disabled={!canInteract || disciplinePenaltyPoints === 0}
-                  className="flex h-9 items-center justify-center border-4 border-foreground bg-white text-base font-black shadow-editorial-sm disabled:opacity-30"
-                >
-                  -
-                </button>
-                <button
-                  type="button"
-                  onClick={openCreateDisciplineEventModal}
-                  disabled={!canInteract || disciplinePenaltyPoints >= maxDisciplinePenaltyPoints}
-                  className="flex h-9 items-center justify-center border-4 border-foreground bg-es-orange text-[8px] font-black uppercase tracking-[0.14em] shadow-editorial-sm disabled:opacity-30"
-                >
-                  Descontar -1
-                </button>
-                <button
-                  type="button"
-                  onClick={openCreateDisciplineEventModal}
-                  disabled={!canInteract || disciplinePenaltyPoints >= maxDisciplinePenaltyPoints}
-                  className="flex h-9 items-center justify-center border-4 border-foreground bg-white text-base font-black shadow-editorial-sm disabled:opacity-30"
-                >
-                  +
-                </button>
-              </div>
-            </div>
+                  return nextEvents;
+                });
+              }}
+              onPrimary={openCreateDisciplineEventModal}
+              onIncrease={openCreateDisciplineEventModal}
+              decreaseDisabled={!canInteract || disciplinePenaltyPoints === 0}
+              primaryDisabled={!canInteract || disciplinePenaltyPoints >= maxDisciplinePenaltyPoints}
+              increaseDisabled={!canInteract || disciplinePenaltyPoints >= maxDisciplinePenaltyPoints}
+            />
 
             <AttendanceDisciplineEventsCard
               events={disciplineEvents}
