@@ -16,6 +16,7 @@ import PageHeader from "@/components/ui/PageHeader";
 import AttendanceCard from "@/components/ui/AttendanceCard";
 import WeeklyBibleVerseStickyCard from "@/components/ui/WeeklyBibleVerseStickyCard";
 import { pageMainClass, pageShellClass } from "@/components/ui/design-system";
+import type { AttendanceDisciplineEvent } from "@/lib/types/attendance";
 
 interface Params {
   searchParams: Promise<{ d?: string }>;
@@ -89,13 +90,59 @@ export default async function LancamentoFrequenciaPage({ searchParams }: Params)
   const pendingStudents = students.filter((student) => !recordsByStudentId.has(student.id));
   const savedStudents = students.filter((student) => recordsByStudentId.has(student.id));
   const getRecordAdjustments = (studentId: string) => {
-    const record = recordsByStudentId.get(studentId);
+    const record = recordsByStudentId.get(studentId) as
+      | {
+          id: string;
+          saved_at?: string | null;
+          extra_activity_points?: number | null;
+          discipline_penalty_points?: number | null;
+          discipline_penalty_reason?: string | null;
+          discipline_penalty_applied_by?: string | null;
+          discipline_penalty_applied_by_name?: string | null;
+          attendance_discipline_events?: Array<{
+            id: string;
+            points: number | null;
+            reason: string | null;
+            applied_by: string | null;
+            applied_by_name: string | null;
+            created_at: string | null;
+            updated_at: string | null;
+          }> | null;
+        }
+      | undefined;
+
+    const disciplineEvents: AttendanceDisciplineEvent[] = Array.isArray(record?.attendance_discipline_events)
+      ? [...record.attendance_discipline_events]
+          .sort((left, right) => {
+            const leftTime = left.created_at ? new Date(left.created_at).getTime() : 0;
+            const rightTime = right.created_at ? new Date(right.created_at).getTime() : 0;
+            return leftTime - rightTime;
+          })
+          .map((event) => ({
+            id: event.id,
+            points: Math.max(1, Number(event.points || 1)),
+            reason: String(event.reason || "").trim(),
+            appliedBy: event.applied_by,
+            appliedByName: event.applied_by_name,
+            createdAt: event.created_at,
+            updatedAt: event.updated_at,
+          }))
+      : [];
+
+    if (disciplineEvents.length === 0 && Number(record?.discipline_penalty_points || 0) > 0) {
+      disciplineEvents.push({
+        points: Math.max(1, Number(record?.discipline_penalty_points || 1)),
+        reason: String(record?.discipline_penalty_reason || "Registro anterior sem motivo informado").trim(),
+        appliedBy: record?.discipline_penalty_applied_by || null,
+        appliedByName: record?.discipline_penalty_applied_by_name || "Professor não identificado",
+        createdAt: record?.saved_at || null,
+        updatedAt: record?.saved_at || null,
+      });
+    }
 
     return {
       extraActivityPoints: record?.extra_activity_points ?? 0,
-      disciplinePenaltyPoints: record?.discipline_penalty_points ?? 0,
-      disciplinePenaltyReason: record?.discipline_penalty_reason ?? "",
-      disciplinePenaltyAppliedByName: record?.discipline_penalty_applied_by_name ?? "",
+      disciplineEvents,
     };
   };
 
@@ -169,9 +216,7 @@ export default async function LancamentoFrequenciaPage({ searchParams }: Params)
                     rules={rules}
                     initialSelectedRuleIds={selectedRuleIdsByStudentId[student.id] || []}
                     initialExtraActivityPoints={adjustments.extraActivityPoints}
-                    initialDisciplinePenaltyPoints={adjustments.disciplinePenaltyPoints}
-                    initialDisciplinePenaltyReason={adjustments.disciplinePenaltyReason}
-                    initialDisciplinePenaltyAppliedByName={adjustments.disciplinePenaltyAppliedByName}
+                    initialDisciplineEvents={adjustments.disciplineEvents}
                   />
                 );
               })}
@@ -214,9 +259,7 @@ export default async function LancamentoFrequenciaPage({ searchParams }: Params)
                     rules={rules}
                     initialSelectedRuleIds={selectedRuleIdsByStudentId[student.id] || []}
                     initialExtraActivityPoints={adjustments.extraActivityPoints}
-                    initialDisciplinePenaltyPoints={adjustments.disciplinePenaltyPoints}
-                    initialDisciplinePenaltyReason={adjustments.disciplinePenaltyReason}
-                    initialDisciplinePenaltyAppliedByName={adjustments.disciplinePenaltyAppliedByName}
+                    initialDisciplineEvents={adjustments.disciplineEvents}
                     isSaved
                   />
                 );
