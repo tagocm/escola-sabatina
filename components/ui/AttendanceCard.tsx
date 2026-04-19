@@ -97,28 +97,28 @@ function AttendanceAdjustmentPanel({
   const toneStyles = ADJUSTMENT_PANEL_STYLES[tone];
 
   return (
-    <div className="flex h-[88px] flex-col justify-between border-4 border-foreground bg-white px-3.5 py-3 shadow-editorial-sm">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex min-w-0 flex-col gap-1.5 pr-1">
-          <span className={`text-[9px] font-black uppercase leading-none tracking-[0.16em] ${toneStyles.title}`}>
+    <div className="grid h-[88px] grid-rows-[1fr_32px] gap-2 border-4 border-foreground bg-white px-2.5 py-2.5 shadow-editorial-sm">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+        <div className="flex min-w-0 flex-col gap-1 pr-1">
+          <span className={`text-[8px] font-black uppercase leading-none tracking-[0.18em] ${toneStyles.title}`}>
             {title}
           </span>
-          <span className="text-[8px] font-bold uppercase leading-none tracking-[0.16em] text-foreground/40">
+          <span className="text-[7px] font-bold uppercase leading-none tracking-[0.18em] text-foreground/40">
             {subtitle}
           </span>
         </div>
 
-        <span className="flex h-8 min-w-[3rem] shrink-0 items-center justify-center border-2 border-foreground bg-background px-2.5 text-[12px] font-black uppercase tracking-tight shadow-editorial-sm">
+        <span className="flex h-6 min-w-[2.75rem] shrink-0 items-center justify-center border-2 border-foreground bg-background px-2 text-[11px] font-black uppercase tracking-tight">
           {value}
         </span>
       </div>
 
-      <div className="grid grid-cols-[42px_minmax(0,1fr)_42px] items-center gap-2.5">
+      <div className="grid grid-cols-[32px_minmax(0,1fr)_32px] items-center gap-2">
         <button
           type="button"
           onClick={onDecrease}
           disabled={decreaseDisabled}
-          className="flex h-10 w-10 items-center justify-center border-4 border-foreground bg-white text-[18px] font-black leading-none shadow-editorial-sm transition-all hover:bg-background disabled:opacity-30"
+          className="flex h-8 w-8 items-center justify-center border-4 border-foreground bg-white text-[16px] font-black leading-none shadow-editorial-sm transition-all hover:bg-background disabled:opacity-30"
         >
           -
         </button>
@@ -127,7 +127,7 @@ function AttendanceAdjustmentPanel({
           type="button"
           onClick={onPrimary}
           disabled={primaryDisabled}
-          className={`flex h-10 min-w-0 items-center justify-center overflow-hidden border-4 border-foreground px-3.5 text-[10px] font-black uppercase tracking-[0.12em] shadow-editorial-sm transition-all disabled:opacity-30 ${toneStyles.primary}`}
+          className={`flex h-8 min-w-0 items-center justify-center overflow-hidden border-4 border-foreground px-2.5 text-[9px] font-black uppercase tracking-[0.12em] shadow-editorial-sm transition-all disabled:opacity-30 ${toneStyles.primary}`}
         >
           {actionLabel}
         </button>
@@ -136,7 +136,7 @@ function AttendanceAdjustmentPanel({
           type="button"
           onClick={onIncrease}
           disabled={increaseDisabled}
-          className="flex h-10 w-10 items-center justify-center border-4 border-foreground bg-white text-[18px] font-black leading-none shadow-editorial-sm transition-all hover:bg-background disabled:opacity-30"
+          className="flex h-8 w-8 items-center justify-center border-4 border-foreground bg-white text-[16px] font-black leading-none shadow-editorial-sm transition-all hover:bg-background disabled:opacity-30"
         >
           +
         </button>
