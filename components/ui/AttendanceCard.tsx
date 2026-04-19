@@ -182,7 +182,7 @@ export default function AttendanceCard({
     <>
       <div
         className={`
-          bg-white border-4 border-foreground shadow-editorial p-4 md:p-5 flex flex-col xl:grid xl:grid-cols-[128px_1fr_160px] gap-4 md:gap-5 transition-all xl:items-start
+          bg-white border-4 border-foreground shadow-editorial p-4 md:p-4 flex flex-col xl:grid xl:grid-cols-[124px_1fr_152px] gap-4 transition-all xl:items-start
           ${isSaved && !isEditing ? "opacity-60 grayscale bg-background/50 border-foreground/10" : "border-foreground"}
         `}
       >
@@ -193,8 +193,8 @@ export default function AttendanceCard({
             className="text-left focus:outline-none"
             aria-label={`Abrir cadastro de ${student.full_name}`}
           >
-            <div className="bg-white border-4 border-foreground shadow-editorial-sm p-1.5 pb-4 flex flex-col gap-2 transition-all group-hover/card:shadow-editorial group-active/card:translate-y-0.5">
-              <div className="relative flex h-[96px] w-[96px] items-center justify-center overflow-hidden border-4 border-foreground bg-background md:h-[108px] md:w-[108px]">
+            <div className="bg-white border-4 border-foreground shadow-editorial-sm p-1.5 pb-3.5 flex flex-col gap-2 transition-all group-hover/card:shadow-editorial group-active/card:translate-y-0.5">
+              <div className="relative flex h-[92px] w-[92px] items-center justify-center overflow-hidden border-4 border-foreground bg-background md:h-[100px] md:w-[100px]">
                 {photoSrc ? (
                   <Image
                     src={photoSrc}
@@ -213,7 +213,7 @@ export default function AttendanceCard({
                   </div>
                 ) : null}
               </div>
-              <div className="flex min-h-[3rem] flex-col items-center justify-center px-1 py-1 leading-tight">
+              <div className="flex min-h-[2.8rem] flex-col items-center justify-center px-1 py-1 leading-tight">
                 <span className="w-full text-center text-[13px] font-black uppercase tracking-tighter text-foreground break-words">
                   {nameObj.first}
                 </span>
@@ -227,7 +227,7 @@ export default function AttendanceCard({
           </button>
         </div>
 
-        <div className="flex min-w-0 flex-col gap-2.5 xl:self-start">
+        <div className="flex min-w-0 flex-col gap-2 xl:self-start">
           <div className={`flex flex-row flex-wrap gap-2.5 items-center content-center ${!canInteract ? "pointer-events-none" : ""}`}>
             {rules.map((rule) => {
               const isSelected = selectedIds.includes(rule.id);
@@ -240,7 +240,7 @@ export default function AttendanceCard({
                   onClick={() => handleToggle(rule.id)}
                   disabled={isPending || !canInteract}
                   className={`
-                    relative min-h-11 min-w-[86px] px-3 py-2 flex flex-1 basis-[calc(50%-0.5rem)] flex-col items-start justify-center border-4 border-foreground transition-all select-none sm:flex-none
+                    relative min-h-10 min-w-[82px] px-2.5 py-2 flex flex-1 basis-[calc(50%-0.5rem)] flex-col items-start justify-center border-4 border-foreground transition-all select-none sm:flex-none
                     ${isSelected ? `${style.color} shadow-editorial-sm translate-y-0.5` : "bg-white hover:bg-background shadow-none"}
                     ${canInteract ? "cursor-pointer" : "cursor-default opacity-50"}
                   `}
@@ -264,8 +264,8 @@ export default function AttendanceCard({
             })}
           </div>
 
-          <div className="grid grid-cols-1 gap-3 items-start lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_210px]">
-            <div className="border-4 border-foreground bg-white px-3 py-3 shadow-editorial-sm self-start">
+          <div className="grid grid-cols-1 gap-2.5 items-start lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_88px]">
+            <div className="border-4 border-foreground bg-white px-3 py-2.5 shadow-editorial-sm self-start">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex flex-col">
                   <span className="text-[9px] font-black uppercase tracking-[0.18em] text-es-green">
@@ -275,17 +275,17 @@ export default function AttendanceCard({
                     Pontos fora da lista
                   </span>
                 </div>
-                <span className="min-w-10 text-right text-base font-black uppercase tracking-tight">
+                <span className="min-w-8 text-right text-[15px] font-black uppercase tracking-tight">
                   +{extraActivityPoints}
                 </span>
               </div>
 
-              <div className="mt-2.5 grid grid-cols-[40px_1fr_40px] gap-2">
+              <div className="mt-2 grid grid-cols-[36px_1fr_36px] gap-2">
                 <button
                   type="button"
                   onClick={() => setExtraActivityPoints((current) => Math.max(0, current - 1))}
                   disabled={!canInteract || extraActivityPoints === 0}
-                  className="flex h-10 items-center justify-center border-4 border-foreground bg-white text-lg font-black shadow-editorial-sm disabled:opacity-30"
+                  className="flex h-9 items-center justify-center border-4 border-foreground bg-white text-base font-black shadow-editorial-sm disabled:opacity-30"
                 >
                   -
                 </button>
@@ -293,7 +293,7 @@ export default function AttendanceCard({
                   type="button"
                   onClick={() => setExtraActivityPoints((current) => current + 1)}
                   disabled={!canInteract}
-                  className="flex h-10 items-center justify-center border-4 border-foreground bg-es-green text-[9px] font-black uppercase tracking-[0.16em] shadow-editorial-sm disabled:opacity-30"
+                  className="flex h-9 items-center justify-center border-4 border-foreground bg-es-green text-[8px] font-black uppercase tracking-[0.14em] shadow-editorial-sm disabled:opacity-30"
                 >
                   Adicionar +1
                 </button>
@@ -301,14 +301,14 @@ export default function AttendanceCard({
                   type="button"
                   onClick={() => setExtraActivityPoints((current) => current + 1)}
                   disabled={!canInteract}
-                  className="flex h-10 items-center justify-center border-4 border-foreground bg-white text-lg font-black shadow-editorial-sm disabled:opacity-30"
+                  className="flex h-9 items-center justify-center border-4 border-foreground bg-white text-base font-black shadow-editorial-sm disabled:opacity-30"
                 >
                   +
                 </button>
               </div>
             </div>
 
-            <div className="border-4 border-foreground bg-white px-3 py-3 shadow-editorial-sm self-start">
+            <div className="border-4 border-foreground bg-white px-3 py-2.5 shadow-editorial-sm self-start">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex flex-col">
                   <span className="text-[9px] font-black uppercase tracking-[0.18em] text-es-orange">
@@ -318,12 +318,12 @@ export default function AttendanceCard({
                     Descontos por ocorrência
                   </span>
                 </div>
-                <span className="min-w-10 text-right text-base font-black uppercase tracking-tight">
+                <span className="min-w-8 text-right text-[15px] font-black uppercase tracking-tight">
                   -{disciplinePenaltyPoints}
                 </span>
               </div>
 
-              <div className="mt-2.5 grid grid-cols-[40px_1fr_40px] gap-2">
+              <div className="mt-2 grid grid-cols-[36px_1fr_36px] gap-2">
                 <button
                   type="button"
                   onClick={() => {
@@ -348,7 +348,7 @@ export default function AttendanceCard({
                     });
                   }}
                   disabled={!canInteract || disciplinePenaltyPoints === 0}
-                  className="flex h-10 items-center justify-center border-4 border-foreground bg-white text-lg font-black shadow-editorial-sm disabled:opacity-30"
+                  className="flex h-9 items-center justify-center border-4 border-foreground bg-white text-base font-black shadow-editorial-sm disabled:opacity-30"
                 >
                   -
                 </button>
@@ -356,7 +356,7 @@ export default function AttendanceCard({
                   type="button"
                   onClick={openCreateDisciplineEventModal}
                   disabled={!canInteract || disciplinePenaltyPoints >= maxDisciplinePenaltyPoints}
-                  className="flex h-10 items-center justify-center border-4 border-foreground bg-es-orange text-[9px] font-black uppercase tracking-[0.16em] shadow-editorial-sm disabled:opacity-30"
+                  className="flex h-9 items-center justify-center border-4 border-foreground bg-es-orange text-[8px] font-black uppercase tracking-[0.14em] shadow-editorial-sm disabled:opacity-30"
                 >
                   Descontar -1
                 </button>
@@ -364,7 +364,7 @@ export default function AttendanceCard({
                   type="button"
                   onClick={openCreateDisciplineEventModal}
                   disabled={!canInteract || disciplinePenaltyPoints >= maxDisciplinePenaltyPoints}
-                  className="flex h-10 items-center justify-center border-4 border-foreground bg-white text-lg font-black shadow-editorial-sm disabled:opacity-30"
+                  className="flex h-9 items-center justify-center border-4 border-foreground bg-white text-base font-black shadow-editorial-sm disabled:opacity-30"
                 >
                   +
                 </button>
@@ -378,7 +378,7 @@ export default function AttendanceCard({
           </div>
         </div>
 
-        <div className="flex flex-row items-center justify-between gap-4 border-t-4 border-foreground/5 pt-4 xl:flex-col xl:items-end xl:justify-start xl:self-start xl:border-l-4 xl:border-t-0 xl:pl-5 xl:pt-0">
+        <div className="flex flex-row items-center justify-between gap-4 border-t-4 border-foreground/5 pt-4 xl:flex-col xl:items-end xl:justify-start xl:self-start xl:border-l-4 xl:border-t-0 xl:pl-4 xl:pt-0">
           <div className="flex flex-col items-center relative order-1 lg:order-none">
             {isSaved && !isEditing ? (
               <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-es-green text-white text-[8px] font-black px-2 py-0.5 shadow-editorial-sm whitespace-nowrap z-10 border-2 border-foreground uppercase tracking-widest">
@@ -387,11 +387,11 @@ export default function AttendanceCard({
             ) : null}
             <div
               className={`
-                w-14 h-14 border-4 border-foreground rounded-none flex flex-col items-center justify-center shrink-0 transition-all font-black
+                h-[3.25rem] w-[3.25rem] border-4 border-foreground rounded-none flex flex-col items-center justify-center shrink-0 transition-all font-black
                 ${isSaved && !isEditing ? "bg-es-green shadow-none grayscale-0" : "bg-es-yellow shadow-editorial-sm"}
               `}
             >
-              <span className="text-lg leading-none">{totalPointsWithAdjustments}</span>
+              <span className="text-base leading-none">{totalPointsWithAdjustments}</span>
               <span className="text-[8px] uppercase tracking-widest mt-1 opacity-50">Pts</span>
             </div>
           </div>
@@ -409,7 +409,7 @@ export default function AttendanceCard({
               <button
                 onClick={handleSave}
                 disabled={isPending}
-                className="border-4 border-foreground py-2.5 px-4 shadow-editorial-sm hover:translate-y-0.5 active:translate-y-1 transition-all flex items-center justify-center gap-3 font-black uppercase tracking-widest text-[10px] disabled:opacity-50 disabled:cursor-wait bg-es-blue"
+                className="border-4 border-foreground py-2.5 px-4 shadow-editorial-sm hover:translate-y-0.5 active:translate-y-1 transition-all flex items-center justify-center gap-2.5 font-black uppercase tracking-widest text-[9px] disabled:opacity-50 disabled:cursor-wait bg-es-blue"
               >
                 {isPending ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
