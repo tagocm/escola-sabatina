@@ -1,17 +1,19 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle, ChevronDown } from "lucide-react";
+import { AlertTriangle, ChevronDown, Trash2 } from "lucide-react";
 import type { AttendanceDisciplineEvent } from "@/lib/types/attendance";
 
 interface AttendanceDisciplineEventsCardProps {
   events: AttendanceDisciplineEvent[];
-  onEditEvent: (index: number) => void;
+  canDelete?: boolean;
+  onDeleteEvent: (index: number) => void;
 }
 
 export default function AttendanceDisciplineEventsCard({
   events,
-  onEditEvent,
+  canDelete = false,
+  onDeleteEvent,
 }: AttendanceDisciplineEventsCardProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -70,22 +72,30 @@ export default function AttendanceDisciplineEventsCard({
           {indexedEvents.length > 0 ? (
             <div className="flex max-h-60 flex-col overflow-y-auto">
               {indexedEvents.map(({ event, index }, orderIndex) => (
-                <button
+                <div
                   key={event.id || `draft-discipline-event-${index}`}
-                  type="button"
-                  onClick={() => {
-                    setIsOpen(false);
-                    onEditEvent(index);
-                  }}
                   className="flex flex-col gap-1.5 border-b-2 border-foreground/10 px-3 py-2.5 text-left transition-colors hover:bg-es-orange/10"
                 >
                   <div className="flex items-center justify-between gap-3">
                     <span className="text-[9px] font-black uppercase tracking-[0.16em]">
                       Evento {indexedEvents.length - orderIndex}
                     </span>
-                    <span className="text-[9px] font-black uppercase tracking-[0.16em] text-es-orange">
-                      -{Math.max(1, Number(event.points || 1))} pt
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[9px] font-black uppercase tracking-[0.16em] text-es-orange">
+                        -{Math.max(1, Number(event.points || 1))} pt
+                      </span>
+                      {canDelete ? (
+                        <button
+                          type="button"
+                          onClick={() => onDeleteEvent(index)}
+                          className="flex h-7 w-7 items-center justify-center border-2 border-foreground bg-white text-es-orange shadow-editorial-sm transition-all hover:bg-es-orange/10"
+                          aria-label={`Excluir evento ${indexedEvents.length - orderIndex}`}
+                          title="Excluir evento"
+                        >
+                          <Trash2 className="h-3.5 w-3.5 stroke-[2.5]" />
+                        </button>
+                      ) : null}
+                    </div>
                   </div>
 
                   <p className="text-[9px] font-bold uppercase leading-relaxed tracking-[0.08em]">
@@ -95,7 +105,7 @@ export default function AttendanceDisciplineEventsCard({
                   <p className="text-[8px] font-black uppercase tracking-[0.16em] opacity-40">
                     {event.appliedByName || "Será registrado ao salvar"}
                   </p>
-                </button>
+                </div>
               ))}
             </div>
           ) : (

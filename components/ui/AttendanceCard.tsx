@@ -76,7 +76,6 @@ export default function AttendanceCard({
   const [isEditing, setIsEditing] = useState(false);
   const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
   const [isDisciplineModalOpen, setIsDisciplineModalOpen] = useState(false);
-  const [activeDisciplineEventIndex, setActiveDisciplineEventIndex] = useState<number | null>(null);
 
   const getShortName = (name: string) => {
     if (name.includes("Participação")) {
@@ -113,25 +112,12 @@ export default function AttendanceCard({
 
   const closeDisciplineModal = () => {
     setIsDisciplineModalOpen(false);
-    setActiveDisciplineEventIndex(null);
   };
 
   const openCreateDisciplineEventModal = () => {
     if (!canInteract || disciplinePenaltyPoints >= maxDisciplinePenaltyPoints) return;
 
     setSaveError(null);
-    setActiveDisciplineEventIndex(null);
-    setIsDisciplineModalOpen(true);
-  };
-
-  const openEditDisciplineEventModal = (eventIndex: number) => {
-    if (!disciplineEvents[eventIndex]) return;
-
-    setSaveError(null);
-    if (isSaved && !isEditing) {
-      setIsEditing(true);
-    }
-    setActiveDisciplineEventIndex(eventIndex);
     setIsDisciplineModalOpen(true);
   };
 
@@ -171,8 +157,6 @@ export default function AttendanceCard({
   );
   const maxDisciplinePenaltyPoints = totalPoints + extraActivityPoints;
   const totalPointsWithAdjustments = totalPoints + extraActivityPoints - disciplinePenaltyPoints;
-  const activeDisciplineEvent =
-    activeDisciplineEventIndex !== null ? disciplineEvents[activeDisciplineEventIndex] || null : null;
 
   const nameObj = getFormattedName(student.full_name);
   const canInteract = !isSaved || isEditing;
@@ -227,7 +211,7 @@ export default function AttendanceCard({
           </button>
         </div>
 
-        <div className="flex min-w-0 flex-col gap-2 xl:self-start">
+        <div className="flex min-w-0 flex-col gap-2 xl:self-stretch xl:justify-between">
           <div className={`flex flex-row flex-wrap gap-2.5 items-center content-center ${!canInteract ? "pointer-events-none" : ""}`}>
             {rules.map((rule) => {
               const isSelected = selectedIds.includes(rule.id);
@@ -264,8 +248,8 @@ export default function AttendanceCard({
             })}
           </div>
 
-          <div className="grid grid-cols-1 gap-2.5 items-start lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_88px]">
-            <div className="border-4 border-foreground bg-white px-3 py-2.5 shadow-editorial-sm self-start">
+          <div className="grid grid-cols-1 gap-2.5 items-stretch lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_88px]">
+            <div className="flex h-[88px] flex-col justify-between border-4 border-foreground bg-white px-3 py-2.5 shadow-editorial-sm self-stretch">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex flex-col">
                   <span className="text-[9px] font-black uppercase tracking-[0.18em] text-es-green">
@@ -308,7 +292,7 @@ export default function AttendanceCard({
               </div>
             </div>
 
-            <div className="border-4 border-foreground bg-white px-3 py-2.5 shadow-editorial-sm self-start">
+            <div className="flex h-[88px] flex-col justify-between border-4 border-foreground bg-white px-3 py-2.5 shadow-editorial-sm self-stretch">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex flex-col">
                   <span className="text-[9px] font-black uppercase tracking-[0.18em] text-es-orange">
@@ -373,7 +357,12 @@ export default function AttendanceCard({
 
             <AttendanceDisciplineEventsCard
               events={disciplineEvents}
-              onEditEvent={openEditDisciplineEventModal}
+              canDelete={canInteract}
+              onDeleteEvent={(eventIndex) => {
+                setDisciplineEvents((current) =>
+                  current.filter((_, index) => index !== eventIndex),
+                );
+              }}
             />
           </div>
         </div>
@@ -447,39 +436,26 @@ export default function AttendanceCard({
 
       {isDisciplineModalOpen ? (
         <AttendanceDisciplinePenaltyModal
-          mode={activeDisciplineEvent ? "edit" : "create"}
+          mode="create"
           studentName={student.full_name}
           currentPenaltyPoints={disciplinePenaltyPoints}
-          eventPoints={activeDisciplineEvent?.points || 1}
-          initialReason={activeDisciplineEvent?.reason || ""}
-          initialAppliedByName={activeDisciplineEvent?.appliedByName || ""}
+          eventPoints={1}
+          initialReason=""
+          initialAppliedByName=""
           onClose={closeDisciplineModal}
           onConfirm={(reason) => {
-            const targetIndex = activeDisciplineEventIndex;
-
             setDisciplineEvents((current) => {
-              if (targetIndex === null) {
-                return [
-                  ...current,
-                  {
-                    points: 1,
-                    reason,
-                    appliedBy: null,
-                    appliedByName: null,
-                    createdAt: null,
-                    updatedAt: null,
-                  },
-                ];
-              }
-
-              return current.map((event, index) =>
-                index === targetIndex
-                  ? {
-                      ...event,
-                      reason,
-                    }
-                  : event,
-              );
+              return [
+                ...current,
+                {
+                  points: 1,
+                  reason,
+                  appliedBy: null,
+                  appliedByName: null,
+                  createdAt: null,
+                  updatedAt: null,
+                },
+              ];
             });
 
             closeDisciplineModal();
