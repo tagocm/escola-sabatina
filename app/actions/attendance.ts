@@ -355,6 +355,10 @@ export async function saveStudentAttendanceRecord(
 
   revalidatePath(`/relatorios/lancamento`);
   revalidatePath(`/relatorios/ofertas`);
+  revalidatePath(`/responsavel`);
+  revalidatePath(`/responsavel/filhos`);
+  revalidatePath(`/responsavel/filhos/${studentId}`);
+  revalidatePath(`/responsavel/filhos/${studentId}/acompanhe`);
   return {
     success: true,
     disciplinePenaltyAppliedByName: latestSavedEvent?.appliedByName || "",
