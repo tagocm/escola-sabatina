@@ -47,15 +47,15 @@ export default function AttendanceDisciplineEventsCard({
     >
       <button
         type="button"
-        className="flex h-[88px] w-full flex-col items-center justify-between border-4 border-foreground bg-white px-2 py-2 text-center shadow-editorial-sm transition-all hover:shadow-editorial disabled:opacity-60"
+        className="flex h-[88px] w-full min-w-[96px] flex-col items-center justify-between border-4 border-foreground bg-white px-3 py-3 text-center shadow-editorial-sm transition-all hover:shadow-editorial disabled:opacity-60"
         aria-label="Abrir eventos de indisciplina"
         aria-expanded={isOpen}
         disabled={!hasEvents}
       >
-        <span className="text-[9px] font-black uppercase tracking-[0.18em] text-es-orange">
+        <span className="text-[9px] font-black uppercase tracking-[0.16em] text-es-orange">
           Eventos
         </span>
-        <div className="flex h-9 min-w-9 items-center justify-center border-4 border-foreground bg-background px-2 text-sm font-black uppercase shadow-editorial-sm">
+        <div className="flex h-8 min-w-[3rem] items-center justify-center border-4 border-foreground bg-background px-2.5 text-[12px] font-black uppercase shadow-editorial-sm">
           {events.length}
         </div>
         <ChevronDown className={`h-3.5 w-3.5 text-foreground/30 transition-transform ${isOpen ? "rotate-180" : ""}`} />

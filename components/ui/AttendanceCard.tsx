@@ -97,28 +97,28 @@ function AttendanceAdjustmentPanel({
   const toneStyles = ADJUSTMENT_PANEL_STYLES[tone];
 
   return (
-    <div className="flex h-[88px] flex-col justify-between border-4 border-foreground bg-white px-3 py-2.5 shadow-editorial-sm">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 flex-col gap-1">
-          <span className={`text-[9px] font-black uppercase tracking-[0.14em] leading-none ${toneStyles.title}`}>
+    <div className="flex h-[88px] flex-col justify-between border-4 border-foreground bg-white px-3.5 py-3 shadow-editorial-sm">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex min-w-0 flex-col gap-1.5 pr-1">
+          <span className={`text-[9px] font-black uppercase leading-none tracking-[0.16em] ${toneStyles.title}`}>
             {title}
           </span>
-          <span className="text-[8px] font-bold uppercase tracking-[0.14em] leading-none text-foreground/40">
+          <span className="text-[8px] font-bold uppercase leading-none tracking-[0.16em] text-foreground/40">
             {subtitle}
           </span>
         </div>
 
-        <span className="flex h-7 min-w-9 items-center justify-center border-2 border-foreground bg-background px-2 text-[13px] font-black uppercase tracking-tight">
+        <span className="flex h-8 min-w-[3rem] shrink-0 items-center justify-center border-2 border-foreground bg-background px-2.5 text-[12px] font-black uppercase tracking-tight shadow-editorial-sm">
           {value}
         </span>
       </div>
 
-      <div className="grid grid-cols-[34px_1fr_34px] items-center gap-2">
+      <div className="grid grid-cols-[42px_minmax(0,1fr)_42px] items-center gap-2.5">
         <button
           type="button"
           onClick={onDecrease}
           disabled={decreaseDisabled}
-          className="flex h-9 items-center justify-center border-4 border-foreground bg-white text-[18px] font-black leading-none shadow-editorial-sm transition-all hover:bg-background disabled:opacity-30"
+          className="flex h-10 w-10 items-center justify-center border-4 border-foreground bg-white text-[18px] font-black leading-none shadow-editorial-sm transition-all hover:bg-background disabled:opacity-30"
         >
           -
         </button>
@@ -127,7 +127,7 @@ function AttendanceAdjustmentPanel({
           type="button"
           onClick={onPrimary}
           disabled={primaryDisabled}
-          className={`flex h-9 items-center justify-center border-4 border-foreground px-3 text-[10px] font-black uppercase tracking-[0.08em] shadow-editorial-sm transition-all disabled:opacity-30 ${toneStyles.primary}`}
+          className={`flex h-10 min-w-0 items-center justify-center overflow-hidden border-4 border-foreground px-3.5 text-[10px] font-black uppercase tracking-[0.12em] shadow-editorial-sm transition-all disabled:opacity-30 ${toneStyles.primary}`}
         >
           {actionLabel}
         </button>
@@ -136,7 +136,7 @@ function AttendanceAdjustmentPanel({
           type="button"
           onClick={onIncrease}
           disabled={increaseDisabled}
-          className="flex h-9 items-center justify-center border-4 border-foreground bg-white text-[18px] font-black leading-none shadow-editorial-sm transition-all hover:bg-background disabled:opacity-30"
+          className="flex h-10 w-10 items-center justify-center border-4 border-foreground bg-white text-[18px] font-black leading-none shadow-editorial-sm transition-all hover:bg-background disabled:opacity-30"
         >
           +
         </button>
@@ -255,7 +255,7 @@ export default function AttendanceCard({
     <>
       <div
         className={`
-          bg-white border-4 border-foreground shadow-editorial p-4 md:p-4 flex flex-col xl:grid xl:grid-cols-[124px_1fr_152px] gap-4 transition-all xl:items-start
+          bg-white border-4 border-foreground shadow-editorial p-4 md:p-4 flex flex-col gap-[18px] transition-all xl:grid xl:grid-cols-[124px_minmax(0,1fr)_152px] xl:items-start
           ${isSaved && !isEditing ? "opacity-60 grayscale bg-background/50 border-foreground/10" : "border-foreground"}
         `}
       >
@@ -300,7 +300,7 @@ export default function AttendanceCard({
           </button>
         </div>
 
-        <div className="flex min-w-0 flex-col gap-2 xl:self-stretch xl:justify-between">
+        <div className="flex min-w-0 flex-col gap-3 xl:self-stretch xl:justify-between">
           <div className={`flex flex-row flex-wrap gap-2.5 items-center content-center ${!canInteract ? "pointer-events-none" : ""}`}>
             {rules.map((rule) => {
               const isSelected = selectedIds.includes(rule.id);
@@ -337,7 +337,7 @@ export default function AttendanceCard({
             })}
           </div>
 
-          <div className="grid grid-cols-1 gap-2.5 items-stretch lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_88px]">
+          <div className="grid grid-cols-1 items-stretch gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_96px]">
             <AttendanceAdjustmentPanel
               title="Atividade Extra"
               subtitle="Pontos fora da lista"
@@ -398,7 +398,7 @@ export default function AttendanceCard({
           </div>
         </div>
 
-        <div className="flex flex-row items-center justify-between gap-4 border-t-4 border-foreground/5 pt-4 xl:flex-col xl:items-end xl:justify-start xl:self-start xl:border-l-4 xl:border-t-0 xl:pl-4 xl:pt-0">
+        <div className="flex flex-row items-center justify-between gap-4 border-t-4 border-foreground/5 pt-4 xl:flex-col xl:items-end xl:justify-start xl:self-start xl:border-l-4 xl:border-t-0 xl:pl-5 xl:pt-0">
           <div className="flex flex-col items-center relative order-1 lg:order-none">
             {isSaved && !isEditing ? (
               <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-es-green text-white text-[8px] font-black px-2 py-0.5 shadow-editorial-sm whitespace-nowrap z-10 border-2 border-foreground uppercase tracking-widest">
