@@ -73,13 +73,26 @@ async function persistStudent(studentId: string | undefined, formData: FormData)
   const guardianName = formData.get("guardianName") as string;
   const whatsapp = formData.get("whatsapp") as string;
   const photoFile = formData.get("photo") as File | null;
-  const currentPhotoPath = normalizeStudentPhotoPath(formData.get("currentPhotoPath") as string | null);
 
   if (!classId || !fullName || !sex) {
     return { error: "Classe, nome e sexo são obrigatórios." };
   }
 
-  let photoPath = currentPhotoPath;
+  let photoPath: string | null = null;
+
+  if (studentId) {
+    const { data: existingStudent, error: existingStudentError } = await supabase
+      .from("students")
+      .select("photo_url")
+      .eq("id", studentId)
+      .maybeSingle();
+
+    if (existingStudentError || !existingStudent) {
+      return { error: "Aluno não encontrado." };
+    }
+
+    photoPath = normalizeStudentPhotoPath(existingStudent.photo_url);
+  }
 
   // Handle Image Upload
   if (photoFile && photoFile.size > 0) {

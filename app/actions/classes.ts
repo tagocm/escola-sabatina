@@ -345,12 +345,14 @@ export async function updateLastClass(classId: string | null) {
   const auth = await requireTeacherAction();
   if ("error" in auth) return auth;
 
-  const { supabase, user } = auth;
+  if (!classId) {
+    return { error: "Selecione uma classe válida." };
+  }
 
-  const { error } = await supabase
-    .from("profiles")
-    .update({ last_class_id: classId })
-    .eq("id", user.id);
+  const { supabase } = auth;
+  const { error } = await supabase.rpc("update_last_class", {
+    p_class_id: classId,
+  });
 
   if (error) return { error: "Não foi possível atualizar a classe ativa." };
 
@@ -416,10 +418,9 @@ export async function getActiveClassContext() {
     resolvedClassId = memberClassIds[0];
     
     // 4. Silently update profile for next time
-    await supabase
-      .from("profiles")
-      .update({ last_class_id: resolvedClassId })
-      .eq("id", user.id);
+    await supabase.rpc("update_last_class", {
+      p_class_id: resolvedClassId,
+    });
   }
 
   return resolvedClassId;

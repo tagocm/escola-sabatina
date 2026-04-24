@@ -40,7 +40,9 @@ export async function GET(_request: Request, context: RouteContext) {
   return new Response(data, {
     headers: {
       "Content-Type": data.type || "application/octet-stream",
-      "Cache-Control": "public, max-age=31536000, immutable",
+      "Cache-Control": "private, max-age=3600",
+      "Vary": "Cookie",
+      "X-Content-Type-Options": "nosniff",
     },
   });
 }

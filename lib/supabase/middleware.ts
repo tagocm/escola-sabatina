@@ -71,7 +71,7 @@ export async function updateSession(request: NextRequest) {
       .eq('id', user.id)
       .single();
 
-    const role = profile?.role === 'guardian' ? 'guardian' : 'teacher';
+    const role = profile?.role === 'teacher' ? 'teacher' : 'guardian';
     const pathname = request.nextUrl.pathname;
 
     if (role === 'guardian' && matchesPrefix(pathname, TEACHER_ONLY_PREFIXES)) {

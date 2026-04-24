@@ -26,7 +26,7 @@ export default async function Header({ title }: { title?: string }) {
     .eq("id", user.id)
     .single();
 
-  const canManageClasses = profile?.role !== "guardian";
+  const canManageClasses = profile?.role === "teacher";
 
   const { data: memberships } = await supabase
     .from("class_members")

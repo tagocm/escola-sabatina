@@ -10,8 +10,9 @@ async function resolveRole(supabase: Awaited<ReturnType<typeof createClient>>, u
     .eq("id", userId)
     .single();
 
+  if (data?.role === "teacher") return "teacher";
   if (data?.role === "guardian") return "guardian";
-  return "teacher";
+  return "guardian";
 }
 
 export async function requireTeacherPage() {
@@ -25,7 +26,7 @@ export async function requireTeacherPage() {
   }
 
   const role = await resolveRole(supabase, user.id);
-  if (role === "guardian") {
+  if (role !== "teacher") {
     redirect("/responsavel");
   }
 
@@ -61,7 +62,7 @@ export async function requireTeacherAction() {
   }
 
   const role = await resolveRole(supabase, user.id);
-  if (role === "guardian") {
+  if (role !== "teacher") {
     return { error: "Acesso não autorizado." } as const;
   }
 

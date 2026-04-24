@@ -16,7 +16,7 @@ export default async function Home() {
 
   // Guardian redirect: send to dedicated area
   const role = await getUserRole();
-  if (role === "guardian") {
+  if (role !== "teacher") {
     redirect("/responsavel");
   }
 

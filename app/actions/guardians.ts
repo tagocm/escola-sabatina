@@ -141,6 +141,7 @@ export async function createGuardianStudent(formData: FormData) {
 
   revalidatePath("/responsavel");
   revalidatePath("/responsavel/filhos");
+  revalidatePath("/responsavel/solicitacoes");
   revalidatePath("/alunos");
   redirect("/responsavel");
 }
@@ -159,10 +160,19 @@ export async function updateGuardianStudent(studentId: string, formData: FormDat
   const sex = formData.get("sex") as "masculino" | "feminino";
   const whatsapp = formData.get("whatsapp") as string;
   const photoFile = formData.get("photo") as File | null;
-  const currentPhotoPath = normalizeStudentPhotoPath(formData.get("currentPhotoPath") as string | null);
 
   if (!fullName || !sex || !whatsapp) {
     return { error: "Nome, sexo e WhatsApp são obrigatórios." };
+  }
+
+  const { data: existingStudent, error: existingStudentError } = await supabase
+    .from("students")
+    .select("photo_url")
+    .eq("id", studentId)
+    .maybeSingle();
+
+  if (existingStudentError || !existingStudent) {
+    return { error: "Dependente não encontrado." };
   }
 
   // 0. Intelligent WhatsApp Sync
@@ -177,7 +187,7 @@ export async function updateGuardianStudent(studentId: string, formData: FormDat
     await supabase.from("profiles").update({ whatsapp }).eq("id", user.id);
   }
 
-  let photoPath = currentPhotoPath;
+  let photoPath = normalizeStudentPhotoPath(existingStudent.photo_url);
 
   if (photoFile && photoFile.size > 0) {
     const uploadResult = await uploadStudentPhoto(supabase, buildGuardianStudentPhotoPath(user.id), photoFile);
@@ -368,5 +378,7 @@ export async function getUserRole(): Promise<"teacher" | "guardian" | null> {
     .eq("id", user.id)
     .single();
 
-  return (data?.role as "teacher" | "guardian") || null;
+  if (data?.role === "teacher") return "teacher";
+  if (data?.role === "guardian") return "guardian";
+  return "guardian";
 }
