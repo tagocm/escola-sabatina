@@ -49,7 +49,7 @@ export default function PerformanceChartDrilldown({
           <span className="text-[9px] font-black uppercase tracking-[0.18em] opacity-40">
             Clique para expandir
           </span>
-          <div className="flex items-center gap-2 border-2 border-foreground bg-white px-3 py-1.5 shadow-editorial-sm">
+          <div className="flex items-center gap-2 border-2 border-foreground bg-surface px-3 py-1.5 shadow-editorial-sm">
             <Expand className="h-3.5 w-3.5 stroke-[3]" />
             <span className="text-[9px] font-black uppercase tracking-widest">Detalhar</span>
           </div>
@@ -91,7 +91,7 @@ export default function PerformanceChartDrilldown({
                 <button
                   type="button"
                   onClick={() => setIsOpen(false)}
-                  className="flex h-11 w-11 items-center justify-center border-4 border-foreground bg-white shadow-editorial-sm transition-all hover:shadow-editorial-hover"
+                  className="flex h-11 w-11 items-center justify-center border-4 border-foreground bg-surface shadow-editorial-sm transition-all hover:shadow-editorial-hover"
                 >
                   <X className="h-5 w-5 stroke-[3]" />
                 </button>
@@ -111,7 +111,7 @@ export default function PerformanceChartDrilldown({
                   <h3 className="text-xl font-black uppercase tracking-tighter">Detalhamento por data</h3>
                 </div>
 
-                <div className="overflow-x-auto border-4 border-foreground bg-white shadow-editorial-sm">
+                <div className="overflow-x-auto border-4 border-foreground bg-surface shadow-editorial-sm">
                   <div className="min-w-[720px]">
                   <div className="grid grid-cols-[1.1fr_1fr_0.7fr_0.7fr_0.7fr] border-b-4 border-foreground bg-background px-4 py-3 text-[10px] font-black uppercase tracking-[0.18em]">
                     <span>Data</span>

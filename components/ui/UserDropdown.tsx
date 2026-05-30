@@ -76,7 +76,7 @@ export default function UserDropdown({
       <button
         ref={triggerRef}
         onClick={() => setIsOpen(!isOpen)}
-        className={`relative z-[71] flex w-full max-w-full items-center justify-between gap-3 border-2 border-foreground bg-white shadow-editorial-sm transition-all cursor-pointer group hover:shadow-editorial-hover active:translate-y-0.5 active:translate-x-0.5 ${
+        className={`relative z-[71] flex w-full max-w-full items-center justify-between gap-3 border-2 border-foreground bg-surface shadow-editorial-sm transition-all cursor-pointer group hover:shadow-editorial-hover active:translate-y-0.5 active:translate-x-0.5 ${
           compact ? "min-h-11 px-4" : "px-3 py-2"
         }`}
       >
@@ -109,7 +109,7 @@ export default function UserDropdown({
             onClick={() => setIsOpen(false)}
           />
           <div
-            className="fixed z-[72] flex max-h-[calc(100vh-32px)] flex-col overflow-hidden border-4 border-foreground bg-white shadow-editorial animate-in fade-in zoom-in-95 duration-100"
+            className="fixed z-[72] flex max-h-[calc(100vh-32px)] flex-col overflow-hidden border-4 border-foreground bg-surface shadow-editorial animate-in fade-in zoom-in-95 duration-100"
             style={{
               top: menuPosition.top,
               left: menuPosition.left,
@@ -122,7 +122,7 @@ export default function UserDropdown({
                   <p className="text-[9px] font-black uppercase tracking-widest text-foreground/40">CONTRAPARTE ATUAL</p>
                   <Link
                     href="/classes/nova"
-                    className="flex h-8 w-8 items-center justify-center border-2 border-foreground bg-white shadow-editorial-sm transition-all hover:bg-es-lilac hover:shadow-editorial-hover active:translate-x-0.5 active:translate-y-0.5"
+                    className="flex h-8 w-8 items-center justify-center border-2 border-foreground bg-surface shadow-editorial-sm transition-all hover:bg-es-lilac hover:shadow-editorial-hover active:translate-x-0.5 active:translate-y-0.5"
                     title="Criar nova classe"
                     aria-label="Criar nova classe"
                     onClick={() => setIsOpen(false)}
@@ -143,7 +143,7 @@ export default function UserDropdown({
 
             {/* Trocar de Classe */}
             {canManageClasses && classes.length > 1 && (
-              <div className="max-h-48 overflow-y-auto border-b-4 border-foreground bg-white p-2">
+              <div className="max-h-48 overflow-y-auto border-b-4 border-foreground bg-surface p-2">
                 <p className="px-2 pt-2 pb-1 text-[9px] font-black uppercase tracking-widest text-foreground/40">Trocar de Classe</p>
                 {classes.filter(c => c.id !== currentClassId).map((cls) => (
                   <button
@@ -171,7 +171,7 @@ export default function UserDropdown({
               <form action={signOut}>
                 <button
                   type="submit"
-                  className="w-full flex items-center gap-3 p-4 hover:bg-red-500 hover:text-white transition-all font-black text-xs uppercase tracking-widest group/action text-left cursor-pointer"
+                  className="w-full flex items-center gap-3 p-4 hover:bg-danger hover:text-surface transition-all font-black text-xs uppercase tracking-widest group/action text-left cursor-pointer"
                 >
                   <LogOut className="w-4 h-4 group-hover/action:rotate-12 transition-transform stroke-[2.5]" />
                   Sair do Sistema

@@ -102,7 +102,7 @@ export default async function AlunosPage({
           </Link>
         </div>
 
-        <div className="flex h-14 overflow-hidden border-4 border-foreground bg-white p-1 shadow-editorial-sm">
+        <div className="flex h-14 overflow-hidden border-4 border-foreground bg-surface p-1 shadow-editorial-sm">
           <div className="flex w-12 items-center justify-center border-r-4 border-foreground bg-es-yellow">
              <Search className="w-5 h-5 stroke-[3]" />
           </div>
@@ -117,7 +117,7 @@ export default async function AlunosPage({
         </div>
 
         {!hasResults ? (
-          <div className="w-full bg-white border-4 border-foreground px-6 py-10 md:p-16 flex flex-col items-center justify-center text-center gap-6 shadow-editorial">
+          <div className="w-full bg-surface border-4 border-foreground px-6 py-10 md:p-16 flex flex-col items-center justify-center text-center gap-6 shadow-editorial">
             <UserPlus className="w-20 h-20 stroke-[1.5] opacity-20" />
             <h2 className="text-xl font-black uppercase tracking-tighter">Nenhum aluno encontrado</h2>
             <Link 
@@ -139,7 +139,7 @@ export default async function AlunosPage({
                   </div>
                 </div>
 
-                <div className="bg-white border-4 border-foreground p-5 md:p-6 shadow-editorial flex flex-col gap-4">
+                <div className="bg-surface border-4 border-foreground p-5 md:p-6 shadow-editorial flex flex-col gap-4">
                   <div className="flex items-center gap-3 opacity-60">
                     <BellRing className="w-4 h-4 stroke-[3]" />
                     <p className="text-[10px] font-black uppercase tracking-[0.18em]">
@@ -177,7 +177,7 @@ export default async function AlunosPage({
                       <Link 
                         key={aluno.id}
                         href={`/alunos/${aluno.id}`}
-                        className="group bg-white border-4 border-foreground shadow-editorial-sm p-4 flex items-center gap-4 hover:shadow-editorial hover:translate-y-0.5 active:translate-y-1 transition-all"
+                        className="group bg-surface border-4 border-foreground shadow-editorial-sm p-4 flex items-center gap-4 hover:shadow-editorial hover:translate-y-0.5 active:translate-y-1 transition-all"
                       >
                         <div className="w-16 h-16 bg-background border-4 border-foreground relative overflow-hidden flex items-center justify-center shrink-0">
                            {photoSrc ? (
@@ -235,7 +235,7 @@ export default async function AlunosPage({
                     return (
                       <div
                         key={aluno.id}
-                        className="bg-white border-4 border-foreground shadow-editorial-sm p-4 flex items-center gap-4 opacity-65"
+                        className="bg-surface border-4 border-foreground shadow-editorial-sm p-4 flex items-center gap-4 opacity-65"
                       >
                         <div className="w-16 h-16 bg-background border-4 border-foreground relative overflow-hidden flex items-center justify-center shrink-0 grayscale">
                           {photoSrc ? (

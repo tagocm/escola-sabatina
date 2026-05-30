@@ -118,7 +118,7 @@ export default function AttendanceStudentEditModal({
         role="dialog"
         aria-modal="true"
         aria-label={`Editar cadastro de ${student.full_name}`}
-        className="relative z-10 flex max-h-[90svh] w-full max-w-xl flex-col overflow-hidden border-4 border-foreground bg-[#FFFCEE] shadow-editorial"
+        className="relative z-10 flex max-h-[90svh] w-full max-w-xl flex-col overflow-hidden border-4 border-foreground bg-surface-warm shadow-editorial"
       >
         <div className="flex items-start justify-between gap-4 border-b-4 border-foreground px-4 py-4 md:px-5 md:py-4">
           <div className="flex flex-col gap-1">
@@ -133,7 +133,7 @@ export default function AttendanceStudentEditModal({
           <button
             type="button"
             onClick={safeClose}
-            className="flex h-10 w-10 items-center justify-center border-4 border-foreground bg-white shadow-editorial-sm"
+            className="flex h-10 w-10 items-center justify-center border-4 border-foreground bg-surface shadow-editorial-sm"
             aria-label="Fechar"
           >
             <X className="h-4 w-4 stroke-[3]" />
@@ -153,7 +153,7 @@ export default function AttendanceStudentEditModal({
             <button
               type="button"
               onClick={() => inputRef.current?.click()}
-              className="relative flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden border-4 border-foreground bg-white shadow-editorial-sm"
+              className="relative flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden border-4 border-foreground bg-surface shadow-editorial-sm"
             >
               {previewSrc ? (
                 <Image
@@ -174,7 +174,7 @@ export default function AttendanceStudentEditModal({
               <button
                 type="button"
                 onClick={() => inputRef.current?.click()}
-                className="flex h-11 items-center justify-center gap-2 border-4 border-foreground bg-white px-4 text-[10px] font-black uppercase tracking-[0.18em] shadow-editorial-sm"
+                className="flex h-11 items-center justify-center gap-2 border-4 border-foreground bg-surface px-4 text-[10px] font-black uppercase tracking-[0.18em] shadow-editorial-sm"
               >
                 <Camera className="h-4 w-4 stroke-[3]" />
                 {previewSrc ? "Trocar foto" : "Adicionar foto"}

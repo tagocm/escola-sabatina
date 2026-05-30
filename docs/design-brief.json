@@ -1,0 +1,47 @@
+{
+  "project": {
+    "value": "Escola Sabatina operational and mobile-first attendance app",
+    "status": "confirmed",
+    "confidence": 1,
+    "source": "User requests and existing Next.js app structure",
+    "rationale": "The app manages classes, students, attendance, points, offerings, responsibilities and guardian flows.",
+    "owner": "product",
+    "date": "2026-05-30"
+  },
+  "visual_direction": {
+    "value": "Editorial brutalist system with cream background, white surfaces, black 4px borders, hard offset shadows, strong flat accents and polaroid-style student media",
+    "status": "confirmed",
+    "confidence": 0.95,
+    "source": "docs/ui-audit.md, app/globals.css and recent attendance UI work",
+    "rationale": "This direction is already established across forms, dashboard cards and the new mobile attendance flow.",
+    "owner": "design",
+    "date": "2026-05-30"
+  },
+  "governance_preset": {
+    "value": "operational_system + mobile_app",
+    "status": "inferred_high_confidence",
+    "confidence": 0.9,
+    "source": "User asked for app-wide standardization and primary use is mobile",
+    "rationale": "The app is a workflow tool used repeatedly on phones and desktop.",
+    "owner": "engineering",
+    "date": "2026-05-30"
+  },
+  "strictness": {
+    "value": "medium",
+    "status": "inferred_high_confidence",
+    "confidence": 0.85,
+    "source": "Existing code still has many inline Tailwind arbitrary values",
+    "rationale": "New work should use tokens, while old screens can migrate incrementally without blocking delivery.",
+    "owner": "engineering",
+    "date": "2026-05-30"
+  },
+  "accessibility_baseline": {
+    "value": "WCAG 2.2 AA intent with visible focus, 44px touch targets, labels and keyboard-closeable dialogs",
+    "status": "confirmed",
+    "confidence": 0.9,
+    "source": "TRUE GOLD workflow and mobile attendance requirements",
+    "rationale": "The app is operated in class settings, often on mobile, so touch and focus states must be reliable.",
+    "owner": "engineering",
+    "date": "2026-05-30"
+  }
+}

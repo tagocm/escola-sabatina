@@ -48,7 +48,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="w-full max-w-md bg-white border-[4px] border-foreground p-8 md:p-10 shadow-editorial flex flex-col gap-8">
+    <div className="w-full max-w-md bg-surface border-[4px] border-foreground p-8 md:p-10 shadow-editorial flex flex-col gap-8">
       <div className="flex flex-col gap-3 border-b-4 border-foreground pb-6">
         <h2 className="text-4xl font-black tracking-tighter uppercase text-foreground leading-none">
           Entrar
@@ -79,7 +79,7 @@ export default function LoginPage() {
             id="email"
             type="email"
             placeholder="COORDENADOR@ESCOLA.COM"
-            className="w-full h-14 px-4 bg-white border-[3px] border-foreground focus:outline-none focus:ring-0 focus:shadow-editorial-sm transition-shadow text-base font-bold placeholder:text-foreground/30 uppercase disabled:opacity-50"
+            className="w-full h-14 px-4 bg-surface border-[3px] border-foreground focus:outline-none focus:ring-0 focus:shadow-editorial-sm transition-shadow text-base font-bold placeholder:text-foreground/30 uppercase disabled:opacity-50"
           />
         </div>
 
@@ -98,7 +98,7 @@ export default function LoginPage() {
             id="password"
             type="password"
             placeholder="••••••••"
-            className="w-full h-14 px-4 bg-white border-[3px] border-foreground focus:outline-none focus:ring-0 focus:shadow-editorial-sm transition-shadow text-base font-bold placeholder:text-foreground/30 uppercase disabled:opacity-50"
+            className="w-full h-14 px-4 bg-surface border-[3px] border-foreground focus:outline-none focus:ring-0 focus:shadow-editorial-sm transition-shadow text-base font-bold placeholder:text-foreground/30 uppercase disabled:opacity-50"
           />
         </div>
 
@@ -118,7 +118,7 @@ export default function LoginPage() {
         </p>
         <Link 
           href="/cadastro-responsavel" 
-          className="w-full h-12 bg-white border-[3px] border-foreground text-foreground font-black text-sm uppercase tracking-widest flex items-center justify-center shadow-editorial-sm hover:shadow-editorial-hover active:translate-y-0.5 active:translate-x-0.5 transition-all"
+          className="w-full h-12 bg-surface border-[3px] border-foreground text-foreground font-black text-sm uppercase tracking-widest flex items-center justify-center shadow-editorial-sm hover:shadow-editorial-hover active:translate-y-0.5 active:translate-x-0.5 transition-all"
         >
           Sou Responsável
         </Link>

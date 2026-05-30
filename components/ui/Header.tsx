@@ -68,7 +68,7 @@ export default async function Header({ title }: { title?: string }) {
             {!title && currentClassId && canManageClasses && (
               <Link
                 href={`/classes/${currentClassId}`}
-                className="group/settings flex h-11 w-11 shrink-0 items-center justify-center border-2 border-foreground bg-white shadow-editorial-sm transition-all hover:shadow-editorial-hover active:translate-x-0.5 active:translate-y-0.5"
+                className="group/settings flex h-11 w-11 shrink-0 items-center justify-center border-2 border-foreground bg-surface shadow-editorial-sm transition-all hover:shadow-editorial-hover active:translate-x-0.5 active:translate-y-0.5"
                 title="Configurações da Unidade"
               >
                 <Settings className="h-4 w-4 stroke-[2.5] transition-transform group-hover/settings:rotate-45" />

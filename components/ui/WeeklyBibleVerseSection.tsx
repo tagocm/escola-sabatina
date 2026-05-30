@@ -110,7 +110,7 @@ export default function WeeklyBibleVerseSection({
       </div>
 
       {(isAdding || editingVerse) && (
-        <div className="border-4 border-foreground bg-[#FFFCEE] p-5 shadow-editorial md:p-6">
+        <div className="border-4 border-foreground bg-surface-warm p-5 shadow-editorial md:p-6">
           <WeeklyBibleVerseForm
             classId={classId}
             initialData={editingVerse || undefined}
@@ -128,7 +128,7 @@ export default function WeeklyBibleVerseSection({
             return (
               <article
                 key={verse.id}
-                className="overflow-hidden border-4 border-foreground bg-white shadow-editorial-sm"
+                className="overflow-hidden border-4 border-foreground bg-surface shadow-editorial-sm"
               >
                 <div className="h-2 w-full border-b-4 border-foreground bg-es-blue" />
                 <div className="flex flex-col gap-4 p-4 md:p-5">
@@ -149,7 +149,7 @@ export default function WeeklyBibleVerseSection({
                       <button
                         type="button"
                         onClick={() => handleEditClick(verse)}
-                        className="flex h-10 w-10 items-center justify-center border-2 border-foreground bg-white transition-colors hover:bg-es-yellow"
+                        className="flex h-10 w-10 items-center justify-center border-2 border-foreground bg-surface transition-colors hover:bg-es-yellow"
                         aria-label={`Editar verso ${referenceLabel}`}
                       >
                         <Pencil className="h-4 w-4 stroke-[3]" />

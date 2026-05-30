@@ -1,4 +1,4 @@
-import { Activity, AlertTriangle, BarChart3, CalendarClock, Inbox, Thermometer, TrendingUp, Trophy } from "lucide-react";
+import { Activity, AlertTriangle, BarChart3, CalendarClock, Inbox, Thermometer, Trash2, TrendingUp, Trophy } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { notFound } from "next/navigation";
@@ -6,6 +6,7 @@ import PageHeader from "@/components/ui/PageHeader";
 import PerformanceChartDrilldown from "@/components/ui/PerformanceChartDrilldown";
 import {
   getGuardianClassOfferingSummary,
+  dismissGuardianMailboxMessage,
   getGuardianStudentMailbox,
   getGuardianStudentProgress,
   getGuardianStudents,
@@ -172,13 +173,13 @@ export default async function GuardianStudentProgressPage({ params }: Props) {
 
           <div className="border-2 border-foreground bg-background px-4 py-4 flex flex-col gap-4 shadow-editorial-sm">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="border-2 border-foreground bg-white px-4 py-3 flex flex-col gap-2">
+              <div className="border-2 border-foreground bg-surface px-4 py-3 flex flex-col gap-2">
                 <span className="text-[9px] font-black uppercase tracking-[0.18em] opacity-40">Alcançado</span>
                 <strong className="text-2xl font-black tracking-tight">
                   {currencyFormatter.format(accumulatedOffering)}
                 </strong>
               </div>
-              <div className="border-2 border-foreground bg-white px-4 py-3 flex flex-col gap-2 sm:text-right">
+              <div className="border-2 border-foreground bg-surface px-4 py-3 flex flex-col gap-2 sm:text-right">
                 <span className="text-[9px] font-black uppercase tracking-[0.18em] opacity-40">Meta</span>
                 <strong className="text-2xl font-black tracking-tight">
                   {currencyFormatter.format(trimesterGoal)}
@@ -187,7 +188,7 @@ export default async function GuardianStudentProgressPage({ params }: Props) {
             </div>
 
             <div className="flex flex-col gap-2">
-              <div className="relative h-8 border-4 border-foreground bg-white shadow-editorial-sm overflow-hidden">
+              <div className="relative h-8 border-4 border-foreground bg-surface shadow-editorial-sm overflow-hidden">
                 <div
                   className="absolute inset-y-0 left-0 bg-es-orange"
                   style={{ width: `${thermometerProgress}%` }}
@@ -206,7 +207,7 @@ export default async function GuardianStudentProgressPage({ params }: Props) {
           </p>
         </div>
 
-        <div className={`${surfaceSoftClass} p-4 md:p-6 flex flex-col gap-4`}>
+        <div className={`${surfaceSoftClass} h-[31rem] overflow-hidden p-4 md:h-[34rem] md:p-6 flex flex-col gap-4`}>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 border-4 border-foreground bg-es-yellow flex items-center justify-center shadow-editorial-sm">
               <Inbox className="w-4 h-4 stroke-[3]" />
@@ -220,15 +221,16 @@ export default async function GuardianStudentProgressPage({ params }: Props) {
           </div>
 
           {mailboxMessages.length > 0 ? (
-            <div className="flex max-h-[22rem] flex-col gap-3 overflow-y-auto pr-1">
+            <div className="min-h-0 flex flex-1 flex-col gap-3 overflow-y-auto pr-1">
               {mailboxMessages.map((message) => {
                 const meta = getMailboxTypeMeta(message.message_type);
                 const Icon = meta.icon;
+                const dismissAction = dismissGuardianMailboxMessage.bind(null, id, message.message_id);
 
                 return (
                   <article
                     key={message.message_id}
-                    className="border-2 border-foreground bg-white px-4 py-3 shadow-editorial-sm"
+                    className="border-2 border-foreground bg-surface px-4 py-3 shadow-editorial-sm"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-2">
@@ -244,9 +246,21 @@ export default async function GuardianStudentProgressPage({ params }: Props) {
                           </h4>
                         </div>
                       </div>
-                      <span className="shrink-0 text-[9px] font-black uppercase tracking-[0.18em] opacity-40">
-                        {format(new Date(message.happened_at), "dd/MM", { locale: ptBR })}
-                      </span>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <span className="text-[9px] font-black uppercase tracking-[0.18em] opacity-40">
+                          {format(new Date(message.happened_at), "dd/MM", { locale: ptBR })}
+                        </span>
+                        <form action={dismissAction}>
+                          <button
+                            type="submit"
+                            className="flex h-8 w-8 items-center justify-center border-2 border-foreground bg-surface text-foreground/60 shadow-editorial-sm transition-all hover:bg-background hover:text-es-orange"
+                            aria-label={`Excluir mensagem ${message.title}`}
+                            title="Excluir mensagem"
+                          >
+                            <Trash2 className="h-3.5 w-3.5 stroke-[2.5]" />
+                          </button>
+                        </form>
+                      </div>
                     </div>
 
                     <p className="mt-3 text-[11px] font-bold uppercase leading-relaxed tracking-[0.08em] opacity-70">
@@ -257,11 +271,13 @@ export default async function GuardianStudentProgressPage({ params }: Props) {
               })}
             </div>
           ) : (
-            <div className="border-4 border-dashed border-foreground/25 bg-background px-5 py-10 text-center shadow-editorial-sm">
-              <p className="text-lg font-black uppercase tracking-tight">Nenhum recado por enquanto</p>
-              <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.18em] opacity-40">
-                Agenda da classe, avisos e outros comunicados aparecerão aqui.
-              </p>
+            <div className="flex flex-1 items-center">
+              <div className="w-full border-4 border-dashed border-foreground/25 bg-background px-5 py-10 text-center shadow-editorial-sm">
+                <p className="text-lg font-black uppercase tracking-tight">Nenhum recado por enquanto</p>
+                <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.18em] opacity-40">
+                  Agenda da classe, avisos e outros comunicados aparecerão aqui.
+                </p>
+              </div>
             </div>
           )}
         </div>

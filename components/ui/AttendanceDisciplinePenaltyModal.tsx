@@ -71,7 +71,7 @@ export default function AttendanceDisciplinePenaltyModal({
         role="dialog"
         aria-modal="true"
         aria-label={`${isEditing ? "Editar" : "Registrar"} evento de indisciplina para ${studentName}`}
-        className="relative z-10 flex max-h-[90svh] w-full max-w-xl flex-col overflow-hidden border-4 border-foreground bg-[#FFFCEE] shadow-editorial"
+        className="relative z-10 flex max-h-[90svh] w-full max-w-xl flex-col overflow-hidden border-4 border-foreground bg-surface-warm shadow-editorial"
       >
         <div className="flex items-start justify-between gap-4 border-b-4 border-foreground px-4 py-4 md:px-5 md:py-4">
           <div className="flex flex-col gap-1">
@@ -86,7 +86,7 @@ export default function AttendanceDisciplinePenaltyModal({
           <button
             type="button"
             onClick={onClose}
-            className="flex h-10 w-10 items-center justify-center border-4 border-foreground bg-white shadow-editorial-sm"
+            className="flex h-10 w-10 items-center justify-center border-4 border-foreground bg-surface shadow-editorial-sm"
             aria-label="Fechar"
           >
             <X className="h-4 w-4 stroke-[3]" />
@@ -102,11 +102,11 @@ export default function AttendanceDisciplinePenaltyModal({
           ) : null}
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <div className="border-2 border-foreground bg-white px-4 py-3 sm:col-span-2">
+            <div className="border-2 border-foreground bg-surface px-4 py-3 sm:col-span-2">
               <p className="text-[9px] font-black uppercase tracking-[0.18em] opacity-40">Aluno</p>
               <p className="mt-1 text-sm font-black uppercase tracking-tight">{studentName}</p>
             </div>
-            <div className="border-2 border-foreground bg-white px-4 py-3">
+            <div className="border-2 border-foreground bg-surface px-4 py-3">
               <p className="text-[9px] font-black uppercase tracking-[0.18em] opacity-40">Desconto</p>
               <p className="mt-1 text-sm font-black uppercase tracking-tight">-{eventPoints} ponto(s)</p>
             </div>
@@ -133,7 +133,7 @@ export default function AttendanceDisciplinePenaltyModal({
               }}
               placeholder="Descreva o ocorrido"
               rows={5}
-              className="min-h-[132px] w-full resize-none border-4 border-foreground bg-white px-3 py-3 text-sm font-bold leading-relaxed outline-none transition-colors focus:bg-es-orange/10"
+              className="min-h-[132px] w-full resize-none border-4 border-foreground bg-surface px-3 py-3 text-sm font-bold leading-relaxed outline-none transition-colors focus:bg-es-orange/10"
             />
           </label>
 

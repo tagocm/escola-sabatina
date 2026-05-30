@@ -33,7 +33,7 @@ export default async function ClassesPage() {
         </div>
 
         {classes.length === 0 ? (
-          <div className="w-full bg-white border-4 border-foreground px-6 py-10 md:p-16 flex flex-col items-center justify-center text-center gap-6 shadow-editorial">
+          <div className="w-full bg-surface border-4 border-foreground px-6 py-10 md:p-16 flex flex-col items-center justify-center text-center gap-6 shadow-editorial">
             <LayoutList className="w-16 h-16 stroke-[1.5] opacity-20" />
             <h2 className="text-xl font-black uppercase tracking-tighter text-foreground">Nenhuma classe encontrada</h2>
             <Link 
@@ -54,7 +54,7 @@ export default async function ClassesPage() {
             }) => (
               <div 
                 key={cls.id} 
-                className={`group bg-white border-4 border-foreground shadow-editorial-sm flex flex-col transition-all ${
+                className={`group bg-surface border-4 border-foreground shadow-editorial-sm flex flex-col transition-all ${
                   !cls.is_active ? "opacity-60 grayscale-[50%]" : "hover:shadow-editorial hover:translate-y-0.5"
                 }`}
               >
@@ -64,7 +64,7 @@ export default async function ClassesPage() {
                       {cls.name}
                     </h2>
                     {!cls.is_active && (
-                      <span className="bg-foreground text-white text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 border-2 border-foreground shrink-0">
+                      <span className="bg-foreground text-surface text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 border-2 border-foreground shrink-0">
                         OFF
                       </span>
                     )}
@@ -89,7 +89,7 @@ export default async function ClassesPage() {
                 <div className="border-t-4 border-foreground flex h-12">
                   <Link 
                     href={`/classes/${cls.id}`}
-                    className="flex-1 bg-white font-black uppercase tracking-widest text-[10px] flex items-center justify-center hover:bg-background transition-colors"
+                    className="flex-1 bg-surface font-black uppercase tracking-widest text-[10px] flex items-center justify-center hover:bg-background transition-colors"
                   >
                     Editar
                   </Link>

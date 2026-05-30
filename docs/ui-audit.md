@@ -23,6 +23,11 @@ A tela de `/responsavel/filhos/novo` passa a ser a referência visual para o app
 ## Padronização aplicada
 
 - `components/ui/design-system.ts` concentra tokens reutilizáveis de superfície, campos, labels e ações.
+- `components/ui/design-tokens.ts` passa a ser a fonte TypeScript/DTCG-style dos tokens primitivos, semânticos e de componente.
+- `app/globals.css` expõe os mesmos tokens como CSS custom properties para Tailwind v4 e CSS local.
+- `docs/design-tokens.md` documenta contratos, acessibilidade e política de exceções para novas telas.
+- As cores diretas restantes foram migradas para aliases semânticos (`bg-surface`, `text-surface`, `bg-surface-warm`, `bg-surface-muted`, `bg-surface-soft`, `bg-surface-pattern`, `bg-danger`, `text-danger`).
+- `tests/design-token-usage.test.mjs` bloqueia novos usos de `bg-[#...]`, `#hex`, `rgba(...)`, `bg-white`, `text-white`, `bg-black/*` e classes de paleta crua nas telas.
 - `components/ui/UserDropdown.tsx` ganhou modo compacto para o portal da família.
 - `app/responsavel/layout.tsx` foi simplificado para virar a fonte única do cabeçalho do responsável.
 - `app/alunos/layout.tsx` e `app/classes/layout.tsx` deixaram de adicionar navegação extra fora do padrão.

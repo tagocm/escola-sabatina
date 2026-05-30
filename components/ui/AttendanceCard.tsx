@@ -97,7 +97,7 @@ function AttendanceAdjustmentPanel({
   const toneStyles = ADJUSTMENT_PANEL_STYLES[tone];
 
   return (
-    <div className="grid h-[88px] grid-rows-[1fr_32px] gap-2 border-4 border-foreground bg-white px-2.5 py-2.5 shadow-editorial-sm">
+    <div className="grid h-[88px] grid-rows-[1fr_32px] gap-2 border-4 border-foreground bg-surface px-2.5 py-2.5 shadow-editorial-sm">
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
         <div className="flex min-w-0 flex-col gap-1 pr-1">
           <span className={`text-[8px] font-black uppercase leading-none tracking-[0.18em] ${toneStyles.title}`}>
@@ -118,7 +118,7 @@ function AttendanceAdjustmentPanel({
           type="button"
           onClick={onDecrease}
           disabled={decreaseDisabled}
-          className="flex h-8 w-8 items-center justify-center border-4 border-foreground bg-white text-[16px] font-black leading-none shadow-editorial-sm transition-all hover:bg-background disabled:opacity-30"
+          className="flex h-8 w-8 items-center justify-center border-4 border-foreground bg-surface text-[16px] font-black leading-none shadow-editorial-sm transition-all hover:bg-background disabled:opacity-30"
         >
           -
         </button>
@@ -136,7 +136,7 @@ function AttendanceAdjustmentPanel({
           type="button"
           onClick={onIncrease}
           disabled={increaseDisabled}
-          className="flex h-8 w-8 items-center justify-center border-4 border-foreground bg-white text-[16px] font-black leading-none shadow-editorial-sm transition-all hover:bg-background disabled:opacity-30"
+          className="flex h-8 w-8 items-center justify-center border-4 border-foreground bg-surface text-[16px] font-black leading-none shadow-editorial-sm transition-all hover:bg-background disabled:opacity-30"
         >
           +
         </button>
@@ -255,7 +255,7 @@ export default function AttendanceCard({
     <>
       <div
         className={`
-          bg-white border-4 border-foreground shadow-editorial p-4 md:p-4 flex flex-col gap-[18px] transition-all xl:grid xl:grid-cols-[124px_minmax(0,1fr)_152px] xl:items-start
+          bg-surface border-4 border-foreground shadow-editorial p-4 md:p-4 flex flex-col gap-[18px] transition-all xl:grid xl:grid-cols-[124px_minmax(0,1fr)_152px] xl:items-start
           ${isSaved && !isEditing ? "opacity-60 grayscale bg-background/50 border-foreground/10" : "border-foreground"}
         `}
       >
@@ -266,7 +266,7 @@ export default function AttendanceCard({
             className="text-left focus:outline-none"
             aria-label={`Abrir cadastro de ${student.full_name}`}
           >
-            <div className="bg-white border-4 border-foreground shadow-editorial-sm p-1.5 pb-3.5 flex flex-col gap-2 transition-all group-hover/card:shadow-editorial group-active/card:translate-y-0.5">
+            <div className="bg-surface border-4 border-foreground shadow-editorial-sm p-1.5 pb-3.5 flex flex-col gap-2 transition-all group-hover/card:shadow-editorial group-active/card:translate-y-0.5">
               <div className="relative flex h-[92px] w-[92px] items-center justify-center overflow-hidden border-4 border-foreground bg-background md:h-[100px] md:w-[100px]">
                 {photoSrc ? (
                   <Image
@@ -314,7 +314,7 @@ export default function AttendanceCard({
                   disabled={isPending || !canInteract}
                   className={`
                     relative min-h-10 min-w-[82px] px-2.5 py-2 flex flex-1 basis-[calc(50%-0.5rem)] flex-col items-start justify-center border-4 border-foreground transition-all select-none sm:flex-none
-                    ${isSelected ? `${style.color} shadow-editorial-sm translate-y-0.5` : "bg-white hover:bg-background shadow-none"}
+                    ${isSelected ? `${style.color} shadow-editorial-sm translate-y-0.5` : "bg-surface hover:bg-background shadow-none"}
                     ${canInteract ? "cursor-pointer" : "cursor-default opacity-50"}
                   `}
                 >
@@ -401,7 +401,7 @@ export default function AttendanceCard({
         <div className="flex flex-row items-center justify-between gap-4 border-t-4 border-foreground/5 pt-4 xl:flex-col xl:items-end xl:justify-start xl:self-start xl:border-l-4 xl:border-t-0 xl:pl-5 xl:pt-0">
           <div className="flex flex-col items-center relative order-1 lg:order-none">
             {isSaved && !isEditing ? (
-              <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-es-green text-white text-[8px] font-black px-2 py-0.5 shadow-editorial-sm whitespace-nowrap z-10 border-2 border-foreground uppercase tracking-widest">
+              <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-es-green text-surface text-[8px] font-black px-2 py-0.5 shadow-editorial-sm whitespace-nowrap z-10 border-2 border-foreground uppercase tracking-widest">
                 Salvo
               </span>
             ) : null}
@@ -420,7 +420,7 @@ export default function AttendanceCard({
             {isSaved && !isEditing ? (
               <button
                 onClick={() => setIsEditing(true)}
-                className="bg-white hover:bg-background border-4 border-foreground py-2.5 px-4 shadow-editorial-sm hover:translate-y-0.5 active:translate-y-1 transition-all flex items-center justify-center gap-2 font-black uppercase tracking-widest text-[9px]"
+                className="bg-surface hover:bg-background border-4 border-foreground py-2.5 px-4 shadow-editorial-sm hover:translate-y-0.5 active:translate-y-1 transition-all flex items-center justify-center gap-2 font-black uppercase tracking-widest text-[9px]"
               >
                 <Settings className="w-3.5 h-3.5" />
                 Editar
@@ -450,7 +450,7 @@ export default function AttendanceCard({
             ) : null}
 
             {saveError ? (
-              <p className="text-[9px] font-bold text-red-500 uppercase max-w-[150px] leading-tight text-center">
+              <p className="text-[9px] font-bold text-danger uppercase max-w-[150px] leading-tight text-center">
                 {saveError}
               </p>
             ) : null}

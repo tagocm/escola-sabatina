@@ -77,7 +77,7 @@ export default function GuardianSignUpForm() {
       </div>
 
       {error && (
-        <div className={`${statusMessageClass} bg-red-100 border-red-500 text-red-700`}>
+        <div className={`${statusMessageClass} bg-danger/10 border-danger text-danger`}>
           {error}
         </div>
       )}

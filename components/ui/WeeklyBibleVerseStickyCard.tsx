@@ -24,7 +24,7 @@ export default function WeeklyBibleVerseStickyCard({
 
   return (
     <section className="sticky top-3 z-40 w-full self-center md:max-w-md">
-      <div className="relative overflow-hidden border-2 border-foreground bg-white shadow-editorial-sm supports-[backdrop-filter]:bg-white/92 supports-[backdrop-filter]:backdrop-blur-sm">
+      <div className="relative overflow-hidden border-2 border-foreground bg-surface shadow-editorial-sm supports-[backdrop-filter]:bg-surface/92 supports-[backdrop-filter]:backdrop-blur-sm">
         <button
           type="button"
           onClick={() => setIsVisible(false)}

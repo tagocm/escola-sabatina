@@ -1,34 +1,127 @@
 @import "tailwindcss";
 
 :root {
-  /* Fundo principal em tom creme sólido e preto profundo */
-  --background: #F7F6EF; 
-  --foreground: #111111;
-  
-  /* Core Brand Colors (Fortes e Chapadas) */
-  --es-orange: #F47A3A;
-  --es-yellow: #F2D230;
-  --es-lilac:  #8F96F4;
-  --es-green:  #19BF1A;
-  --es-blue:   #72B7E6;
+  /* Primitive colors */
+  --color-ink: #111111;
+  --color-paper: #F7F6EF;
+  --color-white: #FFFFFF;
+  --color-photo: #F0F0F0;
+  --color-warm-paper: #FFFCEE;
+  --color-soft-paper: #F8F4E8;
+  --color-pattern-paper: #F6F1DF;
+  --color-orange: #F47A3A;
+  --color-yellow: #F2D230;
+  --color-lilac: #8F96F4;
+  --color-green: #19BF1A;
+  --color-blue: #72B7E6;
+  --color-danger: #EF4444;
 
-  /* UI Tokens baseados em editorial estruturado */
-  --primary: var(--es-orange);
-  --primary-foreground: #111111;
-  
-  --secondary: var(--es-lilac);
-  --secondary-foreground: #111111;
+  /* Semantic colors */
+  --background: var(--color-paper);
+  --foreground: var(--color-ink);
+  --surface: var(--color-white);
+  --surface-warm: var(--color-warm-paper);
+  --surface-muted: var(--color-photo);
+  --surface-soft: var(--color-soft-paper);
+  --surface-pattern: var(--color-pattern-paper);
+  --primary: var(--color-lilac);
+  --primary-foreground: var(--color-ink);
+  --secondary: var(--color-white);
+  --secondary-foreground: var(--color-ink);
+  --card: var(--color-white);
+  --card-foreground: var(--color-ink);
+  --border: var(--color-ink);
+  --input: var(--color-white);
+  --ring: var(--color-lilac);
+  --pending: var(--color-yellow);
+  --success: var(--color-green);
+  --info: var(--color-blue);
+  --warning: var(--color-orange);
+  --danger: var(--color-danger);
+  --overlay-soft: color-mix(in srgb, var(--foreground) 10%, transparent);
+  --overlay-modal: color-mix(in srgb, var(--foreground) 35%, transparent);
+  --overlay-strong: color-mix(in srgb, var(--foreground) 45%, transparent);
+  --pattern-dot: color-mix(in srgb, var(--foreground) 6%, transparent);
+  --chart-grid: color-mix(in srgb, var(--foreground) 12%, transparent);
+  --chart-label: color-mix(in srgb, var(--foreground) 45%, transparent);
+  --chart-value: color-mix(in srgb, var(--foreground) 52%, transparent);
 
-  --card: #FFFFFF; 
-  --card-foreground: #111111;
-  
-  /* Bordas mais afirmativas, sem tons pastéis fracos */
-  --border: #111111;
-  --input: #FFFFFF;
-  --ring: var(--foreground);
-  
-  /* Raios menos fofinhos, mais estruturados */
+  /* Legacy aliases kept for existing screens */
+  --es-orange: var(--color-orange);
+  --es-yellow: var(--color-yellow);
+  --es-lilac: var(--color-lilac);
+  --es-green: var(--color-green);
+  --es-blue: var(--color-blue);
+
+  /* Typography tokens */
+  --font-interface: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-code: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
+  --font-size-micro: 8px;
+  --font-size-caption: 9px;
+  --font-size-label: 10px;
+  --font-size-control: 11px;
+  --font-size-body-sm: 13px;
+  --font-size-body: 16px;
+  --font-size-title-sm: 20px;
+  --font-size-title: 24px;
+  --font-size-display: 32px;
+  --font-weight-regular: 400;
+  --font-weight-bold: 700;
+  --font-weight-black: 900;
+  --line-height-none: 1;
+  --line-height-tight: 1.1;
+  --line-height-relaxed: 1.55;
+  --letter-spacing-none: 0;
+  --letter-spacing-tight: 0.02em;
+  --letter-spacing-label: 0.16em;
+  --letter-spacing-wide: 0.18em;
+  --letter-spacing-widest: 0.22em;
+
+  /* Spacing and sizing tokens */
+  --space-0: 0;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-16: 64px;
+  --size-touch: 44px;
+  --size-control: 48px;
+  --size-control-lg: 56px;
+  --size-icon-sm: 16px;
+  --size-icon: 20px;
+  --size-icon-lg: 24px;
+  --size-page-max: 72rem;
+  --size-polaroid-min: 204px;
+  --size-sheet-max: 42rem;
+
+  /* Shape, border, elevation and motion */
   --radius: 0;
+  --radius-pill: 999px;
+  --border-thin: 2px;
+  --border-strong: 4px;
+  --border-heavy: 8px;
+  --shadow-editorial: 6px 6px 0 0 var(--foreground);
+  --shadow-editorial-sm: 4px 4px 0 0 var(--foreground);
+  --shadow-editorial-hover: 2px 2px 0 0 var(--foreground);
+  --motion-fast: 120ms;
+  --motion-normal: 200ms;
+  --motion-slow: 300ms;
+  --motion-ease: cubic-bezier(0.2, 0, 0, 1);
+  --opacity-disabled: 0.6;
+  --opacity-muted: 0.45;
+  --opacity-subtle: 0.3;
+  --opacity-overlay: 0.45;
+  --z-sticky: 20;
+  --z-popover: 40;
+  --z-sheet: 110;
+  --z-modal: 130;
+  --z-topbar: 9999;
+  --focus-ring-width: 4px;
+  --focus-ring-offset: 2px;
 }
 
 @theme inline {
@@ -41,11 +134,27 @@
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
 
+  --color-surface: var(--surface);
+  --color-surface-warm: var(--surface-warm);
+  --color-surface-muted: var(--surface-muted);
+  --color-surface-soft: var(--surface-soft);
+  --color-surface-pattern: var(--surface-pattern);
+  --color-overlay-soft: var(--overlay-soft);
+  --color-overlay-modal: var(--overlay-modal);
+  --color-overlay-strong: var(--overlay-strong);
+  --color-chart-grid: var(--chart-grid);
+  --color-chart-label: var(--chart-label);
+  --color-chart-value: var(--chart-value);
   --color-es-orange: var(--es-orange);
   --color-es-yellow: var(--es-yellow);
   --color-es-lilac: var(--es-lilac);
   --color-es-green: var(--es-green);
   --color-es-blue: var(--es-blue);
+  --color-pending: var(--pending);
+  --color-success: var(--success);
+  --color-info: var(--info);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
 
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
@@ -54,14 +163,14 @@
   --color-ring: var(--ring);
   --radius: var(--radius);
   
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-interface);
+  --font-mono: var(--font-code);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans), sans-serif;
+  font-family: var(--font-interface);
   -webkit-font-smoothing: antialiased;
   -webkit-text-size-adjust: 100%;
   overflow-x: clip;
@@ -96,13 +205,18 @@ a,
   touch-action: manipulation;
 }
 
+:focus-visible {
+  outline: var(--focus-ring-width) solid var(--ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
 /* Utilitários editoriais/brutalistas customizados para forte presença gráfica */
 @utility shadow-editorial {
-  box-shadow: 6px 6px 0px 0px var(--foreground);
+  box-shadow: var(--shadow-editorial);
 }
 @utility shadow-editorial-sm {
-  box-shadow: 4px 4px 0px 0px var(--foreground);
+  box-shadow: var(--shadow-editorial-sm);
 }
 @utility shadow-editorial-hover {
-  box-shadow: 2px 2px 0px 0px var(--foreground);
+  box-shadow: var(--shadow-editorial-hover);
 }

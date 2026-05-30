@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ArrowLeft, ArrowRight, Check, Clock3 } from "lucide-react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import {
   getActiveClassContext,
@@ -13,7 +13,7 @@ import { getStudents } from "@/app/actions/students";
 import { getScoringRules } from "@/app/actions/scoring";
 import Header from "@/components/ui/Header";
 import PageHeader from "@/components/ui/PageHeader";
-import AttendanceCard from "@/components/ui/AttendanceCard";
+import AttendanceStudentLists from "@/components/ui/AttendanceStudentLists";
 import WeeklyBibleVerseStickyCard from "@/components/ui/WeeklyBibleVerseStickyCard";
 import { pageMainClass, pageShellClass } from "@/components/ui/design-system";
 import type { AttendanceDisciplineEvent } from "@/lib/types/attendance";
@@ -89,6 +89,7 @@ export default async function LancamentoFrequenciaPage({ searchParams }: Params)
 
   const pendingStudents = students.filter((student) => !recordsByStudentId.has(student.id));
   const savedStudents = students.filter((student) => recordsByStudentId.has(student.id));
+
   const getRecordAdjustments = (studentId: string) => {
     const record = recordsByStudentId.get(studentId) as
       | {
@@ -145,6 +146,19 @@ export default async function LancamentoFrequenciaPage({ searchParams }: Params)
       disciplineEvents,
     };
   };
+  const buildStudentListItem = (student: (typeof students)[number]) => {
+    const adjustments = getRecordAdjustments(student.id);
+
+    return {
+      full_name: student.full_name,
+      student,
+      initialSelectedRuleIds: selectedRuleIdsByStudentId[student.id] || [],
+      initialExtraActivityPoints: adjustments.extraActivityPoints,
+      initialDisciplineEvents: adjustments.disciplineEvents,
+    };
+  };
+  const pendingStudentItems = pendingStudents.map(buildStudentListItem);
+  const savedStudentItems = savedStudents.map(buildStudentListItem);
 
   const displayDate = format(targetDate, "dd 'de' MMMM", { locale: ptBR });
 
@@ -161,12 +175,12 @@ export default async function LancamentoFrequenciaPage({ searchParams }: Params)
             backLabel="Voltar ao Painel"
           />
 
-          <div className="flex h-12 w-full shrink-0 overflow-hidden border-4 border-foreground bg-white shadow-editorial-sm sm:w-auto">
+          <div className="flex h-12 w-full shrink-0 overflow-hidden border-4 border-foreground bg-surface shadow-editorial-sm sm:w-auto">
             <Link href={`?d=${prevSat}`} className="w-12 flex items-center justify-center border-r-4 border-foreground hover:bg-background transition-colors" title="Sábado Anterior">
               <ArrowLeft className="w-4 h-4 stroke-[3]" />
             </Link>
 
-            <div className="flex min-w-0 flex-1 flex-col items-center justify-center bg-white px-4 sm:min-w-[140px] sm:px-6">
+            <div className="flex min-w-0 flex-1 flex-col items-center justify-center bg-surface px-4 sm:min-w-[140px] sm:px-6">
               <span className="text-[7px] font-black uppercase tracking-widest opacity-30 leading-none mb-1">Data Escolar</span>
               <span className="text-[11px] font-black uppercase tracking-tighter">{displayDate}</span>
             </div>
@@ -181,96 +195,14 @@ export default async function LancamentoFrequenciaPage({ searchParams }: Params)
           verse={weeklyBibleVerse}
         />
 
-        <section className="flex flex-col gap-5">
-          <div className="flex items-end justify-between gap-4 border-b-4 border-foreground/10 pb-4">
-            <div className="flex items-center gap-4">
-              <div className="p-2 bg-es-yellow border-4 border-foreground shadow-editorial-sm">
-                <Clock3 className="w-5 h-5 stroke-[3]" />
-              </div>
-              <div className="flex flex-col">
-                <h2 className="text-2xl font-black uppercase tracking-tighter">Pendentes de Entrada</h2>
-                <span className="text-[10px] font-bold text-foreground/40 uppercase tracking-[0.22em]">
-                  Alunos sem registro hoje
-                </span>
-              </div>
-            </div>
-            <span className="min-w-10 h-10 px-3 flex items-center justify-center border-4 border-foreground bg-white shadow-editorial-sm text-sm font-black uppercase">
-              {pendingStudents.length}
-            </span>
-          </div>
-
-          {rules.length === 0 ? (
-            <div className="border-4 border-dashed border-foreground/30 bg-white px-6 py-12 text-center">
-              <p className="text-lg font-black uppercase tracking-tight opacity-40">Cadastre os critérios de avaliação da classe antes de lançar frequência</p>
-            </div>
-          ) : pendingStudents.length > 0 ? (
-            <div className="flex flex-col gap-5">
-              {pendingStudents.map((student) => {
-                const adjustments = getRecordAdjustments(student.id);
-                return (
-                  <AttendanceCard
-                    key={student.id}
-                    classId={classId}
-                    date={saturdayStr}
-                    student={student}
-                    rules={rules}
-                    initialSelectedRuleIds={selectedRuleIdsByStudentId[student.id] || []}
-                    initialExtraActivityPoints={adjustments.extraActivityPoints}
-                    initialDisciplineEvents={adjustments.disciplineEvents}
-                  />
-                );
-              })}
-            </div>
-          ) : (
-            <div className="border-4 border-dashed border-foreground/30 bg-white px-6 py-12 text-center">
-              <p className="text-2xl font-black uppercase tracking-tight opacity-40">Toda a unidade já foi registrada</p>
-            </div>
-          )}
-        </section>
-
-        <section className="flex flex-col gap-5">
-          <div className="flex items-end justify-between gap-4 border-b-4 border-es-green/20 pb-4">
-            <div className="flex items-center gap-4">
-              <div className="p-2 bg-es-green border-4 border-foreground shadow-editorial-sm">
-                <Check className="w-5 h-5 stroke-[3]" />
-              </div>
-              <div className="flex flex-col">
-                <h2 className="text-2xl font-black uppercase tracking-tighter">Registros Finalizados</h2>
-                <span className="text-[10px] font-bold text-foreground/40 uppercase tracking-[0.22em]">
-                  Alunos já salvos para este sábado
-                </span>
-              </div>
-            </div>
-            <span className="min-w-10 h-10 px-3 flex items-center justify-center border-4 border-foreground bg-white shadow-editorial-sm text-sm font-black uppercase">
-              {savedStudents.length}
-            </span>
-          </div>
-
-          {savedStudents.length > 0 ? (
-            <div className="flex flex-col gap-5">
-              {savedStudents.map((student) => {
-                const adjustments = getRecordAdjustments(student.id);
-                return (
-                  <AttendanceCard
-                    key={student.id}
-                    classId={classId}
-                    date={saturdayStr}
-                    student={student}
-                    rules={rules}
-                    initialSelectedRuleIds={selectedRuleIdsByStudentId[student.id] || []}
-                    initialExtraActivityPoints={adjustments.extraActivityPoints}
-                    initialDisciplineEvents={adjustments.disciplineEvents}
-                    isSaved
-                  />
-                );
-              })}
-            </div>
-          ) : (
-            <div className="border-4 border-dashed border-foreground/20 bg-white px-6 py-12 text-center">
-              <p className="text-lg font-black uppercase tracking-tight opacity-40">Nenhum registro finalizado ainda</p>
-            </div>
-          )}
-        </section>
+        <AttendanceStudentLists
+          key={saturdayStr}
+          classId={classId}
+          date={saturdayStr}
+          rules={rules}
+          pendingStudents={pendingStudentItems}
+          savedStudents={savedStudentItems}
+        />
       </main>
     </div>
   );

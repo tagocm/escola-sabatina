@@ -56,7 +56,7 @@ export default function ScoringRuleForm({ classId, initialData, onClose }: RuleF
          <h3 className="text-xl font-black uppercase tracking-tighter">
            {initialData ? "Editar Regra" : "Nova Regra"}
          </h3>
-         <button onClick={onClose} className="p-1 hover:bg-foreground hover:text-white transition-colors">
+         <button onClick={onClose} className="p-1 hover:bg-foreground hover:text-surface transition-colors">
             <X className="w-6 h-6 stroke-[3]" />
          </button>
       </div>

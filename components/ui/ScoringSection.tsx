@@ -96,7 +96,7 @@ export default function ScoringSection({ classId, rules }: ScoringSectionProps) 
             aria-hidden="true"
             onClick={closeEditor}
           />
-          <div className="relative z-10 max-h-[calc(100svh-1.5rem)] w-full max-w-2xl overflow-y-auto border-4 border-foreground bg-[#FFFCEE] p-5 shadow-editorial animate-in zoom-in-95 duration-200 md:max-h-[85svh] md:p-6">
+          <div className="relative z-10 max-h-[calc(100svh-1.5rem)] w-full max-w-2xl overflow-y-auto border-4 border-foreground bg-surface-warm p-5 shadow-editorial animate-in zoom-in-95 duration-200 md:max-h-[85svh] md:p-6">
             <ScoringRuleForm
               classId={classId}
               initialData={editingRule || undefined}
@@ -107,7 +107,7 @@ export default function ScoringSection({ classId, rules }: ScoringSectionProps) 
       )}
 
       {rules.length === 0 ? (
-        <div className="w-full bg-white border-4 border-foreground p-12 flex flex-col items-center justify-center text-center gap-4 shadow-editorial-sm">
+        <div className="w-full bg-surface border-4 border-foreground p-12 flex flex-col items-center justify-center text-center gap-4 shadow-editorial-sm">
            <Layers className="w-16 h-16 opacity-10" />
            <p className="text-sm font-black uppercase tracking-widest opacity-40">Nenhum item definido para esta unidade.</p>
            <button onClick={() => setIsAdding(true)} className="text-es-orange font-black uppercase underline underline-offset-4">Criar primeiro item agora</button>
@@ -128,7 +128,7 @@ export default function ScoringSection({ classId, rules }: ScoringSectionProps) 
                     openRuleEditor(rule);
                   }
                 }}
-                className={`group bg-white border-4 border-foreground shadow-editorial flex flex-col transition-all overflow-hidden cursor-pointer focus:outline-none focus:shadow-editorial-hover ${!rule.is_active ? "opacity-60 grayscale" : "hover:shadow-editorial-hover active:translate-y-0.5"}`}
+                className={`group bg-surface border-4 border-foreground shadow-editorial flex flex-col transition-all overflow-hidden cursor-pointer focus:outline-none focus:shadow-editorial-hover ${!rule.is_active ? "opacity-60 grayscale" : "hover:shadow-editorial-hover active:translate-y-0.5"}`}
               >
                 <div className={`h-2 w-full ${style.color} border-b-4 border-foreground`} />
                 <div className="p-5 flex-1 flex flex-col gap-4">
@@ -192,7 +192,7 @@ export default function ScoringSection({ classId, rules }: ScoringSectionProps) 
                         <span className="text-[28px] font-black leading-none">{rule.points}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-black uppercase tracking-widest bg-foreground text-white px-2 py-0.5">pts</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest bg-foreground text-surface px-2 py-0.5">pts</span>
                       </div>
                    </div>
                 </div>

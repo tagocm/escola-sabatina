@@ -72,17 +72,17 @@ export default function PerformanceTrendChart({
       </div>
 
       <div className="flex flex-wrap gap-3">
-        <div className="flex items-center gap-2 border-2 border-foreground bg-white px-3 py-1.5 shadow-editorial-sm">
+        <div className="flex items-center gap-2 border-2 border-foreground bg-surface px-3 py-1.5 shadow-editorial-sm">
           <span className="h-3 w-3 border-2 border-foreground bg-es-orange" />
           <span className="text-[9px] font-black uppercase tracking-widest">{studentLabel}</span>
         </div>
-        <div className="flex items-center gap-2 border-2 border-foreground bg-white px-3 py-1.5 shadow-editorial-sm">
+        <div className="flex items-center gap-2 border-2 border-foreground bg-surface px-3 py-1.5 shadow-editorial-sm">
           <span className="h-3 w-3 border-2 border-foreground bg-es-blue" />
           <span className="text-[9px] font-black uppercase tracking-widest">Média da turma</span>
         </div>
       </div>
 
-      <div className="bg-white border-4 border-foreground shadow-editorial p-4 md:p-5 overflow-x-auto">
+      <div className="bg-surface border-4 border-foreground shadow-editorial p-4 md:p-5 overflow-x-auto">
         <svg
           viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`}
           className="min-w-[640px] w-full"
@@ -102,7 +102,7 @@ export default function PerformanceTrendChart({
                   y1={y}
                   x2={SVG_WIDTH - PADDING.right}
                   y2={y}
-                  stroke="rgba(17,17,17,0.12)"
+                  stroke="var(--chart-grid)"
                   strokeWidth="2"
                   strokeDasharray="6 8"
                 />
@@ -113,7 +113,7 @@ export default function PerformanceTrendChart({
                   fontSize="10"
                   fontWeight="900"
                   letterSpacing="0.18em"
-                  fill="rgba(17,17,17,0.45)"
+                  fill="var(--chart-label)"
                 >
                   {Math.round(value)}
                 </text>
@@ -173,7 +173,7 @@ export default function PerformanceTrendChart({
                   fontSize="10"
                   fontWeight="900"
                   letterSpacing="0.14em"
-                  fill="rgba(17,17,17,0.52)"
+                  fill="var(--chart-value)"
                 >
                   {point.label}
                 </text>

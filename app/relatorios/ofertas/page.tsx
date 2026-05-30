@@ -101,12 +101,12 @@ export default async function LancamentoOfertasPage({ searchParams }: Params) {
             backLabel="Voltar ao Painel"
           />
 
-          <div className="flex h-12 w-full shrink-0 overflow-hidden border-4 border-foreground bg-white shadow-editorial-sm sm:w-auto">
+          <div className="flex h-12 w-full shrink-0 overflow-hidden border-4 border-foreground bg-surface shadow-editorial-sm sm:w-auto">
             <Link href={`?d=${prevSat}`} className="w-12 flex items-center justify-center border-r-4 border-foreground hover:bg-background transition-colors" title="Sábado Anterior">
               <ArrowLeft className="w-4 h-4 stroke-[3]" />
             </Link>
 
-            <div className="flex min-w-0 flex-1 flex-col items-center justify-center bg-white px-4 sm:min-w-[140px] sm:px-6">
+            <div className="flex min-w-0 flex-1 flex-col items-center justify-center bg-surface px-4 sm:min-w-[140px] sm:px-6">
               <span className="text-[7px] font-black uppercase tracking-widest opacity-30 leading-none mb-1">Data Escolar</span>
               <span className="text-[11px] font-black uppercase tracking-tighter">{displayDate}</span>
             </div>
@@ -118,7 +118,7 @@ export default async function LancamentoOfertasPage({ searchParams }: Params) {
         </div>
 
         <section id="oferta-section" className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_1fr_1.15fr] md:gap-6">
-          <div className="bg-white border-4 border-foreground p-6 md:p-8 shadow-editorial flex flex-col gap-5 scroll-mt-24">
+          <div className="bg-surface border-4 border-foreground p-6 md:p-8 shadow-editorial flex flex-col gap-5 scroll-mt-24">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-es-yellow border-4 border-foreground shadow-editorial-sm">
                 <HandCoins className="w-5 h-5 stroke-[3]" />
@@ -134,7 +134,7 @@ export default async function LancamentoOfertasPage({ searchParams }: Params) {
             <OfferingInput classId={classId} date={dateStr} initialAmount={totalOffering} />
           </div>
 
-          <div className="bg-white border-4 border-foreground p-6 md:p-8 shadow-editorial flex flex-col gap-5">
+          <div className="bg-surface border-4 border-foreground p-6 md:p-8 shadow-editorial flex flex-col gap-5">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-es-lilac border-4 border-foreground shadow-editorial-sm">
                 <Target className="w-5 h-5 stroke-[3]" />
@@ -157,7 +157,7 @@ export default async function LancamentoOfertasPage({ searchParams }: Params) {
             </p>
           </div>
 
-          <div className="bg-white border-4 border-foreground p-6 md:p-8 shadow-editorial flex flex-col gap-5">
+          <div className="bg-surface border-4 border-foreground p-6 md:p-8 shadow-editorial flex flex-col gap-5">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-es-orange border-4 border-foreground shadow-editorial-sm">
                 <Thermometer className="w-5 h-5 stroke-[3]" />
@@ -187,7 +187,7 @@ export default async function LancamentoOfertasPage({ searchParams }: Params) {
               </div>
 
               <div className="flex flex-col gap-2">
-                <div className="relative h-8 border-4 border-foreground bg-white shadow-editorial-sm overflow-hidden">
+                <div className="relative h-8 border-4 border-foreground bg-surface shadow-editorial-sm overflow-hidden">
                   <div className="absolute inset-y-0 left-0 bg-es-orange" style={{ width: `${thermometerProgress}%` }} />
                 </div>
                 <div className="grid grid-cols-3 items-center text-[9px] font-black uppercase tracking-widest opacity-50">
@@ -204,7 +204,7 @@ export default async function LancamentoOfertasPage({ searchParams }: Params) {
           </div>
         </section>
 
-        <section id="offering-history" className="bg-white border-4 border-foreground p-6 md:p-8 shadow-editorial flex flex-col gap-6 scroll-mt-24">
+        <section id="offering-history" className="bg-surface border-4 border-foreground p-6 md:p-8 shadow-editorial flex flex-col gap-6 scroll-mt-24">
           <div className="flex flex-col gap-1">
             <h2 className="text-2xl font-black uppercase tracking-tighter">Histórico das Ofertas</h2>
             <span className="text-[10px] font-bold text-foreground/40 uppercase tracking-[0.22em]">

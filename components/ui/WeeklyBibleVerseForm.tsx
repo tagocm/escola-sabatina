@@ -24,7 +24,7 @@ interface WeeklyBibleVerseFormProps {
 }
 
 const sentenceInputClass =
-  "w-full min-h-12 border-4 border-foreground bg-white px-4 text-base font-semibold text-foreground outline-none transition-all focus:shadow-editorial-sm md:text-sm normal-case tracking-normal";
+  "w-full min-h-12 border-4 border-foreground bg-surface px-4 text-base font-semibold text-foreground outline-none transition-all focus:shadow-editorial-sm md:text-sm normal-case tracking-normal";
 
 const sentenceTextareaClass = `${sentenceInputClass} min-h-[144px] py-3 leading-6 resize-y`;
 
@@ -79,7 +79,7 @@ export default function WeeklyBibleVerseForm({
         <button
           type="button"
           onClick={onClose}
-          className="p-1 transition-colors hover:bg-foreground hover:text-white"
+          className="p-1 transition-colors hover:bg-foreground hover:text-surface"
           aria-label="Fechar formulário"
         >
           <X className="h-6 w-6 stroke-[3]" />

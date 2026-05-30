@@ -76,7 +76,7 @@ export default function OfferingInput({ classId, date, initialAmount }: Offering
         value={amountDisplay}
         onChange={(event) => setAmountDisplay(normalizeCurrencyInput(event.target.value))}
         disabled={isPending}
-        className={`w-full h-12 bg-white border-4 border-foreground px-4 font-black text-xl text-right outline-none transition-all ${isPending ? "opacity-50" : "focus:shadow-editorial-sm"}`}
+        className={`w-full h-12 bg-surface border-4 border-foreground px-4 font-black text-xl text-right outline-none transition-all ${isPending ? "opacity-50" : "focus:shadow-editorial-sm"}`}
         placeholder="R$ 0,00"
       />
 

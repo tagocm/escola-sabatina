@@ -59,10 +59,10 @@ export default function PolaroidPhoto({
       {/* Target area for hidden input */}
       <div
         onClick={() => isInteractive && fileInputRef.current?.click()}
-        className={`relative w-64 h-80 bg-white border-4 border-foreground shadow-editorial flex flex-col p-4 transition-all ${isInteractive ? "cursor-pointer hover:-translate-y-1 hover:shadow-editorial-hover" : ""}`}
+        className={`relative w-64 h-80 bg-surface border-4 border-foreground shadow-editorial flex flex-col p-4 transition-all ${isInteractive ? "cursor-pointer hover:-translate-y-1 hover:shadow-editorial-hover" : ""}`}
       >
         {/* Photo Container (Square Area) */}
-        <div className="relative w-full aspect-square bg-[#F0F0F0] border-2 border-foreground overflow-hidden flex items-center justify-center">
+        <div className="relative w-full aspect-square bg-surface-muted border-2 border-foreground overflow-hidden flex items-center justify-center">
           {previewUrl ? (
             <Image 
               src={previewUrl} 
@@ -81,7 +81,7 @@ export default function PolaroidPhoto({
 
           {/* Loading overlay */}
           {isProcessing && (
-            <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/10">
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-foreground/10">
               <Loader2 className="w-8 h-8 animate-spin text-foreground" />
             </div>
           )}

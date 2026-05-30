@@ -47,7 +47,7 @@ export default function AttendanceDisciplineEventsCard({
     >
       <button
         type="button"
-        className="flex h-[88px] w-full min-w-[96px] flex-col items-center justify-between border-4 border-foreground bg-white px-3 py-3 text-center shadow-editorial-sm transition-all hover:shadow-editorial disabled:opacity-60"
+        className="flex h-[88px] w-full min-w-[96px] flex-col items-center justify-between border-4 border-foreground bg-surface px-3 py-3 text-center shadow-editorial-sm transition-all hover:shadow-editorial disabled:opacity-60"
         aria-label="Abrir eventos de indisciplina"
         aria-expanded={isOpen}
         disabled={!hasEvents}
@@ -62,8 +62,8 @@ export default function AttendanceDisciplineEventsCard({
       </button>
 
       {isOpen ? (
-        <div className="absolute left-0 top-full z-30 mt-2 flex max-h-72 w-[18rem] flex-col overflow-hidden border-4 border-foreground bg-[#FFFCEE] shadow-editorial">
-          <div className="border-b-4 border-foreground bg-white px-3 py-2.5">
+        <div className="absolute left-0 top-full z-30 mt-2 flex max-h-72 w-[18rem] flex-col overflow-hidden border-4 border-foreground bg-surface-warm shadow-editorial">
+          <div className="border-b-4 border-foreground bg-surface px-3 py-2.5">
             <p className="text-[8px] font-black uppercase tracking-[0.18em] opacity-40">
               Eventos registrados
             </p>
@@ -88,7 +88,7 @@ export default function AttendanceDisciplineEventsCard({
                         <button
                           type="button"
                           onClick={() => onDeleteEvent(index)}
-                          className="flex h-7 w-7 items-center justify-center border-2 border-foreground bg-white text-es-orange shadow-editorial-sm transition-all hover:bg-es-orange/10"
+                          className="flex h-7 w-7 items-center justify-center border-2 border-foreground bg-surface text-es-orange shadow-editorial-sm transition-all hover:bg-es-orange/10"
                           aria-label={`Excluir evento ${indexedEvents.length - orderIndex}`}
                           title="Excluir evento"
                         >

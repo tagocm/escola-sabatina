@@ -123,7 +123,7 @@ export default function ResponsibilityTemplateSection({
             required
             disabled={isPending}
             placeholder="Ex: Olá, [responsável]. Seu filho foi escalado para [atividade] no sábado [data]."
-            className="min-h-[120px] bg-white border-4 border-foreground px-4 py-3 font-bold text-sm uppercase tracking-wide outline-none"
+            className="min-h-[120px] bg-surface border-4 border-foreground px-4 py-3 font-bold text-sm uppercase tracking-wide outline-none"
           />
         </div>
 
@@ -158,7 +158,7 @@ export default function ResponsibilityTemplateSection({
                   <Trash2 className="w-4 h-4 stroke-[3]" />
                 </button>
               </div>
-              <div className="border-2 border-foreground bg-white px-4 py-3 text-[11px] font-bold uppercase tracking-widest leading-relaxed">
+              <div className="border-2 border-foreground bg-surface px-4 py-3 text-[11px] font-bold uppercase tracking-widest leading-relaxed">
                 {template.message_template}
               </div>
             </div>

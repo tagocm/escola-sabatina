@@ -363,6 +363,52 @@ export async function getGuardianStudentMailbox(studentId: string): Promise<Guar
   return (data || []) as GuardianMailboxMessage[];
 }
 
+export async function dismissGuardianMailboxMessage(studentId: string, messageId: string): Promise<void> {
+  const auth = await requireGuardianAction();
+  if ("error" in auth) {
+    throw new Error(auth.error);
+  }
+
+  const { supabase, user } = auth;
+  const normalizedMessageId = String(messageId || "").trim();
+
+  if (!normalizedMessageId) {
+    throw new Error("Mensagem inválida.");
+  }
+
+  const { data: guardianStudentLink, error: guardianStudentError } = await supabase
+    .from("guardian_students")
+    .select("student_id")
+    .eq("guardian_id", user.id)
+    .eq("student_id", studentId)
+    .maybeSingle();
+
+  if (guardianStudentError || !guardianStudentLink) {
+    throw new Error("Aluno não vinculado a este responsável.");
+  }
+
+  const { error } = await supabase
+    .from("guardian_mailbox_dismissals")
+    .upsert(
+      {
+        guardian_id: user.id,
+        student_id: studentId,
+        message_id: normalizedMessageId,
+      },
+      { onConflict: "guardian_id,student_id,message_id" },
+    );
+
+  if (error) {
+    console.error("Error dismissing guardian mailbox message:", error);
+    throw new Error("Não foi possível excluir a mensagem da caixa postal.");
+  }
+
+  revalidatePath("/responsavel");
+  revalidatePath("/responsavel/filhos");
+  revalidatePath(`/responsavel/filhos/${studentId}`);
+  revalidatePath(`/responsavel/filhos/${studentId}/acompanhe`);
+}
+
 // ============================================================
 // READ: Get user role
 // ============================================================

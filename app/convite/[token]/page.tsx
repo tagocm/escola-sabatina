@@ -13,8 +13,8 @@ export default async function ConvitePage({ params }: Params) {
 
   if (!invite) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 selection:bg-foreground selection:text-white">
-        <div className="w-full max-w-lg bg-white border-8 border-foreground p-12 shadow-editorial flex flex-col items-center text-center gap-8">
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 selection:bg-foreground selection:text-surface">
+        <div className="w-full max-w-lg bg-surface border-8 border-foreground p-12 shadow-editorial flex flex-col items-center text-center gap-8">
            <div className="w-24 h-24 bg-es-orange border-4 border-foreground flex items-center justify-center shadow-editorial-sm">
               <AlertTriangle className="w-12 h-12 stroke-[3]" />
            </div>
@@ -24,7 +24,7 @@ export default async function ConvitePage({ params }: Params) {
            </div>
            <Link 
              href="/login" 
-             className="w-full h-16 bg-foreground text-white font-black text-xl uppercase tracking-widest flex items-center justify-center hover:bg-foreground/90 transition-all shadow-editorial-sm"
+             className="w-full h-16 bg-foreground text-surface font-black text-xl uppercase tracking-widest flex items-center justify-center hover:bg-foreground/90 transition-all shadow-editorial-sm"
            >
              Fazer Login
            </Link>
@@ -40,14 +40,14 @@ export default async function ConvitePage({ params }: Params) {
   };
 
   return (
-    <div className="min-h-screen lg:flex selection:bg-foreground selection:text-white">
+    <div className="min-h-screen lg:flex selection:bg-foreground selection:text-surface">
       {/* Editorial Panel */}
       <div className="hidden lg:flex w-1/2 bg-es-lilac border-r-8 border-foreground p-12 flex-col justify-between relative overflow-hidden">
         <div className="absolute -top-10 -left-10 w-64 h-64 bg-es-yellow border-4 border-foreground rotate-12" />
         <div className="absolute top-1/2 right-0 w-32 h-[120%] bg-es-orange border-l-8 border-foreground -translate-y-1/2" />
         
         <div className="relative z-10 text-foreground">
-          <div className="inline-block bg-white border-4 border-foreground px-5 py-2 mb-8 shadow-editorial-sm">
+          <div className="inline-block bg-surface border-4 border-foreground px-5 py-2 mb-8 shadow-editorial-sm">
             <h2 className="text-xl font-black uppercase tracking-widest">CONVITE ACEITO</h2>
           </div>
           <h1 className="text-[5vw] font-black leading-[0.9] tracking-tighter uppercase max-w-lg">
@@ -62,7 +62,7 @@ export default async function ConvitePage({ params }: Params) {
           </div>
         </div>
 
-        <div className="relative z-10 max-w-sm bg-white border-4 border-foreground p-6 shadow-editorial-sm">
+        <div className="relative z-10 max-w-sm bg-surface border-4 border-foreground p-6 shadow-editorial-sm">
           <p className="text-lg font-black uppercase">Por: {inviteData.invited_by_full_name || "Escola Sabatina"}</p>
           <div className="h-1 bg-foreground w-full my-3" />
           <p className="text-xs font-bold uppercase text-foreground/60 leading-tight">

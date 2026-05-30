@@ -28,7 +28,7 @@ interface EnrollmentRequestCardProps {
 const statusLabelMap: Record<string, { label: string; color: string }> = {
   pending: { label: "Pendente", color: "bg-es-yellow" },
   approved: { label: "Aprovado", color: "bg-es-green" },
-  rejected: { label: "Rejeitado", color: "bg-red-400" },
+  rejected: { label: "Rejeitado", color: "bg-danger" },
 };
 
 export default function EnrollmentRequestCard({ request }: EnrollmentRequestCardProps) {
@@ -52,7 +52,7 @@ export default function EnrollmentRequestCard({ request }: EnrollmentRequestCard
   };
 
   return (
-    <div className="bg-white border-4 border-foreground shadow-editorial-sm p-5 flex flex-col md:flex-row md:items-center gap-4">
+    <div className="bg-surface border-4 border-foreground shadow-editorial-sm p-5 flex flex-col md:flex-row md:items-center gap-4">
       {/* Student Info */}
       <div className="flex items-center gap-4 flex-1">
         <div className="relative w-14 h-14 border-4 border-foreground overflow-hidden flex items-center justify-center bg-background shrink-0">
@@ -104,7 +104,7 @@ export default function EnrollmentRequestCard({ request }: EnrollmentRequestCard
           <button
             onClick={handleReject}
             disabled={isPending}
-            className="bg-red-400 border-4 border-foreground p-3 shadow-editorial-sm hover:shadow-none active:translate-y-0.5 transition-all disabled:opacity-50"
+            className="bg-danger border-4 border-foreground p-3 shadow-editorial-sm hover:shadow-none active:translate-y-0.5 transition-all disabled:opacity-50"
             title="Rejeitar Solicitação"
           >
             <X className="w-5 h-5 stroke-[3]" />

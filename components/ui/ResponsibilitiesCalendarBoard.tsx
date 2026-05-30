@@ -203,8 +203,8 @@ export default function ResponsibilitiesCalendarBoard({
             onClick={() => setPickerSlotIndex(slotIndex)}
             className="w-full disabled:opacity-60"
           >
-            <div className="w-full max-w-[210px] bg-white border-4 border-foreground shadow-editorial-sm p-3 transition-transform group-hover:translate-y-0.5 group-hover:translate-x-0.5">
-              <div className="relative aspect-square w-full border-2 border-foreground bg-[#F0F0F0] overflow-hidden flex items-center justify-center">
+            <div className="w-full max-w-[210px] bg-surface border-4 border-foreground shadow-editorial-sm p-3 transition-transform group-hover:translate-y-0.5 group-hover:translate-x-0.5">
+              <div className="relative aspect-square w-full border-2 border-foreground bg-surface-muted overflow-hidden flex items-center justify-center">
                 {photoSrc ? (
                   <Image
                     src={photoSrc}
@@ -267,8 +267,8 @@ export default function ResponsibilitiesCalendarBoard({
                   </div>
                 </div>
 
-                <div className="relative flex-1 min-h-[160px] overflow-hidden border-4 border-foreground bg-[#f6f1df] p-3 shadow-editorial-sm md:p-4">
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgba(0,0,0,0.06)_1px,transparent_0)] bg-[size:22px_22px] opacity-30 pointer-events-none" />
+                <div className="relative flex-1 min-h-[160px] overflow-hidden border-4 border-foreground bg-surface-pattern p-3 shadow-editorial-sm md:p-4">
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,var(--pattern-dot)_1px,transparent_0)] bg-[size:22px_22px] opacity-30 pointer-events-none" />
                   <div className="relative flex flex-col gap-3">
                     {day.tasks.map((task) => {
                       const taskColor = getResponsibilityColor(task.id);
@@ -282,7 +282,7 @@ export default function ResponsibilitiesCalendarBoard({
                           <button
                             type="button"
                             onClick={() => openTask(day, task)}
-                            className="relative flex w-full flex-col gap-3 border-4 border-foreground bg-white/90 px-3 py-3 pr-12 text-left shadow-editorial-sm transition-all hover:translate-y-0.5 hover:translate-x-0.5 md:px-4"
+                            className="relative flex w-full flex-col gap-3 border-4 border-foreground bg-surface/90 px-3 py-3 pr-12 text-left shadow-editorial-sm transition-all hover:translate-y-0.5 hover:translate-x-0.5 md:px-4"
                           >
                             <div className="flex items-start justify-between gap-3">
                               <div className="flex min-w-0 items-center gap-3">
@@ -309,7 +309,7 @@ export default function ResponsibilitiesCalendarBoard({
                                   </div>
                                 ))
                               ) : (
-                                <div className="px-3 py-1.5 border-2 border-dashed border-foreground/35 bg-white text-[10px] font-black uppercase tracking-[0.14em] opacity-40">
+                                <div className="px-3 py-1.5 border-2 border-dashed border-foreground/35 bg-surface text-[10px] font-black uppercase tracking-[0.14em] opacity-40">
                                   Aguardando alunos
                                 </div>
                               )}
@@ -345,7 +345,7 @@ export default function ResponsibilitiesCalendarBoard({
                   <span className="text-[9px] font-black uppercase tracking-[0.18em] opacity-40">Sábado</span>
                   <h3 className="text-xl font-black uppercase tracking-tight">{day.fullLabel}</h3>
                 </div>
-                <div className="border-4 border-dashed border-foreground/30 bg-white px-6 py-10 text-center min-h-[180px] flex items-center justify-center">
+                <div className="border-4 border-dashed border-foreground/30 bg-surface px-6 py-10 text-center min-h-[180px] flex items-center justify-center">
                   <p className="text-base font-black uppercase tracking-tight opacity-40">Sem atividades nesta aula</p>
                 </div>
               </>
@@ -355,8 +355,8 @@ export default function ResponsibilitiesCalendarBoard({
       </div>
 
       {activeEntry ? (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/35 p-3 md:p-4">
-          <div className="flex max-h-[88vh] w-full max-w-3xl flex-col gap-5 overflow-y-auto border-4 border-foreground bg-white p-4 shadow-editorial md:gap-6 md:p-8">
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-foreground/35 p-3 md:p-4">
+          <div className="flex max-h-[88vh] w-full max-w-3xl flex-col gap-5 overflow-y-auto border-4 border-foreground bg-surface p-4 shadow-editorial md:gap-6 md:p-8">
             <div className="flex items-start justify-between gap-4">
               <div className="flex flex-col gap-2">
                 <span className="text-[9px] font-black uppercase tracking-[0.18em] opacity-40">
@@ -418,8 +418,8 @@ export default function ResponsibilitiesCalendarBoard({
       ) : null}
 
       {activeEntry && pickerSlotIndex !== null && (
-        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/45 p-3 md:p-4">
-          <div className="flex h-[min(80vh,720px)] w-full max-w-2xl flex-col gap-5 border-4 border-foreground bg-white p-4 shadow-editorial md:p-8">
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-foreground/45 p-3 md:p-4">
+          <div className="flex h-[min(80vh,720px)] w-full max-w-2xl flex-col gap-5 border-4 border-foreground bg-surface p-4 shadow-editorial md:p-8">
             <div className="flex items-start justify-between gap-4">
               <div className="flex flex-col gap-2">
                 <span className="text-[9px] font-black uppercase tracking-[0.18em] opacity-40">
@@ -444,7 +444,7 @@ export default function ResponsibilitiesCalendarBoard({
             </div>
 
             <div className="flex-1 border-4 border-foreground bg-background shadow-editorial-sm p-4 md:p-5 flex flex-col gap-4 min-h-0">
-              <label className="flex items-center gap-3 h-14 border-4 border-foreground bg-white px-4 shadow-editorial-sm">
+              <label className="flex items-center gap-3 h-14 border-4 border-foreground bg-surface px-4 shadow-editorial-sm">
                 <Search className="w-4 h-4 stroke-[3] opacity-50 shrink-0" />
                 <input
                   type="text"
@@ -455,7 +455,7 @@ export default function ResponsibilitiesCalendarBoard({
                 />
               </label>
 
-              <div className="flex-1 min-h-0 overflow-y-scroll border-4 border-foreground bg-white shadow-editorial-sm">
+              <div className="flex-1 min-h-0 overflow-y-scroll border-4 border-foreground bg-surface shadow-editorial-sm">
                 <div className="flex min-h-full flex-col">
                   {filteredStudents.length > 0 ? filteredStudents.map((student, index) => {
                     const photoSrc = getStudentPhotoSrc(student.id, student.photo_url);
@@ -468,10 +468,10 @@ export default function ResponsibilitiesCalendarBoard({
                         onClick={() => handleAssignStudent(student.id, pickerSlotIndex)}
                         className={`grid grid-cols-[72px_minmax(0,1fr)] items-center gap-4 px-4 py-3 text-left transition-colors disabled:opacity-60 ${
                           index > 0 ? "border-t-4 border-foreground" : ""
-                        } ${index % 2 === 0 ? "bg-[#f8f4e8]" : "bg-white"} hover:bg-background`}
+                        } ${index % 2 === 0 ? "bg-surface-soft" : "bg-surface"} hover:bg-background`}
                       >
-                        <div className="w-[72px] bg-white border-4 border-foreground shadow-editorial-sm p-2">
-                          <div className="relative aspect-square w-full border-2 border-foreground bg-[#F0F0F0] overflow-hidden flex items-center justify-center">
+                        <div className="w-[72px] bg-surface border-4 border-foreground shadow-editorial-sm p-2">
+                          <div className="relative aspect-square w-full border-2 border-foreground bg-surface-muted overflow-hidden flex items-center justify-center">
                             {photoSrc ? (
                               <Image
                                 src={photoSrc}

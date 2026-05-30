@@ -6,7 +6,7 @@ import { emptyStateClass, listCardClass } from "@/components/ui/design-system";
 const statusConfig: Record<string, { label: string; color: string; icon: typeof Clock }> = {
   pending: { label: "Aguardando Aprovação", color: "bg-es-yellow", icon: Clock },
   approved: { label: "Aprovado", color: "bg-es-green", icon: Check },
-  rejected: { label: "Rejeitado", color: "bg-red-400", icon: X },
+  rejected: { label: "Rejeitado", color: "bg-danger", icon: X },
 };
 
 export default async function SolicitacoesPage() {

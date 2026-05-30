@@ -181,7 +181,7 @@ export default async function GuardianDashboard() {
                   <div className="border-t-4 border-foreground grid grid-cols-2 h-10">
                     <Link 
                       href={`/responsavel/filhos/${student.id}`}
-                      className="bg-white flex items-center justify-center gap-2 hover:bg-background transition-colors"
+                      className="bg-surface flex items-center justify-center gap-2 hover:bg-background transition-colors"
                     >
                       <Settings className="w-3 h-3 stroke-[3]" />
                       <span className="text-[9px] font-black uppercase tracking-widest">Dados</span>
@@ -207,7 +207,7 @@ export default async function GuardianDashboard() {
           <p className="max-w-sm text-center text-[9px] font-black uppercase tracking-widest leading-relaxed md:text-left">
             Dúvidas sobre o funcionamento das classes? Entre em contato com a equipe de coordenação.
           </p>
-          <div className="border-2 border-foreground bg-white px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] shadow-editorial-sm">
+          <div className="border-2 border-foreground bg-surface px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] shadow-editorial-sm">
             Portal da Família v2.0
           </div>
         </div>

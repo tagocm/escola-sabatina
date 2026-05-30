@@ -91,11 +91,11 @@ export default async function ResponsibilitiesPage({ searchParams }: Props) {
             backLabel="Voltar ao Painel"
           />
 
-          <div className="flex h-12 w-full shrink-0 overflow-hidden border-4 border-foreground bg-white shadow-editorial-sm sm:w-auto">
+          <div className="flex h-12 w-full shrink-0 overflow-hidden border-4 border-foreground bg-surface shadow-editorial-sm sm:w-auto">
             <Link href={`?m=${prevRef}`} className="w-12 flex items-center justify-center border-r-4 border-foreground hover:bg-background transition-colors">
               <ArrowLeft className="w-4 h-4 stroke-[3]" />
             </Link>
-            <div className="flex min-w-0 flex-1 flex-col items-center justify-center bg-white px-4 sm:min-w-[170px] sm:px-6">
+            <div className="flex min-w-0 flex-1 flex-col items-center justify-center bg-surface px-4 sm:min-w-[170px] sm:px-6">
               <span className="text-[7px] font-black uppercase tracking-widest opacity-30 leading-none mb-1">Mês em foco</span>
               <span className="text-[11px] font-black uppercase tracking-tighter">
                 {format(currentMonth, "MMMM 'de' yyyy", { locale: ptBR })}
@@ -107,7 +107,7 @@ export default async function ResponsibilitiesPage({ searchParams }: Props) {
           </div>
         </div>
 
-        <section className="bg-white border-4 border-foreground p-5 md:p-6 shadow-editorial flex flex-col gap-5">
+        <section className="bg-surface border-4 border-foreground p-5 md:p-6 shadow-editorial flex flex-col gap-5">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 border-4 border-foreground bg-es-green flex items-center justify-center shadow-editorial-sm shrink-0">

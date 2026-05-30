@@ -23,7 +23,7 @@ export default function DeactivateStudentButton({
     <button
       type="submit"
       onClick={handleClick}
-      className="flex h-8 w-8 items-center justify-center border-2 border-foreground bg-white/95 shadow-editorial-sm transition-all hover:bg-es-orange hover:shadow-editorial-hover"
+      className="flex h-8 w-8 items-center justify-center border-2 border-foreground bg-surface/95 shadow-editorial-sm transition-all hover:bg-es-orange hover:shadow-editorial-hover"
       title="Ocultar dependente"
       aria-label={`Ocultar ${studentName}`}
     >

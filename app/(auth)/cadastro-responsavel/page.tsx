@@ -4,7 +4,7 @@ import { ArrowLeft } from "lucide-react";
 
 export default function CadastroResponsavelPage() {
   return (
-    <div className="w-full max-w-md bg-white border-[4px] border-foreground p-8 md:p-10 shadow-editorial transition-all flex flex-col gap-8">
+    <div className="w-full max-w-md bg-surface border-[4px] border-foreground p-8 md:p-10 shadow-editorial transition-all flex flex-col gap-8">
       <div className="flex flex-col gap-1 border-b-4 border-foreground pb-6">
         <Link 
           href="/login" 
