@@ -1,8 +1,11 @@
+export const STUDENT_PHOTO_MAX_SIZE = 1200;
+export const STUDENT_PHOTO_QUALITY = 0.9;
+
 export async function compressImage(
   file: File,
-  maxWidth = 400,
-  maxHeight = 400,
-  quality = 0.8
+  maxWidth = STUDENT_PHOTO_MAX_SIZE,
+  maxHeight = STUDENT_PHOTO_MAX_SIZE,
+  quality = STUDENT_PHOTO_QUALITY
 ): Promise<File> {
   return new Promise((resolve) => {
     // Retorna original se não for imagem

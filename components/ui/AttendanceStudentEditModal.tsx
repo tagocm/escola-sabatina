@@ -55,7 +55,7 @@ export default function AttendanceStudentEditModal({
     if (!selectedFile) return;
 
     try {
-      const compressedFile = await compressImage(selectedFile, 400, 400, 0.85);
+      const compressedFile = await compressImage(selectedFile);
       if (previewObjectUrlRef.current) {
         URL.revokeObjectURL(previewObjectUrlRef.current);
       }

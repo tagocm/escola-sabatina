@@ -33,7 +33,7 @@ export default function PolaroidPhoto({
     if (file) {
       setIsProcessing(true);
       try {
-        const compressedFile = await compressImage(file, 400, 400, 0.85);
+        const compressedFile = await compressImage(file);
         const url = URL.createObjectURL(compressedFile);
         setPreviewUrl(url);
         if (onFileChange) onFileChange(compressedFile);
