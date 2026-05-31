@@ -6,6 +6,9 @@ import { Users, Calendar, ArrowUpRight, HandCoins, CalendarCheck2, Trophy } from
 import { getUserRole } from "@/app/actions/guardians";
 import { pageMainClass, pageShellClass } from "@/components/ui/design-system";
 
+const cardTitleClass = "text-[22px] md:text-[24px] font-black text-foreground tracking-tighter uppercase leading-none";
+const cardDescriptionClass = "mt-4 border-t-4 border-foreground pt-4 text-[11px] md:text-[12px] font-bold uppercase leading-tight tracking-wide text-foreground";
+
 export default async function Home() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -34,8 +37,8 @@ export default async function Home() {
                <Calendar className="w-8 h-8 stroke-[3]" />
              </div>
              <div className="flex flex-col flex-grow items-start text-left">
-               <h2 className="text-[24px] md:text-[28px] font-black text-foreground tracking-tighter uppercase leading-none">Lançar<br/>Chamada</h2>
-               <p className="mt-4 border-t-4 border-foreground pt-4 text-[13px] md:text-[15px] font-bold uppercase leading-tight tracking-wide text-foreground">
+               <h2 className={cardTitleClass}>Lançar<br/>Chamada</h2>
+               <p className={cardDescriptionClass}>
                  Registre presença e pontuação dos alunos.
                </p>
              </div>
@@ -51,9 +54,26 @@ export default async function Home() {
               <HandCoins className="w-8 h-8 stroke-[3]" />
             </div>
             <div className="flex flex-col flex-grow items-start text-left">
-              <h2 className="text-[24px] md:text-[28px] font-black text-foreground tracking-tighter uppercase leading-none">Oferta do<br/>Sábado</h2>
-              <p className="mt-4 border-t-4 border-foreground pt-4 text-[13px] md:text-[15px] font-bold uppercase leading-tight tracking-wide text-foreground">
+              <h2 className={cardTitleClass}>Oferta do<br/>Sábado</h2>
+              <p className={cardDescriptionClass}>
                 Registre a arrecadação e compare com a meta da unidade.
+              </p>
+            </div>
+            <div className="self-end mt-4 w-10 h-10 border-4 border-foreground rounded-full flex items-center justify-center bg-surface group-hover:bg-foreground group-hover:text-surface transition-colors">
+              <ArrowUpRight className="w-6 h-6 stroke-[3]" />
+            </div>
+          </div>
+        </Link>
+
+        <Link href="/relatorios/pontuacao" className="group bg-es-lilac border-4 border-foreground shadow-editorial flex flex-col hover:shadow-editorial-hover hover:translate-y-1 hover:translate-x-1 transition-all cursor-pointer overflow-hidden relative">
+          <div className="relative z-10 flex h-full flex-col gap-5 p-6 md:p-8">
+            <div className="flex h-14 w-14 items-center justify-center border-4 border-foreground bg-surface text-foreground shadow-editorial-sm transition-transform group-hover:-rotate-6 md:h-16 md:w-16">
+              <Trophy className="w-8 h-8 stroke-[3]" />
+            </div>
+            <div className="flex flex-col flex-grow items-start text-left">
+              <h2 className={cardTitleClass}>Ranking de<br/>Pontuação</h2>
+              <p className={cardDescriptionClass}>
+                Acompanhe pódio, médias e evolução do trimestre.
               </p>
             </div>
             <div className="self-end mt-4 w-10 h-10 border-4 border-foreground rounded-full flex items-center justify-center bg-surface group-hover:bg-foreground group-hover:text-surface transition-colors">
@@ -69,8 +89,8 @@ export default async function Home() {
                <Users className="w-8 h-8 stroke-[3]" />
              </div>
              <div className="flex flex-col flex-grow items-start text-left">
-               <h2 className="text-[24px] md:text-[28px] font-black text-foreground tracking-tighter uppercase leading-none">Base de<br/>Alunos</h2>
-               <p className="mt-4 border-t-4 border-foreground pt-4 text-[13px] md:text-[15px] font-bold uppercase leading-tight tracking-wide text-foreground">
+               <h2 className={cardTitleClass}>Base de<br/>Alunos</h2>
+               <p className={cardDescriptionClass}>
                  Matrículas e chamadas da classe atual.
                </p>
              </div>
@@ -86,26 +106,9 @@ export default async function Home() {
               <CalendarCheck2 className="w-8 h-8 stroke-[3]" />
             </div>
             <div className="flex flex-col flex-grow items-start text-left">
-              <h2 className="text-[24px] md:text-[28px] font-black text-foreground tracking-tighter uppercase leading-none">Agenda de<br/>Responsas</h2>
-              <p className="mt-4 border-t-4 border-foreground pt-4 text-[13px] md:text-[15px] font-bold uppercase leading-tight tracking-wide text-foreground">
+              <h2 className={cardTitleClass}>Agenda de<br/>Responsas</h2>
+              <p className={cardDescriptionClass}>
                 Escale tarefas por sábado e sorteie alunos da turma.
-              </p>
-            </div>
-            <div className="self-end mt-4 w-10 h-10 border-4 border-foreground rounded-full flex items-center justify-center bg-surface group-hover:bg-foreground group-hover:text-surface transition-colors">
-              <ArrowUpRight className="w-6 h-6 stroke-[3]" />
-            </div>
-          </div>
-        </Link>
-
-        <Link href="/relatorios/pontuacao" className="group bg-es-lilac border-4 border-foreground shadow-editorial flex flex-col hover:shadow-editorial-hover hover:translate-y-1 hover:translate-x-1 transition-all cursor-pointer overflow-hidden relative">
-          <div className="relative z-10 flex h-full flex-col gap-5 p-6 md:p-8">
-            <div className="flex h-14 w-14 items-center justify-center border-4 border-foreground bg-surface text-foreground shadow-editorial-sm transition-transform group-hover:-rotate-6 md:h-16 md:w-16">
-              <Trophy className="w-8 h-8 stroke-[3]" />
-            </div>
-            <div className="flex flex-col flex-grow items-start text-left">
-              <h2 className="text-[24px] md:text-[28px] font-black text-foreground tracking-tighter uppercase leading-none">Ranking de<br/>Pontuação</h2>
-              <p className="mt-4 border-t-4 border-foreground pt-4 text-[13px] md:text-[15px] font-bold uppercase leading-tight tracking-wide text-foreground">
-                Acompanhe pódio, médias e evolução do trimestre.
               </p>
             </div>
             <div className="self-end mt-4 w-10 h-10 border-4 border-foreground rounded-full flex items-center justify-center bg-surface group-hover:bg-foreground group-hover:text-surface transition-colors">

@@ -1,6 +1,7 @@
 "use server";
 
 import { requireTeacherAction } from "@/lib/auth/guards";
+import { buildClassScoringRanking } from "@/lib/scoring/ranking";
 import { revalidatePath } from "next/cache";
 
 export async function getScoringRules(classId: string) {
@@ -16,6 +17,47 @@ export async function getScoringRules(classId: string) {
 
   if (error) return [];
   return data;
+}
+
+export async function getClassScoringRanking(classId: string) {
+  const auth = await requireTeacherAction();
+  if ("error" in auth) return { error: auth.error };
+
+  const { supabase } = auth;
+
+  const [studentsResult, daysResult, rulesResult, recordsResult] = await Promise.all([
+    supabase
+      .from("students")
+      .select("id, full_name, photo_url")
+      .eq("class_id", classId)
+      .eq("is_active", true)
+      .order("full_name", { ascending: true }),
+    supabase
+      .from("attendance_days")
+      .select("id, day_date")
+      .eq("class_id", classId)
+      .order("day_date", { ascending: true }),
+    supabase
+      .from("class_scoring_rules")
+      .select("points, is_active")
+      .eq("class_id", classId),
+    supabase
+      .from("student_attendance_records")
+      .select("student_id, day_id, total_points")
+      .eq("class_id", classId),
+  ]);
+
+  if (studentsResult.error) return { error: "Não foi possível carregar os alunos da classe." };
+  if (daysResult.error) return { error: "Não foi possível carregar os sábados lançados." };
+  if (rulesResult.error) return { error: "Não foi possível carregar os critérios de pontuação." };
+  if (recordsResult.error) return { error: "Não foi possível carregar os pontos dos alunos." };
+
+  return buildClassScoringRanking({
+    students: studentsResult.data || [],
+    days: daysResult.data || [],
+    rules: rulesResult.data || [],
+    records: recordsResult.data || [],
+  });
 }
 
 export async function upsertScoringRule(classId: string, ruleId: string | undefined, formData: FormData) {
