@@ -1,4 +1,4 @@
-import { PageLoader, PhotoSkeletonLoader, TableSkeletonLoader } from "@/components/ui/AppLoader";
+import { CardSkeletonLoader, PageLoader, PhotoSkeletonLoader, TableSkeletonLoader } from "@/components/ui/AppLoader";
 import { pageShellClass } from "@/components/ui/design-system";
 
 export default function ResponsavelLoading() {
@@ -10,10 +10,14 @@ export default function ResponsavelLoading() {
           {Array.from({ length: 4 }, (_, index) => (
             <div key={index} className="border-4 border-foreground bg-surface p-3 shadow-editorial-sm">
               <PhotoSkeletonLoader label="Carregando dependente" />
+              <div className="mt-3 h-4 border-2 border-foreground bg-surface-muted" />
             </div>
           ))}
         </div>
-        <TableSkeletonLoader rows={4} label="Carregando acompanhamento" />
+        <div className="grid gap-5">
+          <CardSkeletonLoader lines={3} accentClassName="bg-es-orange" label="Carregando painel do responsável" />
+          <TableSkeletonLoader rows={4} label="Carregando acompanhamento" />
+        </div>
       </section>
     </div>
   );

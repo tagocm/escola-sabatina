@@ -122,6 +122,33 @@ export function TableSkeletonLoader({ rows = 5, label = "Carregando tabela" }: {
   );
 }
 
+export function CardSkeletonLoader({
+  lines = 2,
+  accentClassName = "bg-es-lilac",
+  label = "Carregando card",
+}: {
+  lines?: number;
+  accentClassName?: string;
+  label?: string;
+}) {
+  return (
+    <div className="border-4 border-foreground bg-surface p-4 shadow-editorial-sm" role="status" aria-label={label}>
+      <div className={`mb-4 h-2 w-full border-b-4 border-foreground ${accentClassName}`} />
+      <div className="flex flex-col gap-3">
+        <div className="h-5 w-2/3 border-2 border-foreground bg-surface-muted motion-safe:animate-loader-pulse" />
+        {Array.from({ length: lines }, (_, index) => (
+          <div
+            key={index}
+            className={`h-4 border-2 border-foreground bg-background motion-safe:animate-loader-pulse ${index === lines - 1 ? "w-3/4" : "w-full"}`}
+            style={{ animationDelay: `${index * 90}ms` }}
+          />
+        ))}
+      </div>
+      <span className="sr-only">{label}</span>
+    </div>
+  );
+}
+
 export function PageLoader({ title = "Carregando", subtitle = "Preparando os dados da classe" }: { title?: string; subtitle?: string }) {
   return (
     <section className="mx-auto flex min-h-[55svh] w-full max-w-5xl items-center justify-center px-4 py-10" role="status" aria-live="polite">
@@ -138,11 +165,19 @@ export function PageLoader({ title = "Carregando", subtitle = "Preparando os dad
           </div>
           <div className="h-12 w-12 border-4 border-foreground bg-es-lilac shadow-editorial-sm motion-safe:animate-loader-pop" />
         </div>
-        <div className="grid gap-5 md:grid-cols-[1fr_1.2fr]">
-          <SabbathProgressLoader />
-          <div className="grid grid-cols-2 gap-3">
-            <PhotoSkeletonLoader />
-            <RankingPodiumLoader />
+        <div className="grid gap-5 md:grid-cols-[0.9fr_1.1fr]">
+          <div className="grid gap-3 sm:grid-cols-3 md:grid-cols-1">
+            <CardSkeletonLoader accentClassName="bg-es-blue" />
+            <CardSkeletonLoader accentClassName="bg-es-orange" />
+            <CardSkeletonLoader accentClassName="bg-es-green" />
+          </div>
+          <div className="border-4 border-foreground bg-background p-4 shadow-editorial-sm">
+            <div className="mb-4 h-6 w-1/3 border-2 border-foreground bg-surface-muted motion-safe:animate-loader-pulse" />
+            <div className="grid gap-3">
+              <div className="h-16 border-4 border-foreground bg-surface motion-safe:animate-loader-pulse" />
+              <div className="h-16 border-4 border-foreground bg-surface motion-safe:animate-loader-pulse" style={{ animationDelay: "100ms" }} />
+              <div className="h-16 border-4 border-foreground bg-surface motion-safe:animate-loader-pulse" style={{ animationDelay: "200ms" }} />
+            </div>
           </div>
         </div>
       </div>
