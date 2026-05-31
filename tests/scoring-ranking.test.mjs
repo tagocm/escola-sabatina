@@ -128,3 +128,38 @@ test("respeita a data inicial do trimestre e mantém 13 semanas no gráfico", ()
     { label: "25/04", average: 0 },
   ]);
 });
+
+test("usa os sábados decorridos do trimestre como denominador", () => {
+  const ranking = buildClassScoringRanking({
+    students,
+    days: [
+      { id: "before", day_date: "2026-04-04" },
+      { id: "d1", day_date: "2026-04-11" },
+      { id: "d2", day_date: "2026-04-18" },
+      { id: "d3", day_date: "2026-04-25" },
+      { id: "d4", day_date: "2026-05-02" },
+      { id: "d5", day_date: "2026-05-09" },
+      { id: "d6", day_date: "2026-05-16" },
+      { id: "d7", day_date: "2026-05-23" },
+      { id: "d8", day_date: "2026-05-30" },
+      { id: "future", day_date: "2026-06-06" },
+    ],
+    rules,
+    trimesterStartDate: "2026-04-11",
+    currentDate: "2026-05-30",
+    records: [
+      { student_id: "ana", day_id: "before", total_points: 50 },
+      { student_id: "ana", day_id: "d1", total_points: 10 },
+      { student_id: "ana", day_id: "d8", total_points: 12 },
+      { student_id: "ana", day_id: "future", total_points: 99 },
+      { student_id: "bia", day_id: "d1", total_points: 8 },
+    ],
+  });
+
+  assert.equal(ranking.summary.launchedSaturdays, 8);
+  assert.equal(ranking.summary.possiblePointsToDate, 40);
+  assert.equal(ranking.students.find((student) => student.studentId === "ana")?.totalPoints, 22);
+  assert.equal(ranking.weeklyAverages[7].label, "30/05");
+  assert.equal(ranking.weeklyAverages[8].label, "06/06");
+  assert.equal(ranking.weeklyAverages[8].classAverage, 0);
+});

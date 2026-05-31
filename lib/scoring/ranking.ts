@@ -66,6 +66,7 @@ interface BuildClassScoringRankingInput {
   rules: RankingRuleInput[];
   records: RankingRecordInput[];
   trimesterStartDate?: string;
+  currentDate?: string;
 }
 
 const TOTAL_TRIMESTER_SATURDAYS = 13;
@@ -90,6 +91,10 @@ function addDays(dayDate: string, daysToAdd: number) {
 
 function buildTrimesterSlots(trimesterStartDate: string) {
   return Array.from({ length: TOTAL_TRIMESTER_SATURDAYS }, (_, index) => addDays(trimesterStartDate, index * 7));
+}
+
+function getElapsedTrimesterSaturdays(trimesterSlots: string[], currentDate: string) {
+  return trimesterSlots.filter((dayDate) => dayDate <= currentDate).length;
 }
 
 function getRecentTrend(scores: number[]) {
@@ -144,16 +149,25 @@ export function buildClassScoringRanking({
   rules,
   records,
   trimesterStartDate,
+  currentDate,
 }: BuildClassScoringRankingInput): ClassScoringRanking {
   const trimesterSlots = trimesterStartDate ? buildTrimesterSlots(trimesterStartDate) : [];
   const trimesterEndDate = trimesterSlots.at(-1) || null;
+  const trimesterSlotDates = new Set(trimesterSlots);
+  const effectiveEndDate = currentDate && trimesterEndDate && currentDate < trimesterEndDate
+    ? currentDate
+    : trimesterEndDate;
   const orderedDays = [...days]
     .filter((day) => {
       if (!trimesterStartDate || !trimesterEndDate) return true;
-      return day.day_date >= trimesterStartDate && day.day_date <= trimesterEndDate;
+      return trimesterSlotDates.has(day.day_date)
+        && day.day_date >= trimesterStartDate
+        && day.day_date <= (effectiveEndDate || trimesterEndDate);
     })
     .sort((left, right) => left.day_date.localeCompare(right.day_date));
-  const launchedSaturdays = orderedDays.length;
+  const launchedSaturdays = trimesterSlots.length > 0 && currentDate
+    ? getElapsedTrimesterSaturdays(trimesterSlots, currentDate)
+    : orderedDays.length;
   const standardPossiblePerSaturday = rules
     .filter((rule) => rule.is_active !== false)
     .reduce((sum, rule) => sum + Number(rule.points || 0), 0);

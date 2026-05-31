@@ -7,6 +7,15 @@ import {
 } from "@/lib/scoring/ranking";
 import { revalidatePath } from "next/cache";
 
+function getTodayDateInSaoPaulo() {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
 export async function getScoringRules(classId: string) {
   const auth = await requireTeacherAction();
   if ("error" in auth) return [];
@@ -61,6 +70,7 @@ export async function getClassScoringRanking(classId: string) {
     rules: rulesResult.data || [],
     records: recordsResult.data || [],
     trimesterStartDate: SECOND_TRIMESTER_2026_START_DATE,
+    currentDate: getTodayDateInSaoPaulo(),
   });
 }
 
