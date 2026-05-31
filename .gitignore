@@ -18,6 +18,7 @@
 /out/
 /.playwright-cli/
 /output/
+.superpowers/
 
 # production
 /build
