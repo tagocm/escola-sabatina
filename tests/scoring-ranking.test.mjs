@@ -88,3 +88,43 @@ test("monta ranking trimestral com ordenação, métricas e status", () => {
     { label: "18/04", average: 8 },
   ]);
 });
+
+test("respeita a data inicial do trimestre e mantém 13 semanas no gráfico", () => {
+  const ranking = buildClassScoringRanking({
+    students,
+    days,
+    rules,
+    trimesterStartDate: "2026-04-11",
+    records: [
+      { student_id: "ana", day_id: "d1", total_points: 8 },
+      { student_id: "ana", day_id: "d2", total_points: 10 },
+      { student_id: "ana", day_id: "d3", total_points: 12 },
+      { student_id: "bia", day_id: "d1", total_points: 10 },
+      { student_id: "bia", day_id: "d2", total_points: 10 },
+      { student_id: "bia", day_id: "d3", total_points: 10 },
+      { student_id: "caio", day_id: "d1", total_points: 20 },
+    ],
+  });
+
+  assert.equal(ranking.summary.launchedSaturdays, 2);
+  assert.deepEqual(ranking.students.map((student) => ({
+    id: student.studentId,
+    total: student.totalPoints,
+    recorded: student.recordedSaturdays,
+  })), [
+    { id: "ana", total: 22, recorded: 2 },
+    { id: "bia", total: 20, recorded: 2 },
+    { id: "caio", total: 0, recorded: 0 },
+    { id: "davi", total: 0, recorded: 0 },
+  ]);
+
+  assert.equal(ranking.weeklyAverages.length, 13);
+  assert.deepEqual(ranking.weeklyAverages.slice(0, 3).map((week) => ({
+    label: week.label,
+    average: week.classAverage,
+  })), [
+    { label: "11/04", average: 10 },
+    { label: "18/04", average: 11 },
+    { label: "25/04", average: 0 },
+  ]);
+});

@@ -39,7 +39,7 @@ export interface ClassScoringRankingStudent {
 }
 
 export interface ClassScoringRankingWeek {
-  dayId: string;
+  dayId: string | null;
   dayDate: string;
   label: string;
   classAverage: number;
@@ -65,9 +65,11 @@ interface BuildClassScoringRankingInput {
   days: RankingDayInput[];
   rules: RankingRuleInput[];
   records: RankingRecordInput[];
+  trimesterStartDate?: string;
 }
 
 const TOTAL_TRIMESTER_SATURDAYS = 13;
+export const SECOND_TRIMESTER_2026_START_DATE = "2026-04-11";
 
 function roundTo(value: number, digits = 2) {
   const factor = 10 ** digits;
@@ -77,6 +79,17 @@ function roundTo(value: number, digits = 2) {
 function formatDayLabel(dayDate: string) {
   const [, month, day] = dayDate.split("-");
   return `${day}/${month}`;
+}
+
+function addDays(dayDate: string, daysToAdd: number) {
+  const [year, month, day] = dayDate.split("-").map(Number);
+  const date = new Date(year, month - 1, day + daysToAdd, 12, 0, 0);
+
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function buildTrimesterSlots(trimesterStartDate: string) {
+  return Array.from({ length: TOTAL_TRIMESTER_SATURDAYS }, (_, index) => addDays(trimesterStartDate, index * 7));
 }
 
 function getRecentTrend(scores: number[]) {
@@ -130,8 +143,16 @@ export function buildClassScoringRanking({
   days,
   rules,
   records,
+  trimesterStartDate,
 }: BuildClassScoringRankingInput): ClassScoringRanking {
-  const orderedDays = [...days].sort((left, right) => left.day_date.localeCompare(right.day_date));
+  const trimesterSlots = trimesterStartDate ? buildTrimesterSlots(trimesterStartDate) : [];
+  const trimesterEndDate = trimesterSlots.at(-1) || null;
+  const orderedDays = [...days]
+    .filter((day) => {
+      if (!trimesterStartDate || !trimesterEndDate) return true;
+      return day.day_date >= trimesterStartDate && day.day_date <= trimesterEndDate;
+    })
+    .sort((left, right) => left.day_date.localeCompare(right.day_date));
   const launchedSaturdays = orderedDays.length;
   const standardPossiblePerSaturday = rules
     .filter((rule) => rule.is_active !== false)
@@ -141,8 +162,11 @@ export function buildClassScoringRanking({
 
   const recordsByStudent = new Map<string, RankingRecordInput[]>();
   const recordsByDay = new Map<string, RankingRecordInput[]>();
+  const validDayIds = new Set(orderedDays.map((day) => day.id));
 
   for (const record of records) {
+    if (!validDayIds.has(record.day_id)) continue;
+
     recordsByStudent.set(record.student_id, [
       ...(recordsByStudent.get(record.student_id) || []),
       record,
@@ -212,14 +236,19 @@ export function buildClassScoringRanking({
         : Math.max(0, sortedStudents[index - 1].totalPoints - student.totalPoints),
     }));
 
-  const weeklyAverages = orderedDays.map((day) => {
-    const dayRecords = recordsByDay.get(day.id) || [];
+  const dayByDate = new Map(orderedDays.map((day) => [day.day_date, day]));
+  const weeklyDays = trimesterSlots.length > 0
+    ? trimesterSlots.map((dayDate) => dayByDate.get(dayDate) || { id: null, day_date: dayDate })
+    : orderedDays;
+  const weeklyAverages = weeklyDays.map((day) => {
+    const dayId = day.id;
+    const dayRecords = dayId ? recordsByDay.get(dayId) || [] : [];
     const classAverageForDay = dayRecords.length > 0
       ? roundTo(dayRecords.reduce((sum, record) => sum + Number(record.total_points || 0), 0) / dayRecords.length)
       : 0;
 
     return {
-      dayId: day.id,
+      dayId,
       dayDate: day.day_date,
       label: formatDayLabel(day.day_date),
       classAverage: classAverageForDay,

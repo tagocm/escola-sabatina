@@ -1,7 +1,10 @@
 "use server";
 
 import { requireTeacherAction } from "@/lib/auth/guards";
-import { buildClassScoringRanking } from "@/lib/scoring/ranking";
+import {
+  SECOND_TRIMESTER_2026_START_DATE,
+  buildClassScoringRanking,
+} from "@/lib/scoring/ranking";
 import { revalidatePath } from "next/cache";
 
 export async function getScoringRules(classId: string) {
@@ -57,6 +60,7 @@ export async function getClassScoringRanking(classId: string) {
     days: daysResult.data || [],
     rules: rulesResult.data || [],
     records: recordsResult.data || [],
+    trimesterStartDate: SECOND_TRIMESTER_2026_START_DATE,
   });
 }
 

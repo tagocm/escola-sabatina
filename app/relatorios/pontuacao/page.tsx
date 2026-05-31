@@ -212,14 +212,34 @@ export default async function RankingPontuacaoPage() {
 
               <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.2fr_0.8fr]">
                 {firstStudent && (
-                  <article className="grid grid-cols-1 gap-5 border-4 border-foreground bg-es-green p-4 shadow-editorial md:grid-cols-[minmax(220px,0.78fr)_1fr] md:p-5 lg:p-6">
-                    <StudentAvatar
-                      studentId={firstStudent.studentId}
-                      name={firstStudent.studentName}
-                      photoUrl={firstStudent.photoUrl}
-                      sizeClassName="aspect-square h-auto w-full min-h-[240px] md:min-h-[300px]"
-                      initialsClassName="text-5xl md:text-7xl"
-                    />
+                  <article className="grid grid-cols-1 gap-5 border-4 border-foreground bg-es-green p-4 shadow-editorial md:grid-cols-[minmax(220px,0.72fr)_1fr] md:p-5 lg:p-6">
+                    <div className="flex min-w-0 flex-col gap-3">
+                      <StudentAvatar
+                        studentId={firstStudent.studentId}
+                        name={firstStudent.studentName}
+                        photoUrl={firstStudent.photoUrl}
+                        sizeClassName="aspect-square h-auto w-full min-h-[240px] md:min-h-[300px]"
+                        initialsClassName="text-5xl md:text-7xl"
+                      />
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="border-4 border-foreground bg-surface px-4 py-4 shadow-editorial-sm">
+                          <span className="text-[9px] font-black uppercase tracking-[0.18em] opacity-50">
+                            Pontos
+                          </span>
+                          <p className="mt-2 text-[52px] font-black leading-none tracking-tighter">
+                            {formatNumber(firstStudent.totalPoints)}
+                          </p>
+                        </div>
+                        <div className="border-4 border-foreground bg-surface px-4 py-4 shadow-editorial-sm">
+                          <span className="text-[9px] font-black uppercase tracking-[0.18em] opacity-50">
+                            Presença
+                          </span>
+                          <p className="mt-2 text-[36px] font-black leading-none tracking-tighter">
+                            {firstStudent.recordedSaturdays}/{ranking.summary.launchedSaturdays}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                     <div className="flex min-w-0 flex-col justify-between gap-6">
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex flex-col gap-2">
@@ -234,24 +254,10 @@ export default async function RankingPontuacaoPage() {
                           #{firstStudent.rank}
                         </span>
                       </div>
-
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="border-4 border-foreground bg-surface px-4 py-4 shadow-editorial-sm">
-                          <span className="text-[9px] font-black uppercase tracking-[0.18em] opacity-50">
-                            Pontos
-                          </span>
-                          <p className="mt-2 text-[56px] font-black leading-none tracking-tighter">
-                            {formatNumber(firstStudent.totalPoints)}
-                          </p>
-                        </div>
-                        <div className="border-4 border-foreground bg-surface px-4 py-4 shadow-editorial-sm">
-                          <span className="text-[9px] font-black uppercase tracking-[0.18em] opacity-50">
-                            Presença
-                          </span>
-                          <p className="mt-2 text-[40px] font-black leading-none tracking-tighter">
-                            {firstStudent.recordedSaturdays}/{ranking.summary.launchedSaturdays}
-                          </p>
-                        </div>
+                      <div className="border-t-4 border-foreground pt-5">
+                        <p className="text-[13px] font-black uppercase leading-relaxed tracking-[0.18em] opacity-70">
+                          Continue firme no trimestre.
+                        </p>
                       </div>
                     </div>
                   </article>
@@ -261,15 +267,25 @@ export default async function RankingPontuacaoPage() {
                   {otherPodiumStudents.map((student) => (
                     <article
                       key={student.studentId}
-                      className="grid grid-cols-[minmax(120px,0.55fr)_1fr] gap-4 border-4 border-foreground bg-surface p-4 shadow-editorial-sm"
+                      className="grid grid-cols-[minmax(120px,0.5fr)_1fr] gap-4 border-4 border-foreground bg-surface p-4 shadow-editorial-sm"
                     >
-                      <StudentAvatar
-                        studentId={student.studentId}
-                        name={student.studentName}
-                        photoUrl={student.photoUrl}
-                        sizeClassName="aspect-square h-auto w-full min-h-[150px]"
-                        initialsClassName="text-4xl"
-                      />
+                      <div className="flex min-w-0 flex-col gap-3">
+                        <StudentAvatar
+                          studentId={student.studentId}
+                          name={student.studentName}
+                          photoUrl={student.photoUrl}
+                          sizeClassName="aspect-square h-auto w-full min-h-[150px]"
+                          initialsClassName="text-4xl"
+                        />
+                        <div className="border-4 border-foreground bg-background px-3 py-3 shadow-editorial-sm">
+                          <span className="text-[8px] font-black uppercase tracking-[0.18em] opacity-50">
+                            Pontos
+                          </span>
+                          <p className="text-[34px] font-black leading-none tracking-tighter">
+                            {formatNumber(student.totalPoints)}
+                          </p>
+                        </div>
+                      </div>
                       <div className="flex min-w-0 flex-col justify-between gap-4">
                         <div className="flex items-start justify-between gap-3">
                           <h4 className="text-[24px] font-black uppercase leading-none tracking-tighter md:text-[30px]">
@@ -281,10 +297,10 @@ export default async function RankingPontuacaoPage() {
                         </div>
                         <div className="border-t-4 border-foreground pt-3">
                           <span className="text-[9px] font-black uppercase tracking-[0.18em] opacity-50">
-                            Pontos
+                            Presença
                           </span>
-                          <p className="text-[42px] font-black leading-none tracking-tighter">
-                            {formatNumber(student.totalPoints)}
+                          <p className="text-[30px] font-black leading-none tracking-tighter">
+                            {student.recordedSaturdays}/{ranking.summary.launchedSaturdays}
                           </p>
                         </div>
                       </div>
