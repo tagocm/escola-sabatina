@@ -4,6 +4,7 @@ import { useTransition } from "react";
 import Image from "next/image";
 import { approveEnrollmentRequest, rejectEnrollmentRequest } from "@/app/actions/classes";
 import { Check, X, UserCircle } from "lucide-react";
+import { ButtonLoader } from "@/components/ui/AppLoader";
 import { getStudentPhotoSrc } from "@/lib/storage/student-photos";
 
 interface EnrollmentRequestCardProps {
@@ -96,18 +97,18 @@ export default function EnrollmentRequestCard({ request }: EnrollmentRequestCard
           <button
             onClick={handleApprove}
             disabled={isPending}
-            className="bg-es-green border-4 border-foreground p-3 shadow-editorial-sm hover:shadow-none active:translate-y-0.5 transition-all disabled:opacity-50"
+            className="flex h-[52px] w-[52px] items-center justify-center bg-es-green border-4 border-foreground p-3 shadow-editorial-sm hover:shadow-none active:translate-y-0.5 transition-all disabled:opacity-50"
             title="Aprovar Matrícula"
           >
-            <Check className="w-5 h-5 stroke-[3]" />
+            {isPending ? <ButtonLoader size="sm" label="Processando matrícula" /> : <Check className="w-5 h-5 stroke-[3]" />}
           </button>
           <button
             onClick={handleReject}
             disabled={isPending}
-            className="bg-danger border-4 border-foreground p-3 shadow-editorial-sm hover:shadow-none active:translate-y-0.5 transition-all disabled:opacity-50"
+            className="flex h-[52px] w-[52px] items-center justify-center bg-danger border-4 border-foreground p-3 shadow-editorial-sm hover:shadow-none active:translate-y-0.5 transition-all disabled:opacity-50"
             title="Rejeitar Solicitação"
           >
-            <X className="w-5 h-5 stroke-[3]" />
+            {isPending ? <ButtonLoader size="sm" label="Processando matrícula" /> : <X className="w-5 h-5 stroke-[3]" />}
           </button>
         </div>
       )}

@@ -3,7 +3,8 @@
 import { useState, useTransition } from "react";
 import Image from "next/image";
 import { saveStudentAttendanceRecord } from "@/app/actions/attendance";
-import { UserCircle, Loader2, Check, Save, Lock, Settings } from "lucide-react";
+import { UserCircle, Check, Save, Lock, Settings } from "lucide-react";
+import { ButtonLoader } from "@/components/ui/AppLoader";
 import { getStudentPhotoSrc } from "@/lib/storage/student-photos";
 import type { AttendanceDisciplineEvent } from "@/lib/types/attendance";
 import AttendanceStudentEditModal from "@/components/ui/AttendanceStudentEditModal";
@@ -432,7 +433,7 @@ export default function AttendanceCard({
                 className="border-4 border-foreground py-2.5 px-4 shadow-editorial-sm hover:translate-y-0.5 active:translate-y-1 transition-all flex items-center justify-center gap-2.5 font-black uppercase tracking-widest text-[9px] disabled:opacity-50 disabled:cursor-wait bg-es-blue"
               >
                 {isPending ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <ButtonLoader size="sm" label="Salvando chamada" />
                 ) : (
                   <Save className="w-4 h-4" />
                 )}

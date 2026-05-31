@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { signUpAsGuardian } from "@/app/actions/auth";
 import { useRouter } from "next/navigation";
 import { ArrowRight } from "lucide-react";
+import { ButtonLoader } from "@/components/ui/AppLoader";
 import {
   fieldLabelClass,
   primaryActionCenteredBlockClass,
@@ -88,7 +89,11 @@ export default function GuardianSignUpForm() {
         className={primaryActionCenteredBlockClass}
       >
         <span>{isPending ? "Criando Conta..." : "Criar Conta de Responsável"}</span>
-        <ArrowRight className="w-5 h-5 stroke-[3]" />
+        {isPending ? (
+          <ButtonLoader label="Criando conta" />
+        ) : (
+          <ArrowRight className="w-5 h-5 stroke-[3]" />
+        )}
       </button>
     </form>
   );

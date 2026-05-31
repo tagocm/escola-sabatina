@@ -2,10 +2,11 @@
 
 import { useTransition, useState } from "react";
 import PolaroidPhoto from "./PolaroidPhoto";
-import { ArrowRight, AlertTriangle, Loader2 } from "lucide-react";
+import { ArrowRight, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { upsertStudentAction } from "@/app/actions/students";
 import { getStudentPhotoSrc } from "@/lib/storage/student-photos";
+import { ButtonLoader } from "@/components/ui/AppLoader";
 import {
   alertClass,
   compactInputClass,
@@ -177,7 +178,7 @@ export default function StudentForm({ classes = [], defaultClassId, initialData 
               >
                 <span>{isPending ? "SALVANDO..." : "REGISTRAR ALUNO"}</span>
                 {isPending ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <ButtonLoader />
                 ) : (
                    <ArrowRight className="w-6 h-6 group-active:translate-x-1 transition-transform stroke-[3]" />
                 )}

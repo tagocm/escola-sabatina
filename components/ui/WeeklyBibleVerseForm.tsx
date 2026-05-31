@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { AlertTriangle, ArrowRight, Loader2, X } from "lucide-react";
+import { AlertTriangle, ArrowRight, X } from "lucide-react";
 import { saveClassWeeklyBibleVerseAction } from "@/app/actions/classes";
+import { ButtonLoader } from "@/components/ui/AppLoader";
 import {
   alertClass,
   compactInputClass,
@@ -177,7 +178,7 @@ export default function WeeklyBibleVerseForm({
         <button type="submit" disabled={isPending} className={primaryActionBlockClass}>
           <span>{isPending ? "SALVANDO..." : "SALVAR VERSO DA SEMANA"}</span>
           {isPending ? (
-            <Loader2 className="h-5 w-5 animate-spin" />
+            <ButtonLoader />
           ) : (
             <ArrowRight className="h-6 w-6 stroke-[3] transition-transform group-hover:translate-x-1" />
           )}

@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { AlertTriangle, ArrowRightLeft, Loader2 } from "lucide-react";
+import { AlertTriangle, ArrowRightLeft } from "lucide-react";
+import { ButtonLoader } from "@/components/ui/AppLoader";
 import {
   alertClass,
   compactInputClass,
@@ -115,7 +116,7 @@ export default function ClassTransferForm({
         >
           <span>{isPending ? "TRANSFERINDO..." : "TRANSFERIR TURMA"}</span>
           {isPending ? (
-            <Loader2 className="w-5 h-5 animate-spin" />
+            <ButtonLoader label="Transferindo turma" />
           ) : (
             <ArrowRightLeft className="w-5 h-5 stroke-[3]" />
           )}

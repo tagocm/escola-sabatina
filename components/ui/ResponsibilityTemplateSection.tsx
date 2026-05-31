@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { AlertTriangle, Plus, Trash2 } from "lucide-react";
+import { ButtonLoader } from "@/components/ui/AppLoader";
 import {
   alertClass,
   compactInputClass,
@@ -130,7 +131,7 @@ export default function ResponsibilityTemplateSection({
         <div className="lg:col-span-3 flex justify-end">
           <button type="submit" disabled={isPending} className={primaryActionWideClass}>
             <span>{isPending ? "SALVANDO..." : "ADICIONAR ATIVIDADE"}</span>
-            <Plus className="w-5 h-5 stroke-[3]" />
+            {isPending ? <ButtonLoader /> : <Plus className="w-5 h-5 stroke-[3]" />}
           </button>
         </div>
       </form>
@@ -153,9 +154,10 @@ export default function ResponsibilityTemplateSection({
                 <button
                   type="button"
                   onClick={() => handleDelete(template.id, template.name)}
+                  disabled={isPending}
                   className="w-10 h-10 border-4 border-foreground bg-es-orange flex items-center justify-center shadow-editorial-sm"
                 >
-                  <Trash2 className="w-4 h-4 stroke-[3]" />
+                  {isPending ? <ButtonLoader size="sm" label="Removendo atividade" /> : <Trash2 className="w-4 h-4 stroke-[3]" />}
                 </button>
               </div>
               <div className="border-2 border-foreground bg-surface px-4 py-3 text-[11px] font-bold uppercase tracking-widest leading-relaxed">

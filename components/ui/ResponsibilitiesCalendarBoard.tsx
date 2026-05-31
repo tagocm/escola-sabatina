@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useMemo, useState, useTransition } from "react";
 import { CalendarDays, Plus, Search, Shuffle, Trash2, UserCircle2, X } from "lucide-react";
+import { ButtonLoader, PhotoSkeletonLoader, SabbathProgressLoader } from "@/components/ui/AppLoader";
 import { getResponsibilityColor } from "@/components/ui/responsibility-colors";
 import { getStudentPhotoSrc } from "@/lib/storage/student-photos";
 
@@ -194,7 +195,7 @@ export default function ResponsibilitiesCalendarBoard({
             onClick={() => handleDeleteSlot(slotIndex)}
             className="absolute right-3 top-3 z-10 h-9 w-9 border-4 border-foreground bg-es-orange shadow-editorial-sm flex items-center justify-center disabled:opacity-60"
           >
-            <Trash2 className="w-4 h-4 stroke-[3]" />
+            {isPending ? <ButtonLoader size="sm" label="Atualizando vaga" /> : <Trash2 className="w-4 h-4 stroke-[3]" />}
           </button>
 
           <button
@@ -205,7 +206,9 @@ export default function ResponsibilitiesCalendarBoard({
           >
             <div className="w-full max-w-[210px] bg-surface border-4 border-foreground shadow-editorial-sm p-3 transition-transform group-hover:translate-y-0.5 group-hover:translate-x-0.5">
               <div className="relative aspect-square w-full border-2 border-foreground bg-surface-muted overflow-hidden flex items-center justify-center">
-                {photoSrc ? (
+                {isPending && pickerSlotIndex === slotIndex ? (
+                  <PhotoSkeletonLoader label="Atualizando aluno da tarefa" />
+                ) : photoSrc ? (
                   <Image
                     src={photoSrc}
                     alt={assignment?.studentName ?? "Aluno selecionado"}
@@ -323,7 +326,7 @@ export default function ResponsibilitiesCalendarBoard({
                             className="absolute right-3 top-3 h-8 w-8 border-4 border-foreground bg-es-orange shadow-editorial-sm flex items-center justify-center disabled:opacity-60"
                             title="Excluir atividade"
                           >
-                            <Trash2 className="w-3.5 h-3.5 stroke-[3]" />
+                            {isPending ? <ButtonLoader size="sm" label="Excluindo atividade" /> : <Trash2 className="w-3.5 h-3.5 stroke-[3]" />}
                           </button>
                         </div>
                       );
@@ -387,7 +390,7 @@ export default function ResponsibilitiesCalendarBoard({
                   onClick={handleAddSlot}
                   className="h-11 px-4 border-4 border-foreground bg-es-green font-black text-[10px] uppercase tracking-[0.18em] shadow-editorial-sm flex items-center gap-2 disabled:opacity-60"
                 >
-                  <Plus className="w-4 h-4 stroke-[3]" />
+                  {isPending ? <ButtonLoader size="sm" label="Adicionando vaga" /> : <Plus className="w-4 h-4 stroke-[3]" />}
                   Adicionar vaga
                 </button>
 
@@ -400,12 +403,18 @@ export default function ResponsibilitiesCalendarBoard({
                     disabled={isPending}
                     className="h-11 px-4 border-4 border-foreground bg-es-yellow font-black text-[10px] uppercase tracking-[0.18em] shadow-editorial-sm flex items-center gap-2"
                   >
-                    <Shuffle className="w-4 h-4 stroke-[3]" />
+                    {isPending ? <ButtonLoader size="sm" label="Sorteando alunos" /> : <Shuffle className="w-4 h-4 stroke-[3]" />}
                     Sortear
                   </button>
                 </form>
               </div>
             </div>
+
+            {isPending ? (
+              <div className="border-4 border-foreground bg-background p-3 shadow-editorial-sm">
+                <SabbathProgressLoader label="Atualizando agenda de responsabilidades" />
+              </div>
+            ) : null}
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 md:gap-5">
               {Array.from({ length: slotCount }, (_, slotIndex) => {

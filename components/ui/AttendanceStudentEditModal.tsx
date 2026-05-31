@@ -4,8 +4,9 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { Camera, Loader2, UserCircle, X } from "lucide-react";
+import { Camera, UserCircle, X } from "lucide-react";
 import { upsertStudentInlineAction } from "@/app/actions/students";
+import { ButtonLoader } from "@/components/ui/AppLoader";
 import { getStudentPhotoSrc } from "@/lib/storage/student-photos";
 import { compressImage } from "@/lib/utils/image";
 import {
@@ -264,12 +265,12 @@ export default function AttendanceStudentEditModal({
               disabled={isPending}
               className={primaryActionCenteredClass}
             >
-              {isPending ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                {isPending ? (
+                  <>
+                  <ButtonLoader size="sm" label="Salvando aluno" />
                   Salvando
-                </>
-              ) : (
+                  </>
+                ) : (
                 "Salvar cadastro"
               )}
             </button>

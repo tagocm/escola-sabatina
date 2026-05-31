@@ -1,8 +1,9 @@
 "use client";
 
 import { useTransition, useState } from "react";
-import { Plus, Layers, Trash2, Edit2, Loader2, Sparkles, ArrowUp, ArrowDown } from "lucide-react";
+import { Plus, Layers, Trash2, Edit2, Sparkles, ArrowUp, ArrowDown } from "lucide-react";
 import { deleteScoringRule, loadDefaultRulesAction, updateScoringRuleOrder } from "@/app/actions/scoring";
+import { ButtonLoader } from "@/components/ui/AppLoader";
 import ScoringRuleForm from "./ScoringRuleForm";
 
 interface Rule {
@@ -76,7 +77,7 @@ export default function ScoringSection({ classId, rules }: ScoringSectionProps) 
             disabled={isPending}
             className="h-12 px-5 bg-es-lilac border-4 border-foreground text-foreground font-black text-xs uppercase tracking-widest flex items-center gap-2 shadow-editorial-sm hover:shadow-editorial active:translate-y-1 transition-all disabled:opacity-50"
           >
-            {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+            {isPending ? <ButtonLoader size="sm" label="Carregando itens padrão" /> : <Sparkles className="w-4 h-4" />}
             Itens Padrão
           </button>
           <button
@@ -146,7 +147,7 @@ export default function ScoringSection({ classId, rules }: ScoringSectionProps) 
                              disabled={index === 0 || isPending}
                              className="p-1 hover:bg-background border border-transparent hover:border-foreground disabled:opacity-30"
                            >
-                              <ArrowUp className="w-3 h-3" />
+                              {isPending ? <ButtonLoader size="sm" label="Ordenando item" /> : <ArrowUp className="w-3 h-3" />}
                            </button>
                            <button 
                              onClick={(event) => {
@@ -156,7 +157,7 @@ export default function ScoringSection({ classId, rules }: ScoringSectionProps) 
                              disabled={index === rules.length - 1 || isPending}
                              className="p-1 hover:bg-background border border-transparent hover:border-foreground disabled:opacity-30"
                            >
-                              <ArrowDown className="w-3 h-3" />
+                              {isPending ? <ButtonLoader size="sm" label="Ordenando item" /> : <ArrowDown className="w-3 h-3" />}
                            </button>
                         </div>
                      </div>
@@ -175,9 +176,10 @@ export default function ScoringSection({ classId, rules }: ScoringSectionProps) 
                             event.stopPropagation();
                             handleDelete(rule.id);
                           }}
+                          disabled={isPending}
                           className="p-1 hover:bg-es-orange transition-colors border-2 border-transparent hover:border-foreground"
                        >
-                          <Trash2 className="w-4 h-4 text-foreground stroke-[2.5]" />
+                          {isPending ? <ButtonLoader size="sm" label="Excluindo item" /> : <Trash2 className="w-4 h-4 text-foreground stroke-[2.5]" />}
                        </button>
                      </div>
                    </div>

@@ -3,9 +3,10 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
-import { AlertTriangle, Check, Loader2, Minus, Plus, Save, UserCircle, X } from "lucide-react";
+import { AlertTriangle, Check, Minus, Plus, Save, UserCircle, X } from "lucide-react";
 import { saveStudentAttendanceRecord } from "@/app/actions/attendance";
 import AttendanceDisciplinePenaltyModal from "@/components/ui/AttendanceDisciplinePenaltyModal";
+import { ButtonLoader } from "@/components/ui/AppLoader";
 import { bottomSheetClass, iconButtonClass } from "@/components/ui/design-system";
 import { getStudentPhotoSrc } from "@/lib/storage/student-photos";
 import { formatAttendanceStudentName } from "@/lib/attendance/student-display";
@@ -374,7 +375,7 @@ export default function AttendanceScoringSheet({
             disabled={isPending || rules.length === 0}
             className="flex min-h-12 items-center justify-center gap-2 border-4 border-foreground bg-es-blue px-5 text-[11px] font-black uppercase tracking-[0.14em] shadow-editorial transition-all active:translate-y-0.5 disabled:opacity-60"
           >
-            {isPending ? <Loader2 className="h-4 w-4 animate-spin stroke-[3]" /> : <Save className="h-4 w-4 stroke-[3]" />}
+            {isPending ? <ButtonLoader size="sm" label="Salvando pontuação" /> : <Save className="h-4 w-4 stroke-[3]" />}
             {isSaved ? "Atualizar" : "Salvar"}
           </button>
         </div>

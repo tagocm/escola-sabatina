@@ -3,6 +3,7 @@
 import { useTransition, useState } from "react";
 import { ArrowRight, AlertTriangle } from "lucide-react";
 import Link from "next/link";
+import { ButtonLoader } from "@/components/ui/AppLoader";
 import {
   alertClass,
   compactInputClass,
@@ -143,7 +144,11 @@ export default function ClassForm({ initialData, action }: ClassFormProps) {
           className={primaryActionWideClass}
         >
           <span>{isPending ? "SALVANDO..." : "SALVAR CLASSE"}</span>
-          <ArrowRight className="w-6 h-6 group-active:translate-x-2 transition-transform stroke-[3]" />
+          {isPending ? (
+            <ButtonLoader />
+          ) : (
+            <ArrowRight className="w-6 h-6 group-active:translate-x-2 transition-transform stroke-[3]" />
+          )}
         </button>
       </div>
     </form>

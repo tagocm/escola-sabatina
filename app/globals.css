@@ -220,3 +220,85 @@ a,
 @utility shadow-editorial-hover {
   box-shadow: var(--shadow-editorial-hover);
 }
+
+@keyframes loader-hop {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  45% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes loader-step {
+  0%, 100% {
+    background: var(--surface);
+    transform: translateY(0);
+  }
+  35% {
+    background: var(--color-blue);
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes loader-stack {
+  0%, 100% {
+    transform: scaleY(0.55);
+    transform-origin: bottom;
+  }
+  45% {
+    transform: scaleY(1);
+    transform-origin: bottom;
+  }
+}
+
+@keyframes loader-scan {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(300%);
+  }
+}
+
+@keyframes loader-pop {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  45% {
+    transform: translateY(-6px) rotate(-2deg);
+  }
+}
+
+@keyframes loader-pulse {
+  0%, 100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@utility animate-loader-hop {
+  animation: loader-hop 720ms var(--motion-ease) infinite;
+}
+
+@utility animate-loader-step {
+  animation: loader-step 1200ms var(--motion-ease) infinite;
+}
+
+@utility animate-loader-stack {
+  animation: loader-stack 820ms var(--motion-ease) infinite;
+}
+
+@utility animate-loader-scan {
+  animation: loader-scan 1100ms var(--motion-ease) infinite;
+}
+
+@utility animate-loader-pop {
+  animation: loader-pop 1200ms var(--motion-ease) infinite;
+}
+
+@utility animate-loader-pulse {
+  animation: loader-pulse 1200ms var(--motion-ease) infinite;
+}

@@ -2,8 +2,9 @@
 
 import { useTransition, useState } from "react";
 import { updateProfile } from "@/app/actions/auth";
-import { UserCircle, ArrowRight, CheckCircle2, AlertTriangle, Loader2 } from "lucide-react";
+import { UserCircle, ArrowRight, CheckCircle2, AlertTriangle } from "lucide-react";
 import PolaroidPhoto from "@/components/ui/PolaroidPhoto";
+import { ButtonLoader } from "@/components/ui/AppLoader";
 import {
   compactInputClass,
   fieldLabelAccentClass,
@@ -150,7 +151,7 @@ export default function ProfileForm({ profile }: ProfileFormProps) {
             >
               <span>{isPending ? "SALVANDO..." : "SALVAR ALTERAÇÕES"}</span>
               {isPending ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
+                <ButtonLoader />
               ) : (
                 <ArrowRight className="w-6 h-6 group-active:translate-x-1 transition-transform stroke-[3]" />
               )}

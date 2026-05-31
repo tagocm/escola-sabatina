@@ -3,7 +3,8 @@
 import type { ReactNode } from "react";
 import { useState, useRef } from "react";
 import Image from "next/image";
-import { Camera, X, Image as ImageIcon, Loader2 } from "lucide-react";
+import { Camera, X, Image as ImageIcon } from "lucide-react";
+import { PhotoSkeletonLoader } from "@/components/ui/AppLoader";
 import { compressImage } from "@/lib/utils/image";
 
 interface PolaroidPhotoProps {
@@ -82,7 +83,9 @@ export default function PolaroidPhoto({
           {/* Loading overlay */}
           {isProcessing && (
             <div className="absolute inset-0 z-10 flex items-center justify-center bg-foreground/10">
-              <Loader2 className="w-8 h-8 animate-spin text-foreground" />
+              <div className="w-28">
+                <PhotoSkeletonLoader label="Preparando foto" />
+              </div>
             </div>
           )}
 

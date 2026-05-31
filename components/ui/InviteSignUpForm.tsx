@@ -1,8 +1,9 @@
 "use client";
 
 import { useTransition, useState } from "react";
-import { ArrowRight, AlertTriangle, Loader2 } from "lucide-react";
+import { ArrowRight, AlertTriangle } from "lucide-react";
 import { signUpWithInvite } from "@/app/actions/auth";
+import { ButtonLoader } from "@/components/ui/AppLoader";
 import {
   alertClass,
   compactInputClass,
@@ -83,7 +84,7 @@ export default function InviteSignUpForm({ token }: { token: string }) {
       >
         <span>{isPending ? "PROCESSANDO..." : "Finalizar Cadastro"}</span>
         {isPending ? (
-          <Loader2 className="w-5 h-5 animate-spin stroke-[3]" />
+          <ButtonLoader label="Processando cadastro" />
         ) : (
           <ArrowRight className="w-6 h-6 group-active:translate-x-1 transition-transform stroke-[3]" />
         )}

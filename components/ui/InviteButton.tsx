@@ -1,8 +1,9 @@
 "use client";
 
 import { useTransition, useState } from "react";
-import { LinkIcon, Check, Copy, Loader2 } from "lucide-react";
+import { LinkIcon, Check, Copy } from "lucide-react";
 import { generateInviteAction } from "@/app/actions/classes";
+import { ButtonLoader } from "@/components/ui/AppLoader";
 
 export default function InviteButton({ classId }: { classId: string }) {
   const [isPending, startTransition] = useTransition();
@@ -45,7 +46,7 @@ export default function InviteButton({ classId }: { classId: string }) {
           disabled={isPending}
           className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-foreground/60 hover:text-es-orange transition-colors cursor-pointer disabled:opacity-50"
         >
-          {isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <LinkIcon className="w-3 h-3" />}
+          {isPending ? <ButtonLoader size="sm" label="Gerando convite" /> : <LinkIcon className="w-3 h-3" />}
           {isPending ? "Gerando..." : "Gerar Link de Convite"}
         </button>
       ) : (

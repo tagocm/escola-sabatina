@@ -1,8 +1,9 @@
 "use client";
 
 import { useTransition, useState } from "react";
-import { ArrowRight, AlertTriangle, Loader2, X } from "lucide-react";
+import { ArrowRight, AlertTriangle, X } from "lucide-react";
 import { upsertScoringRule } from "@/app/actions/scoring";
+import { ButtonLoader } from "@/components/ui/AppLoader";
 import {
   alertClass,
   compactInputClass,
@@ -111,7 +112,7 @@ export default function ScoringRuleForm({ classId, initialData, onClose }: RuleF
           className={primaryActionBlockClass}
         >
           <span>{isPending ? "SALVANDO..." : "SALVAR REGRA"}</span>
-          {isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform stroke-[3]" />}
+          {isPending ? <ButtonLoader /> : <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform stroke-[3]" />}
         </button>
       </form>
     </div>

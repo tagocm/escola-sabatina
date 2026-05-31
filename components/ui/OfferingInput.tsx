@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { updateOfferingAction } from "@/app/actions/attendance";
-import { ArrowRight, Loader2 } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import { OfferingLoader } from "@/components/ui/AppLoader";
 import { useRouter } from "next/navigation";
 
 interface OfferingInputProps {
@@ -88,7 +89,7 @@ export default function OfferingInput({ classId, date, initialAmount }: Offering
       >
         <span>{isPending ? "SALVANDO..." : "SALVAR OFERTA"}</span>
         {isPending ? (
-          <Loader2 className="w-5 h-5 animate-spin" />
+          <OfferingLoader />
         ) : (
           <ArrowRight className="w-5 h-5 stroke-[3]" />
         )}

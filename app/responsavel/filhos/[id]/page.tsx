@@ -2,9 +2,10 @@
 
 import { useTransition, useState, useEffect } from "react";
 import PolaroidPhoto from "@/components/ui/PolaroidPhoto";
-import { ArrowRight, AlertTriangle, Loader2 } from "lucide-react";
+import { ArrowRight, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { updateGuardianStudent } from "@/app/actions/guardians";
+import { ButtonLoader, PageLoader } from "@/components/ui/AppLoader";
 import PageHeader from "@/components/ui/PageHeader";
 import { getStudentPhotoSrc } from "@/lib/storage/student-photos";
 import {
@@ -78,11 +79,7 @@ export default function EditarFilhoPage({ params }: Props) {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center p-12">
-        <Loader2 className="w-8 h-8 animate-spin" />
-      </div>
-    );
+    return <PageLoader title="Carregando" subtitle="Buscando dados do dependente" />;
   }
 
   if (!student) {
@@ -179,7 +176,7 @@ export default function EditarFilhoPage({ params }: Props) {
                 >
                   <span>{isPending ? "SALVANDO..." : "SALVAR ALTERAÇÕES"}</span>
                   {isPending ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <ButtonLoader />
                   ) : (
                     <ArrowRight className="w-6 h-6 group-active:translate-x-1 transition-transform stroke-[3]" />
                   )}

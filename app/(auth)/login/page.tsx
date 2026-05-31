@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { signInWithPassword } from "@/app/actions/auth";
 import { ArrowRight, AlertTriangle } from "lucide-react";
+import { ButtonLoader } from "@/components/ui/AppLoader";
 import Link from "next/link";
 
 // Validações
@@ -108,7 +109,11 @@ export default function LoginPage() {
           className="w-full h-16 bg-es-lilac border-[4px] border-foreground text-foreground font-black text-xl uppercase tracking-widest flex items-center justify-between px-6 shadow-editorial hover:shadow-editorial-hover active:translate-y-1 active:translate-x-1 active:shadow-none transition-all disabled:opacity-70 disabled:cursor-not-allowed group cursor-pointer"
         >
           <span>{isPending ? "Processando" : "Acessar"}</span>
-          <ArrowRight className="w-8 h-8 group-active:translate-x-2 transition-transform stroke-[3]" />
+          {isPending ? (
+            <ButtonLoader label="Processando login" />
+          ) : (
+            <ArrowRight className="w-8 h-8 group-active:translate-x-2 transition-transform stroke-[3]" />
+          )}
         </button>
       </form>
 

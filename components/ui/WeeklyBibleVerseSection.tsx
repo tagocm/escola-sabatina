@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { AlertTriangle, CalendarDays, Pencil, Plus, Trash2 } from "lucide-react";
 import { deleteClassWeeklyBibleVerseAction } from "@/app/actions/classes";
+import { ButtonLoader } from "@/components/ui/AppLoader";
 import { alertClass } from "@/components/ui/design-system";
 import WeeklyBibleVerseForm from "@/components/ui/WeeklyBibleVerseForm";
 
@@ -161,7 +162,11 @@ export default function WeeklyBibleVerseSection({
                         className="flex h-10 w-10 items-center justify-center border-2 border-foreground bg-es-orange transition-colors hover:bg-es-orange/80 disabled:opacity-50"
                         aria-label={`Excluir verso ${referenceLabel}`}
                       >
-                        <Trash2 className="h-4 w-4 stroke-[3]" />
+                        {isPending ? (
+                          <ButtonLoader size="sm" label="Excluindo verso" />
+                        ) : (
+                          <Trash2 className="h-4 w-4 stroke-[3]" />
+                        )}
                       </button>
                     </div>
                   </div>
