@@ -50,11 +50,13 @@ function StudentAvatar({
   name,
   photoUrl,
   sizeClassName = "h-14 w-14",
+  initialsClassName = "text-sm",
 }: {
   studentId: string;
   name: string;
   photoUrl: string | null;
   sizeClassName?: string;
+  initialsClassName?: string;
 }) {
   const photoSrc = getStudentPhotoSrc(studentId, photoUrl);
 
@@ -65,11 +67,12 @@ function StudentAvatar({
           src={photoSrc}
           alt={`Foto de ${name}`}
           fill
-          sizes="96px"
+          unoptimized
+          sizes="(min-width: 1024px) 240px, 45vw"
           className="object-cover"
         />
       ) : (
-        <span className="text-sm font-black uppercase tracking-tighter opacity-50">
+        <span className={`${initialsClassName} font-black uppercase tracking-tighter opacity-50`}>
           {initials(name)}
         </span>
       )}
@@ -107,6 +110,8 @@ export default async function RankingPontuacaoPage() {
   const maxChartPoints = Math.max(1, ...chartStudents.map((student) => student.totalPoints));
   const weeklySlots = Array.from({ length: ranking.summary.totalSaturdays }, (_, index) => ranking.weeklyAverages[index] || null);
   const maxWeeklyAverage = Math.max(1, ...ranking.weeklyAverages.map((week) => week.classAverage));
+  const firstStudent = topStudents[0];
+  const otherPodiumStudents = topStudents.slice(1);
 
   return (
     <div className={pageShellClass}>
@@ -136,14 +141,13 @@ export default async function RankingPontuacaoPage() {
               </div>
             </div>
 
-            <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
               <MetricCard
                 label="Sábados"
                 value={`${ranking.summary.launchedSaturdays}/${ranking.summary.totalSaturdays}`}
               />
               <MetricCard label="Média" value={formatNumber(ranking.summary.classAverage)} />
               <MetricCard label="Maior" value={formatNumber(ranking.summary.classHighest)} />
-              <MetricCard label="Possível" value={formatNumber(ranking.summary.projectedPossiblePoints)} />
             </div>
           </div>
 
@@ -189,7 +193,7 @@ export default async function RankingPontuacaoPage() {
           </section>
         ) : (
           <>
-            <section className={`${surfaceClass} flex flex-col gap-5 p-5 md:p-6`}>
+            <section className={`${surfaceClass} flex flex-col gap-5 p-5 md:p-6 lg:gap-6 lg:p-8`}>
               <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                   <div className="flex h-11 w-11 items-center justify-center border-4 border-foreground bg-es-green shadow-editorial-sm">
@@ -200,50 +204,93 @@ export default async function RankingPontuacaoPage() {
                       Pódio do trimestre
                     </h3>
                     <span className="text-[9px] font-black uppercase tracking-[0.18em] opacity-40">
-                      Top 3 por pontuação acumulada
+                      Fotos em destaque para a apresentação final da aula
                     </span>
                   </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-                {topStudents.map((student, index) => {
-                  const isFirst = index === 0;
-                  return (
-                    <article
-                      key={student.studentId}
-                      className={`border-4 border-foreground p-4 shadow-editorial-sm ${isFirst ? "bg-es-green lg:-mt-3" : "bg-surface"}`}
-                    >
+              <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.2fr_0.8fr]">
+                {firstStudent && (
+                  <article className="grid grid-cols-1 gap-5 border-4 border-foreground bg-es-green p-4 shadow-editorial md:grid-cols-[minmax(220px,0.78fr)_1fr] md:p-5 lg:p-6">
+                    <StudentAvatar
+                      studentId={firstStudent.studentId}
+                      name={firstStudent.studentName}
+                      photoUrl={firstStudent.photoUrl}
+                      sizeClassName="aspect-square h-auto w-full min-h-[240px] md:min-h-[300px]"
+                      initialsClassName="text-5xl md:text-7xl"
+                    />
+                    <div className="flex min-w-0 flex-col justify-between gap-6">
                       <div className="flex items-start justify-between gap-3">
-                        <StudentAvatar
-                          studentId={student.studentId}
-                          name={student.studentName}
-                          photoUrl={student.photoUrl}
-                          sizeClassName={isFirst ? "h-20 w-20" : "h-16 w-16"}
-                        />
-                        <span className="border-4 border-foreground bg-surface px-3 py-2 text-xl font-black leading-none shadow-editorial-sm">
-                          #{student.rank}
+                        <div className="flex flex-col gap-2">
+                          <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60">
+                            Primeiro lugar
+                          </span>
+                          <h4 className="text-[34px] font-black uppercase leading-none tracking-tighter md:text-[52px]">
+                            {firstStudent.studentName}
+                          </h4>
+                        </div>
+                        <span className="shrink-0 border-4 border-foreground bg-surface px-4 py-3 text-3xl font-black leading-none shadow-editorial-sm">
+                          #{firstStudent.rank}
                         </span>
                       </div>
-                      <h4 className="mt-4 text-2xl font-black uppercase leading-none tracking-tighter">
-                        {student.studentName}
-                      </h4>
-                      <div className="mt-4 flex items-end justify-between gap-4 border-t-4 border-foreground pt-4">
-                        <div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="border-4 border-foreground bg-surface px-4 py-4 shadow-editorial-sm">
                           <span className="text-[9px] font-black uppercase tracking-[0.18em] opacity-50">
-                            Total
+                            Pontos
                           </span>
-                          <p className="text-4xl font-black leading-none tracking-tighter">
+                          <p className="mt-2 text-[56px] font-black leading-none tracking-tighter">
+                            {formatNumber(firstStudent.totalPoints)}
+                          </p>
+                        </div>
+                        <div className="border-4 border-foreground bg-surface px-4 py-4 shadow-editorial-sm">
+                          <span className="text-[9px] font-black uppercase tracking-[0.18em] opacity-50">
+                            Presença
+                          </span>
+                          <p className="mt-2 text-[40px] font-black leading-none tracking-tighter">
+                            {firstStudent.recordedSaturdays}/{ranking.summary.launchedSaturdays}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </article>
+                )}
+
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-1">
+                  {otherPodiumStudents.map((student) => (
+                    <article
+                      key={student.studentId}
+                      className="grid grid-cols-[minmax(120px,0.55fr)_1fr] gap-4 border-4 border-foreground bg-surface p-4 shadow-editorial-sm"
+                    >
+                      <StudentAvatar
+                        studentId={student.studentId}
+                        name={student.studentName}
+                        photoUrl={student.photoUrl}
+                        sizeClassName="aspect-square h-auto w-full min-h-[150px]"
+                        initialsClassName="text-4xl"
+                      />
+                      <div className="flex min-w-0 flex-col justify-between gap-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <h4 className="text-[24px] font-black uppercase leading-none tracking-tighter md:text-[30px]">
+                            {student.studentName}
+                          </h4>
+                          <span className="shrink-0 border-4 border-foreground bg-es-yellow px-3 py-2 text-xl font-black leading-none shadow-editorial-sm">
+                            #{student.rank}
+                          </span>
+                        </div>
+                        <div className="border-t-4 border-foreground pt-3">
+                          <span className="text-[9px] font-black uppercase tracking-[0.18em] opacity-50">
+                            Pontos
+                          </span>
+                          <p className="text-[42px] font-black leading-none tracking-tighter">
                             {formatNumber(student.totalPoints)}
                           </p>
                         </div>
-                        <span className="text-[10px] font-black uppercase tracking-[0.18em] opacity-60">
-                          {student.recordedSaturdays}/{ranking.summary.launchedSaturdays}
-                        </span>
                       </div>
                     </article>
-                  );
-                })}
+                  ))}
+                </div>
               </div>
             </section>
 
