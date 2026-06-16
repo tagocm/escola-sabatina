@@ -5,7 +5,25 @@ import {
   SECOND_TRIMESTER_2026_START_DATE,
   buildClassScoringRanking,
 } from "@/lib/scoring/ranking";
+import {
+  buildStudentScoringDetail,
+  type StudentScoringDetailStudentInput,
+} from "@/lib/scoring/student-detail";
 import { revalidatePath } from "next/cache";
+
+interface StudentDetailRow {
+  id: string;
+  full_name: string;
+  photo_url: string | null;
+  class_id: string | null;
+  classes?: {
+    id?: string | null;
+    name?: string | null;
+  } | {
+    id?: string | null;
+    name?: string | null;
+  }[] | null;
+}
 
 function getTodayDateInSaoPaulo() {
   return new Intl.DateTimeFormat("en-CA", {
@@ -72,6 +90,147 @@ export async function getClassScoringRanking(classId: string) {
     trimesterStartDate: SECOND_TRIMESTER_2026_START_DATE,
     currentDate: getTodayDateInSaoPaulo(),
   });
+}
+
+function mapStudentDetailRow(row: StudentDetailRow): StudentScoringDetailStudentInput {
+  const classRow = Array.isArray(row.classes) ? row.classes[0] : row.classes;
+
+  return {
+    id: row.id,
+    full_name: row.full_name,
+    photo_url: row.photo_url,
+    class_id: row.class_id,
+    class_name: classRow?.name || null,
+  };
+}
+
+export async function getStudentScoringDetail(classId: string, studentId: string) {
+  const auth = await requireTeacherAction();
+  if ("error" in auth) return { error: auth.error };
+
+  const { supabase } = auth;
+
+  const [
+    studentResult,
+    studentsResult,
+    daysResult,
+    rulesResult,
+    recordsResult,
+    scoresResult,
+    disciplineEventsResult,
+  ] = await Promise.all([
+    supabase
+      .from("students")
+      .select("id, full_name, photo_url, class_id, classes ( id, name )")
+      .eq("id", studentId)
+      .eq("class_id", classId)
+      .maybeSingle(),
+    supabase
+      .from("students")
+      .select("id, full_name, photo_url, class_id, classes ( id, name )")
+      .eq("class_id", classId)
+      .eq("is_active", true)
+      .order("full_name", { ascending: true }),
+    supabase
+      .from("attendance_days")
+      .select("id, day_date")
+      .eq("class_id", classId)
+      .order("day_date", { ascending: true }),
+    supabase
+      .from("class_scoring_rules")
+      .select("id, name, category, points, is_active, display_order")
+      .eq("class_id", classId)
+      .order("display_order", { ascending: true }),
+    supabase
+      .from("student_attendance_records")
+      .select(`
+        id,
+        student_id,
+        day_id,
+        total_points,
+        extra_activity_points,
+        discipline_penalty_points,
+        saved_by,
+        discipline_penalty_reason,
+        discipline_penalty_applied_by_name,
+        saved_at
+      `)
+      .eq("class_id", classId),
+    supabase
+      .from("attendance_scores")
+      .select("student_id, day_id, rule_id, points_earned")
+      .eq("class_id", classId),
+    supabase
+      .from("attendance_discipline_events")
+      .select(`
+        id,
+        record_id,
+        day_id,
+        student_id,
+        points,
+        reason,
+        applied_by_name,
+        created_at,
+        updated_at
+      `)
+      .eq("class_id", classId),
+  ]);
+
+  if (studentResult.error) return { error: "Não foi possível carregar o aluno." };
+  if (!studentResult.data) return { error: "Aluno não encontrado nesta classe." };
+  if (studentsResult.error) return { error: "Não foi possível carregar os alunos da classe." };
+  if (daysResult.error) return { error: "Não foi possível carregar os sábados lançados." };
+  if (rulesResult.error) return { error: "Não foi possível carregar os critérios de pontuação." };
+  if (recordsResult.error) return { error: "Não foi possível carregar os registros de pontuação." };
+  if (scoresResult.error) return { error: "Não foi possível carregar a composição dos pontos." };
+  if (disciplineEventsResult.error) return { error: "Não foi possível carregar os eventos de indisciplina." };
+
+  const teacherIds = Array.from(new Set(
+    (recordsResult.data || [])
+      .map((record) => record.saved_by)
+      .filter((teacherId): teacherId is string => Boolean(teacherId)),
+  ));
+  const profilesResult = teacherIds.length > 0
+    ? await supabase
+        .from("profiles")
+        .select("id, full_name")
+        .in("id", teacherIds)
+    : { data: [], error: null };
+
+  if (profilesResult.error) {
+    return { error: "Não foi possível carregar os responsáveis pelos lançamentos." };
+  }
+
+  const teacherNameById = new Map(
+    (profilesResult.data || []).map((profile) => [
+      profile.id,
+      String(profile.full_name || "Professor não identificado"),
+    ] as const),
+  );
+  const student = mapStudentDetailRow(studentResult.data as StudentDetailRow);
+  const students = (studentsResult.data || []).map((row) =>
+    mapStudentDetailRow(row as StudentDetailRow),
+  );
+  const records = (recordsResult.data || []).map((record) => ({
+    ...record,
+    saved_by_name: record.saved_by
+      ? teacherNameById.get(record.saved_by) || "Professor não identificado"
+      : "Professor não identificado",
+  }));
+  const detail = buildStudentScoringDetail({
+    student,
+    students,
+    days: daysResult.data || [],
+    rules: rulesResult.data || [],
+    records,
+    scores: scoresResult.data || [],
+    disciplineEvents: disciplineEventsResult.data || [],
+    trimesterStartDate: SECOND_TRIMESTER_2026_START_DATE,
+    currentDate: getTodayDateInSaoPaulo(),
+  });
+
+  if (!detail) return { error: "Aluno não encontrado no ranking ativo da classe." };
+  return detail;
 }
 
 export async function upsertScoringRule(classId: string, ruleId: string | undefined, formData: FormData) {

@@ -252,6 +252,13 @@ export default async function RankingPontuacaoPage() {
                           </p>
                         </div>
                       </div>
+                      <Link
+                        href={`/relatorios/pontuacao/${firstStudent.studentId}`}
+                        className="inline-flex min-h-12 items-center justify-between gap-3 border-4 border-foreground bg-es-blue px-5 text-[11px] font-black uppercase tracking-[0.16em] shadow-editorial-sm transition-all hover:shadow-editorial-hover active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+                      >
+                        Ver detalhe
+                        <ArrowUpRight className="h-5 w-5 stroke-[3]" />
+                      </Link>
                     </div>
                   </article>
                 )}
@@ -296,6 +303,13 @@ export default async function RankingPontuacaoPage() {
                             </p>
                           </div>
                         </div>
+                        <Link
+                          href={`/relatorios/pontuacao/${student.studentId}`}
+                          className="inline-flex min-h-10 items-center justify-between gap-2 border-4 border-foreground bg-es-blue px-3 text-[9px] font-black uppercase tracking-[0.14em] shadow-editorial-sm transition-all hover:shadow-editorial-hover active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+                        >
+                          Ver detalhe
+                          <ArrowUpRight className="h-4 w-4 stroke-[3]" />
+                        </Link>
                       </div>
                     </article>
                   ))}
@@ -403,7 +417,12 @@ export default async function RankingPontuacaoPage() {
                         <span className="flex h-9 w-9 items-center justify-center border-4 border-foreground bg-es-yellow text-xs font-black shadow-editorial-sm">
                           {student.rank}
                         </span>
-                        <span className="font-black tracking-tight">{student.studentName}</span>
+                        <Link
+                          href={`/relatorios/pontuacao/${student.studentId}`}
+                          className="font-black tracking-tight underline decoration-4 underline-offset-4 transition-opacity hover:opacity-60"
+                        >
+                          {student.studentName}
+                        </Link>
                         <span>{formatNumber(student.totalPoints)}</span>
                         <span>{formatNumber(student.averagePoints)}</span>
                         <span>{student.recordedSaturdays}/{ranking.summary.launchedSaturdays}</span>
