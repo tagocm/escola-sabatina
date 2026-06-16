@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { deactivateGuardianStudent, getGuardianStudents, getMyEnrollmentRequests } from "@/app/actions/guardians";
-import { UserPlus, Settings, Clock, CheckCircle, AlertCircle, Plus, Activity } from "lucide-react";
+import { UserPlus, Settings, Clock, CheckCircle, AlertCircle, Plus, Activity, Images } from "lucide-react";
 import PageHeader from "@/components/ui/PageHeader";
 import DeactivateStudentButton from "@/components/ui/DeactivateStudentButton";
 import { getStudentPhotoSrc } from "@/lib/storage/student-photos";
@@ -101,13 +101,23 @@ export default async function GuardianDashboard() {
             />
           </div>
 
-          <Link 
-            href="/responsavel/filhos/novo"
-            className={`${inlinePrimaryActionClass} w-full self-start lg:mt-10 lg:w-auto`}
-          >
-            <UserPlus className="w-5 h-5 stroke-[3]" />
-            Novo Dependente
-          </Link>
+          <div className="flex w-full flex-col gap-3 self-start lg:mt-10 lg:w-auto lg:flex-row">
+            <Link
+              href="/responsavel/fotos"
+              className={`${inlinePrimaryActionClass} w-full bg-es-blue lg:w-auto`}
+            >
+              <Images className="w-5 h-5 stroke-[3]" />
+              Fotos
+            </Link>
+
+            <Link
+              href="/responsavel/filhos/novo"
+              className={`${inlinePrimaryActionClass} w-full lg:w-auto`}
+            >
+              <UserPlus className="w-5 h-5 stroke-[3]" />
+              Novo Dependente
+            </Link>
+          </div>
         </div>
 
         {studentsWithStatus.length === 0 ? (
