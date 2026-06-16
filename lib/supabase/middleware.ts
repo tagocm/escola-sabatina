@@ -1,5 +1,11 @@
 import { createServerClient } from '@supabase/ssr';
+import type { CookieOptions } from '@supabase/ssr';
+import type { WebSocketLikeConstructor } from '@supabase/realtime-js';
 import { NextResponse, type NextRequest } from 'next/server';
+import WebSocket from 'ws';
+
+const webSocketTransport = WebSocket as unknown as WebSocketLikeConstructor;
+type CookieToSet = { name: string; value: string; options: CookieOptions };
 
 const TEACHER_ONLY_PREFIXES = ['/classes', '/alunos', '/relatorios', '/responsabilidades'];
 const GUARDIAN_ONLY_PREFIXES = ['/responsavel'];
@@ -23,7 +29,7 @@ export async function updateSession(request: NextRequest) {
         getAll() {
           return request.cookies.getAll();
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet: CookieToSet[]) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
           supabaseResponse = NextResponse.next({
             request,
@@ -32,6 +38,9 @@ export async function updateSession(request: NextRequest) {
             supabaseResponse.cookies.set(name, value, options)
           );
         },
+      },
+      realtime: {
+        transport: webSocketTransport,
       },
     }
   );

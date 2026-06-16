@@ -1,7 +1,11 @@
 "use server";
 
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import type { WebSocketLikeConstructor } from "@supabase/realtime-js";
 import { createClient } from "@/lib/supabase/server";
+import WebSocket from "ws";
+
+const webSocketTransport = WebSocket as unknown as WebSocketLikeConstructor;
 
 function normalizeEmail(value: FormDataEntryValue | null) {
   return String(value || "").trim().toLowerCase();
@@ -46,6 +50,9 @@ function createAdminClient() {
       auth: {
         autoRefreshToken: false,
         persistSession: false,
+      },
+      realtime: {
+        transport: webSocketTransport,
       },
     }
   );

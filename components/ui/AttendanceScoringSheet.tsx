@@ -134,7 +134,6 @@ export default function AttendanceScoringSheet({
         date,
         item.student.id,
         selectedIds,
-        rules.map((rule) => ({ id: rule.id, points: rule.points })),
         extraActivityPoints,
         disciplineEvents,
       );

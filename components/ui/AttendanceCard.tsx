@@ -220,7 +220,6 @@ export default function AttendanceCard({
         date,
         student.id,
         selectedIds,
-        rules.map((rule) => ({ id: rule.id, points: rule.points })),
         extraActivityPoints,
         disciplineEvents,
       );

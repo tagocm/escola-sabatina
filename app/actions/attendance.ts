@@ -99,45 +99,25 @@ export async function saveStudentAttendanceRecord(
   date: string,
   studentId: string,
   ruleIds: string[],
-  rulesMetadata: { id: string, points: number }[],
   extraActivityPoints = 0,
   disciplineEvents: AttendanceDisciplineEvent[] = [],
 ) {
   const auth = await requireTeacherAction();
   if ("error" in auth) return auth;
 
-  const { supabase, user } = auth;
+  const { supabase } = auth;
 
-  // 1. Get or create day
-  const { data: day } = await supabase
-    .from("attendance_days")
-    .select("id")
-    .eq("class_id", classId)
-    .eq("day_date", date)
-    .single();
-
-  if (!day) return { error: "Dia de presença não inicializado." };
-
-  const { data: existingRecord } = await supabase
-    .from("student_attendance_records")
-    .select(`
-      id,
-      discipline_penalty_points,
-      discipline_penalty_reason,
-      discipline_penalty_applied_by,
-      discipline_penalty_applied_by_name
-    `)
-    .eq("day_id", day.id)
-    .eq("student_id", studentId)
-    .maybeSingle();
-
-  // 3. Calculate total points
-  const selectedRules = rulesMetadata.filter(r => ruleIds.includes(r.id));
-  const basePoints = selectedRules.reduce((sum, r) => sum + r.points, 0);
   const safeExtraActivityPoints = Number.isFinite(extraActivityPoints)
     ? Math.max(0, Math.trunc(extraActivityPoints))
     : 0;
-  const maxDisciplinePenalty = basePoints + safeExtraActivityPoints;
+  const normalizedRuleIds = Array.isArray(ruleIds)
+    ? Array.from(new Set(
+        ruleIds
+          .filter((ruleId): ruleId is string => typeof ruleId === "string")
+          .map((ruleId) => ruleId.trim())
+          .filter(Boolean),
+      ))
+    : [];
 
   const normalizedSubmittedEvents = Array.isArray(disciplineEvents)
     ? disciplineEvents
@@ -153,180 +133,38 @@ export async function saveStudentAttendanceRecord(
     return { error: "Informe o motivo do desconto por indisciplina." };
   }
 
-  const submittedDisciplinePenaltyPoints = normalizedSubmittedEvents.reduce(
-    (sum, event) => sum + event.points,
-    0,
+  const { data: savedRows, error: recordError } = await supabase.rpc(
+    "save_student_attendance_record",
+    {
+      p_class_id: classId,
+      p_day_date: date,
+      p_student_id: studentId,
+      p_rule_ids: normalizedRuleIds,
+      p_extra_activity_points: safeExtraActivityPoints,
+      p_discipline_events: normalizedSubmittedEvents,
+    },
   );
 
-  if (submittedDisciplinePenaltyPoints > maxDisciplinePenalty) {
-    return { error: "Os eventos de indisciplina excedem a pontuação disponível do aluno." };
+  if (recordError) {
+    const safeMessages = [
+      "Acesso não autorizado.",
+      "Aluno não pertence à classe informada.",
+      "Critério de pontuação inválido para esta classe.",
+      "Evento de indisciplina inválido para este registro.",
+      "Informe o motivo do desconto por indisciplina.",
+      "Os eventos de indisciplina excedem a pontuação disponível do aluno.",
+      "Pontuação extra acima do limite permitido.",
+      "Professor não pertence à classe informada.",
+    ];
+    const knownMessage = safeMessages.find((message) => recordError.message.includes(message));
+
+    return { error: knownMessage || "Não foi possível salvar o registro do aluno." };
   }
 
-  const { data: teacherProfile } = await supabase
-    .from("profiles")
-    .select("full_name")
-    .eq("id", user.id)
-    .maybeSingle();
+  const savedRecord = Array.isArray(savedRows) ? savedRows[0] : null;
 
-  const currentTeacherName = String(
-    teacherProfile?.full_name ||
-    user.user_metadata?.full_name ||
-    user.email ||
-    "Professor não identificado",
-  ).trim();
-
-  const { data: existingEventRows, error: existingEventsError } = existingRecord?.id
-    ? await supabase
-        .from("attendance_discipline_events")
-        .select(`
-          id,
-          points,
-          reason,
-          applied_by,
-          applied_by_name,
-          created_at,
-          updated_at
-        `)
-        .eq("record_id", existingRecord.id)
-        .order("created_at", { ascending: true })
-        .order("id", { ascending: true })
-    : { data: [], error: null };
-
-  if (existingEventsError) {
-    return { error: "Não foi possível carregar os eventos de indisciplina." };
-  }
-
-  const existingEventMap = new Map(
-    (existingEventRows || []).map((event) => [event.id, event] as const),
-  );
-
-  const latestSubmittedEvent = normalizedSubmittedEvents.at(-1);
-  const latestExistingEvent = latestSubmittedEvent?.id
-    ? existingEventMap.get(latestSubmittedEvent.id)
-    : null;
-  const disciplinePenaltyAppliedBy = latestSubmittedEvent
-    ? (latestExistingEvent?.applied_by || user.id)
-    : null;
-  const disciplinePenaltyAppliedByName = latestSubmittedEvent
-    ? String(latestExistingEvent?.applied_by_name || currentTeacherName).trim()
-    : null;
-  const disciplinePenaltyReason = latestSubmittedEvent?.reason || null;
-  const totalPoints = basePoints + safeExtraActivityPoints - submittedDisciplinePenaltyPoints;
-
-  // 4a. Cleanup existing scores for this student on this day
-  // Since we are updating, we clear the items and re-insert the new set
-  await supabase
-    .from("attendance_scores")
-    .delete()
-    .eq("day_id", day.id)
-    .eq("student_id", studentId);
-
-  // 4b. Batch items insert
-  const scoresToInsert = selectedRules.map(r => ({
-    day_id: day.id,
-    class_id: classId,
-    student_id: studentId,
-    rule_id: r.id,
-    points_earned: r.points
-  }));
-
-  if (scoresToInsert.length > 0) {
-    const { error: scoresError } = await supabase
-      .from("attendance_scores")
-      .insert(scoresToInsert);
-    if (scoresError) return { error: "Não foi possível salvar as pontuações do aluno." };
-  }
-
-  // 5. UPSERT the record (Finalize/Update Record)
-  const { data: savedRecord, error: recordError } = await supabase
-    .from("student_attendance_records")
-    .upsert({
-      day_id: day.id,
-      class_id: classId,
-      student_id: studentId,
-      extra_activity_points: safeExtraActivityPoints,
-      discipline_penalty_points: submittedDisciplinePenaltyPoints,
-      discipline_penalty_reason: disciplinePenaltyReason,
-      discipline_penalty_applied_by: disciplinePenaltyAppliedBy,
-      discipline_penalty_applied_by_name: disciplinePenaltyAppliedByName,
-      total_points: totalPoints,
-      saved_by: user.id
-    }, { onConflict: "day_id,student_id" })
-    .select("id")
-    .single();
-
-  if (recordError) return { error: "Não foi possível salvar o registro do aluno." };
-
-  const keptExistingIds = new Set(
-    normalizedSubmittedEvents
-      .map((event) => event.id)
-      .filter((eventId): eventId is string => Boolean(eventId && existingEventMap.has(eventId))),
-  );
-  const deletedEventIds = (existingEventRows || [])
-    .map((event) => event.id)
-    .filter((eventId) => !keptExistingIds.has(eventId));
-
-  if (deletedEventIds.length > 0) {
-    const { error: deleteEventsError } = await supabase
-      .from("attendance_discipline_events")
-      .delete()
-      .in("id", deletedEventIds);
-
-    if (deleteEventsError) {
-      return { error: "Não foi possível atualizar os eventos de indisciplina." };
-    }
-  }
-
-  const existingEventsPayload = normalizedSubmittedEvents.flatMap((event) => {
-    if (!event.id) return [];
-
-    const existingEvent = existingEventMap.get(event.id);
-    if (!existingEvent) return [];
-
-    return [{
-      id: existingEvent.id,
-      record_id: savedRecord.id,
-      day_id: day.id,
-      class_id: classId,
-      student_id: studentId,
-      points: event.points,
-      reason: event.reason,
-      applied_by: existingEvent.applied_by || user.id,
-      applied_by_name: String(existingEvent.applied_by_name || currentTeacherName).trim(),
-    }];
-  });
-
-  if (existingEventsPayload.length > 0) {
-    const { error: upsertEventsError } = await supabase
-      .from("attendance_discipline_events")
-      .upsert(existingEventsPayload, { onConflict: "id" });
-
-    if (upsertEventsError) {
-      return { error: "Não foi possível atualizar os eventos de indisciplina." };
-    }
-  }
-
-  const newEventsPayload = normalizedSubmittedEvents
-    .filter((event) => !event.id || !existingEventMap.has(event.id))
-    .map((event) => ({
-      record_id: savedRecord.id,
-      day_id: day.id,
-      class_id: classId,
-      student_id: studentId,
-      points: event.points,
-      reason: event.reason,
-      applied_by: user.id,
-      applied_by_name: currentTeacherName,
-    }));
-
-  if (newEventsPayload.length > 0) {
-    const { error: insertEventsError } = await supabase
-      .from("attendance_discipline_events")
-      .insert(newEventsPayload);
-
-    if (insertEventsError) {
-      return { error: "Não foi possível registrar os eventos de indisciplina." };
-    }
+  if (!savedRecord?.record_id) {
+    return { error: "Não foi possível salvar o registro do aluno." };
   }
 
   const { data: savedEventRows, error: savedEventsError } = await supabase
@@ -340,7 +178,7 @@ export async function saveStudentAttendanceRecord(
       created_at,
       updated_at
     `)
-    .eq("record_id", savedRecord.id)
+    .eq("record_id", savedRecord.record_id)
     .order("created_at", { ascending: true })
     .order("id", { ascending: true });
 

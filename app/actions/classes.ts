@@ -361,13 +361,20 @@ export async function updateLastClass(classId: string | null) {
   return { success: true };
 }
 
-export async function generateInviteAction(classId: string) {
+export async function generateInviteAction(classId: string, email: string) {
   const auth = await requireTeacherAction();
   if ("error" in auth) return auth;
+
+  const normalizedEmail = email.trim().toLowerCase();
+
+  if (!normalizedEmail || !normalizedEmail.includes("@")) {
+    return { error: "Informe o e-mail do professor convidado." };
+  }
 
   const { supabase } = auth;
   const { data, error } = await supabase.rpc("generate_invite", {
     p_class_id: classId,
+    p_email: normalizedEmail,
   });
 
   if (error) return { error: "Não foi possível gerar o convite." };
