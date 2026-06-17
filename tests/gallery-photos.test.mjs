@@ -136,6 +136,11 @@ test("migration da galeria cria tabela, bucket privado e policies por vínculo",
 
 test("fluxo do professor fica integrado à tela de chamada", () => {
   const attendancePageSource = readFileSync(join(repoRoot, "app", "relatorios", "lancamento", "page.tsx"), "utf8");
+  const gallerySectionSource = readFileSync(join(repoRoot, "components", "ui", "ClassGallerySection.tsx"), "utf8");
+  const compactControlsPath = join(repoRoot, "components", "ui", "ClassGalleryCompactControls.tsx");
+  const compactControlsSource = existsSync(compactControlsPath)
+    ? readFileSync(compactControlsPath, "utf8")
+    : "";
   const galleryActionSource = readFileSync(join(repoRoot, "app", "actions", "gallery.ts"), "utf8");
   const galleryFormSource = readFileSync(join(repoRoot, "components", "ui", "ClassGalleryUploadForm.tsx"), "utf8");
 
@@ -153,6 +158,40 @@ test("fluxo do professor fica integrado à tela de chamada", () => {
     existsSync(join(repoRoot, "app", "fotos", "page.tsx")),
     false,
     "teacher gallery should not live as a separate dashboard section",
+  );
+  assert.ok(
+    existsSync(compactControlsPath),
+    "attendance gallery should use compact controls for the class screen",
+  );
+  assert.match(
+    gallerySectionSource,
+    /ClassGalleryCompactControls/,
+    "attendance gallery section should render the compact photo controls",
+  );
+  assert.doesNotMatch(
+    gallerySectionSource,
+    /<ClassGalleryUploadForm\b/,
+    "attendance gallery section should not inline the full upload form",
+  );
+  assert.doesNotMatch(
+    gallerySectionSource,
+    /Nenhuma foto enviada para este sábado/,
+    "attendance gallery section should not reserve vertical space for the empty gallery",
+  );
+  assert.match(
+    compactControlsSource,
+    /aria-label="Abrir câmera para foto da aula"/,
+    "compact controls should expose a small camera button",
+  );
+  assert.match(
+    compactControlsSource,
+    /capture="environment"/,
+    "compact camera button should open the device camera when supported",
+  );
+  assert.match(
+    compactControlsSource,
+    /Abrir galeria de fotos da aula/,
+    "compact controls should expose a gallery button for existing photos",
   );
   assert.match(
     galleryActionSource,
