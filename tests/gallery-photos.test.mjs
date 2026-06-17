@@ -194,6 +194,56 @@ test("fluxo do professor fica integrado à tela de chamada", () => {
     "compact controls should expose a gallery button for existing photos",
   );
   assert.match(
+    compactControlsSource,
+    /useActionState/,
+    "compact capture flow should submit through React server action state",
+  );
+  assert.match(
+    compactControlsSource,
+    /action=\{formAction\}/,
+    "compact capture form should use a native form action",
+  );
+  assert.match(
+    compactControlsSource,
+    /form=\{captureFormId\}/,
+    "the hidden camera input should be associated with the capture form",
+  );
+  assert.match(
+    compactControlsSource,
+    /selectedFiles/,
+    "compact capture flow should keep a pending photo batch before upload",
+  );
+  assert.match(
+    compactControlsSource,
+    /selectedFiles\.map/,
+    "compact capture flow should render the pending photo batch before upload",
+  );
+  assert.match(
+    compactControlsSource,
+    /new DataTransfer\(\)/,
+    "compact capture flow should sync accumulated files to the native file input",
+  );
+  assert.match(
+    compactControlsSource,
+    /MAX_GALLERY_PHOTOS_PER_UPLOAD/,
+    "compact capture flow should enforce the existing per-upload photo limit",
+  );
+  assert.match(
+    compactControlsSource,
+    /Adicionar outra foto/,
+    "compact capture flow should let teachers add more photos before submitting",
+  );
+  assert.match(
+    compactControlsSource,
+    /name="photos"[\s\S]*form=\{captureFormId\}/,
+    "the camera file input should submit as the photos field",
+  );
+  assert.doesNotMatch(
+    compactControlsSource,
+    /onSubmit=\{/,
+    "compact capture flow should not rebuild FormData manually in an onSubmit handler",
+  );
+  assert.match(
     galleryActionSource,
     /const tags = normalizeGalleryPhotoTags\(formData\.getAll\("tags"\)\)/,
     "gallery uploads should normalize controlled tags from the form",

@@ -19,6 +19,7 @@ import {
 import {
   formatGalleryPhotoTagLabel,
   GALLERY_PHOTO_TAGS,
+  MAX_GALLERY_PHOTOS_PER_UPLOAD,
   type GalleryPhotoTag,
 } from "@/lib/gallery/sabbath";
 import {
@@ -27,7 +28,7 @@ import {
   CheckCircle2,
   ImageOff,
   Images,
-  RefreshCcw,
+  Plus,
   Send,
   Tag,
   Trash2,
@@ -35,8 +36,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
-import type { FormEvent } from "react";
+import { useActionState, useCallback, useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 export interface ClassGalleryCompactPhoto {
@@ -74,20 +74,57 @@ export default function ClassGalleryCompactControls({
   photos,
 }: ClassGalleryCompactControlsProps) {
   const router = useRouter();
+  const captureFormId = useId();
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [activePanel, setActivePanel] = useState<ActivePanel>(null);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [selectedTags, setSelectedTags] = useState<GalleryPhotoTag[]>([]);
   const [caption, setCaption] = useState("");
-  const [uploadState, setUploadState] = useState<GalleryUploadState>(initialUploadState);
-  const [isPending, startTransition] = useTransition();
-
+  const [showUploadMessage, setShowUploadMessage] = useState(false);
   const clearSelectedFile = useCallback(() => {
-    setSelectedFile(null);
+    setSelectedFiles([]);
     if (cameraInputRef.current) {
       cameraInputRef.current.value = "";
     }
   }, []);
+  const selectedPhotoCount = selectedFiles.length;
+  const [uploadState, formAction, isPending] = useActionState(
+    async (previousState: GalleryUploadState, formData: FormData) => {
+      try {
+        const result = await uploadClassGalleryPhotosAction(previousState, formData);
+
+        if (result.status === "success") {
+          clearSelectedFile();
+          setSelectedTags([]);
+          setCaption("");
+          setShowUploadMessage(false);
+          setActivePanel(null);
+          router.refresh();
+        } else {
+          setShowUploadMessage(true);
+        }
+
+        return result;
+      } catch (error) {
+        console.error("Falha ao enviar foto da aula.", error);
+        setShowUploadMessage(true);
+        return {
+          status: "error",
+          message: "Não foi possível enviar a foto.",
+        } satisfies GalleryUploadState;
+      }
+    },
+    initialUploadState,
+  );
+  const canAddPhoto = selectedPhotoCount < MAX_GALLERY_PHOTOS_PER_UPLOAD && !isPending;
+
+  function syncCameraInputFiles(files: File[]) {
+    if (!cameraInputRef.current) return;
+
+    const dataTransfer = new DataTransfer();
+    files.forEach((file) => dataTransfer.items.add(file));
+    cameraInputRef.current.files = dataTransfer.files;
+  }
 
   const closePanel = useCallback(() => {
     if (isPending) return;
@@ -96,7 +133,7 @@ export default function ClassGalleryCompactControls({
       clearSelectedFile();
       setSelectedTags([]);
       setCaption("");
-      setUploadState(initialUploadState);
+      setShowUploadMessage(false);
     }
 
     setActivePanel(null);
@@ -122,17 +159,28 @@ export default function ClassGalleryCompactControls({
   }, [activePanel, closePanel]);
 
   function openCamera() {
-    setUploadState(initialUploadState);
+    if (!canAddPhoto) return;
+
+    setShowUploadMessage(false);
     cameraInputRef.current?.click();
   }
 
   function handleCameraChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0] || null;
-    if (!file) return;
+    const files = Array.from(event.target.files || []);
+    if (files.length === 0) return;
 
-    setSelectedFile(file);
-    setUploadState(initialUploadState);
+    setShowUploadMessage(false);
+    const nextFiles = [...selectedFiles, ...files].slice(0, MAX_GALLERY_PHOTOS_PER_UPLOAD);
+    setSelectedFiles(nextFiles);
+    syncCameraInputFiles(nextFiles);
     setActivePanel("capture");
+  }
+
+  function removeSelectedFile(index: number) {
+    const nextFiles = selectedFiles.filter((_, fileIndex) => fileIndex !== index);
+    setSelectedFiles(nextFiles);
+    syncCameraInputFiles(nextFiles);
+    setShowUploadMessage(false);
   }
 
   function toggleTag(tag: GalleryPhotoTag) {
@@ -141,41 +189,6 @@ export default function ClassGalleryCompactControls({
         ? current.filter((item) => item !== tag)
         : [...current, tag]
     ));
-  }
-
-  function handleCaptureSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (!selectedFile) {
-      setUploadState({ status: "error", message: "Tire uma foto antes de enviar." });
-      return;
-    }
-
-    const formData = new FormData(event.currentTarget);
-    formData.append("photos", selectedFile);
-
-    startTransition(() => {
-      void (async () => {
-        try {
-          const result = await uploadClassGalleryPhotosAction(initialUploadState, formData);
-          setUploadState(result);
-
-          if (result.status === "success") {
-            clearSelectedFile();
-            setSelectedTags([]);
-            setCaption("");
-            setActivePanel(null);
-            router.refresh();
-          }
-        } catch (error) {
-          console.error("Falha ao enviar foto da aula.", error);
-          setUploadState({
-            status: "error",
-            message: "Não foi possível enviar a foto.",
-          });
-        }
-      })();
-    });
   }
 
   const captureDialog = activePanel === "capture" ? (
@@ -217,32 +230,81 @@ export default function ClassGalleryCompactControls({
           </button>
         </div>
 
-        <form onSubmit={handleCaptureSubmit} className="flex flex-col gap-4 overflow-y-auto p-4">
+        <form
+          id={captureFormId}
+          action={formAction}
+          className="flex flex-col gap-4 overflow-y-auto p-4"
+        >
           <input type="hidden" name="classId" value={classId} />
           <input type="hidden" name="weekDate" value={weekDate} />
 
-          <div className="flex items-center gap-3 border-4 border-foreground bg-surface p-3 shadow-editorial-sm">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center border-4 border-foreground bg-background">
-              <Camera className="h-6 w-6 stroke-[3]" />
+          <div className="flex flex-col gap-3 border-4 border-foreground bg-surface p-3 shadow-editorial-sm">
+            <div className="flex items-center gap-3">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center border-4 border-foreground bg-background">
+                <Images className="h-6 w-6 stroke-[3]" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[12px] font-black uppercase leading-tight">
+                  {selectedPhotoCount}/{MAX_GALLERY_PHOTOS_PER_UPLOAD} foto(s) no envio
+                </p>
+                <p className="mt-1 text-[9px] font-black uppercase tracking-[0.16em] opacity-40">
+                  Carregue todas antes de enviar
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={openCamera}
+                className="flex h-11 shrink-0 items-center justify-center gap-2 border-4 border-foreground bg-surface px-3 text-[10px] font-black uppercase tracking-[0.14em] shadow-editorial-sm transition-colors hover:bg-background disabled:cursor-not-allowed disabled:opacity-60"
+                aria-label="Adicionar outra foto"
+                title="Adicionar outra foto"
+                disabled={!canAddPhoto}
+              >
+                <Plus className="h-4 w-4 stroke-[3]" />
+                <span className="hidden sm:inline">Adicionar</span>
+              </button>
             </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-[12px] font-black uppercase leading-tight">
-                {selectedFile?.name || "Foto selecionada"}
-              </p>
-              <p className="mt-1 text-[9px] font-black uppercase tracking-[0.16em] opacity-40">
-                {selectedFile ? formatFileSize(selectedFile.size) : "Aguardando câmera"}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={openCamera}
-              className={iconButtonClass}
-              aria-label="Trocar foto"
-              title="Trocar foto"
-              disabled={isPending}
-            >
-              <RefreshCcw className="h-4 w-4 stroke-[3]" />
-            </button>
+
+            {selectedFiles.length > 0 ? (
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {selectedFiles.map((file, index) => (
+                  <div
+                    key={`${file.name}-${file.size}-${index}`}
+                    className="grid grid-cols-[36px_minmax(0,1fr)_36px] items-center gap-2 border-2 border-foreground bg-background px-2 py-2"
+                  >
+                    <div className="flex h-8 w-8 items-center justify-center border-2 border-foreground bg-surface text-[10px] font-black">
+                      {index + 1}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-[10px] font-black uppercase leading-tight">
+                        {file.name || "Foto selecionada"}
+                      </p>
+                      <p className="mt-0.5 text-[8px] font-black uppercase tracking-[0.16em] opacity-40">
+                        {formatFileSize(file.size)}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeSelectedFile(index)}
+                      className="flex h-8 w-8 items-center justify-center border-2 border-foreground bg-surface transition-colors hover:bg-danger hover:text-surface"
+                      aria-label={`Remover foto ${index + 1}`}
+                      disabled={isPending}
+                    >
+                      <X className="h-3.5 w-3.5 stroke-[3]" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={openCamera}
+                className="flex min-h-11 items-center justify-center gap-2 border-4 border-foreground bg-background px-4 text-[10px] font-black uppercase tracking-[0.16em] shadow-editorial-sm"
+                disabled={!canAddPhoto}
+              >
+                <Camera className="h-4 w-4 stroke-[3]" />
+                Carregar foto
+              </button>
+            )}
           </div>
 
           <fieldset className="flex flex-col gap-2">
@@ -292,13 +354,13 @@ export default function ClassGalleryCompactControls({
           <button
             type="submit"
             className={primaryActionCenteredClass}
-            disabled={isPending}
+            disabled={isPending || selectedPhotoCount === 0}
           >
             <Send className="h-5 w-5 stroke-[3]" />
-            {isPending ? "Enviando" : "Enviar Foto"}
+            {isPending ? "Enviando" : selectedPhotoCount === 1 ? "Enviar Foto" : "Enviar Fotos"}
           </button>
 
-          {uploadState.status !== "idle" && uploadState.message ? (
+          {showUploadMessage && uploadState.status !== "idle" && uploadState.message ? (
             <div className={`${statusMessageClass} ${uploadState.status === "success" ? "bg-es-green" : "bg-danger text-surface"}`}>
               {uploadState.status === "success" ? (
                 <CheckCircle2 className="h-4 w-4 stroke-[3]" />
@@ -426,10 +488,13 @@ export default function ClassGalleryCompactControls({
       <div className="flex items-center gap-2">
         <input
           ref={cameraInputRef}
+          name="photos"
+          form={captureFormId}
           type="file"
           accept="image/*"
           capture="environment"
           className="sr-only"
+          disabled={isPending}
           onChange={handleCameraChange}
         />
 
