@@ -57,7 +57,6 @@ export default async function LancamentoFrequenciaPage({ searchParams }: Params)
 
   const d = (await searchParams).d;
   const saturdayStr = computeSaturday(d);
-  const verseWeekStr = shiftSaturday(saturdayStr, -1);
 
   if (d !== saturdayStr) {
     redirect(`/relatorios/lancamento?d=${saturdayStr}`);
@@ -72,7 +71,7 @@ export default async function LancamentoFrequenciaPage({ searchParams }: Params)
     getAttendanceContext(classId, saturdayStr),
     getStudents(classId),
     getScoringRules(classId),
-    getClassWeeklyBibleVerseByWeek(classId, verseWeekStr),
+    getClassWeeklyBibleVerseByWeek(classId, saturdayStr),
   ]);
 
   if ("error" in attendanceData) {
