@@ -260,6 +260,21 @@ test("fluxo do professor fica integrado à tela de chamada", () => {
   );
   assert.match(
     galleryActionSource,
+    /createGalleryStorageAdminClient/,
+    "gallery uploads should use a server-side storage admin client after teacher auth",
+  );
+  assert.match(
+    galleryActionSource,
+    /\.from\("class_members"\)[\s\S]*\.eq\("class_id", classId\)[\s\S]*\.eq\("user_id", user\.id\)[\s\S]*\.eq\("is_active", true\)/,
+    "gallery uploads should verify the teacher is an active class member before bypassing storage RLS",
+  );
+  assert.match(
+    galleryActionSource,
+    /storageSupabase\.storage[\s\S]*\.from\(CLASS_GALLERY_BUCKET\)[\s\S]*\.upload/,
+    "gallery uploads should write storage through the server-side admin client",
+  );
+  assert.match(
+    galleryActionSource,
     /tags,\s*uploaded_by: user\.id/s,
     "gallery metadata insert should persist tags",
   );

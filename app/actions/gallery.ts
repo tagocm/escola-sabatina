@@ -1,6 +1,8 @@
 "use server";
 
 import { requireGuardianAction, requireTeacherAction } from "@/lib/auth/guards";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import type { WebSocketLikeConstructor } from "@supabase/realtime-js";
 import {
   buildClassGalleryPhotoPath,
   CLASS_GALLERY_BUCKET,
@@ -10,6 +12,9 @@ import {
   validateGalleryPhotoFile,
 } from "@/lib/gallery/sabbath";
 import { revalidatePath } from "next/cache";
+import WebSocket from "ws";
+
+const webSocketTransport = WebSocket as unknown as WebSocketLikeConstructor;
 
 export type GalleryUploadState = {
   status: "idle" | "success" | "error";
@@ -43,8 +48,30 @@ function normalizeCaption(value: FormDataEntryValue | null) {
   return caption || null;
 }
 
+function createGalleryStorageAdminClient() {
+  const serviceRoleKey =
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY;
+
+  if (!serviceRoleKey) return null;
+
+  return createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    serviceRoleKey,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+      realtime: {
+        transport: webSocketTransport,
+      },
+    },
+  );
+}
+
 async function cleanupUploadedGalleryPaths(
   supabase: Awaited<ReturnType<typeof import("@/lib/supabase/server").createClient>>,
+  storageSupabase: NonNullable<ReturnType<typeof createGalleryStorageAdminClient>>,
   paths: string[],
 ) {
   if (paths.length === 0) return;
@@ -54,7 +81,7 @@ async function cleanupUploadedGalleryPaths(
     .delete()
     .in("storage_path", paths);
 
-  await supabase.storage.from(CLASS_GALLERY_BUCKET).remove(paths);
+  await storageSupabase.storage.from(CLASS_GALLERY_BUCKET).remove(paths);
 }
 
 export async function getTeacherGalleryPhotos(classId: string, weekDate?: string) {
@@ -154,12 +181,29 @@ export async function uploadClassGalleryPhotosAction(
     }
   }
 
+  const { data: classMembership, error: classMembershipError } = await supabase
+    .from("class_members")
+    .select("id")
+    .eq("class_id", classId)
+    .eq("user_id", user.id)
+    .eq("is_active", true)
+    .maybeSingle();
+
+  if (classMembershipError || !classMembership) {
+    return { status: "error", message: "Professor não pertence à classe informada." };
+  }
+
+  const storageSupabase = createGalleryStorageAdminClient();
+  if (!storageSupabase) {
+    return { status: "error", message: "Upload de fotos não configurado neste ambiente." };
+  }
+
   const uploadedPaths: string[] = [];
 
   for (const file of files) {
     const storagePath = buildClassGalleryPhotoPath(classId, weekDate, file.type);
 
-    const { error: uploadError } = await supabase.storage
+    const { error: uploadError } = await storageSupabase.storage
       .from(CLASS_GALLERY_BUCKET)
       .upload(storagePath, file, {
         contentType: file.type,
@@ -167,7 +211,7 @@ export async function uploadClassGalleryPhotosAction(
       });
 
     if (uploadError) {
-      await cleanupUploadedGalleryPaths(supabase, uploadedPaths);
+      await cleanupUploadedGalleryPaths(supabase, storageSupabase, uploadedPaths);
       console.error("Error uploading class gallery photo:", uploadError);
       return { status: "error", message: "Não foi possível enviar uma das fotos." };
     }
@@ -189,7 +233,7 @@ export async function uploadClassGalleryPhotosAction(
       });
 
     if (insertError) {
-      await cleanupUploadedGalleryPaths(supabase, uploadedPaths);
+      await cleanupUploadedGalleryPaths(supabase, storageSupabase, uploadedPaths);
       console.error("Error inserting class gallery photo metadata:", insertError);
       return { status: "error", message: "Não foi possível registrar uma das fotos." };
     }
@@ -212,6 +256,11 @@ export async function deleteClassGalleryPhotoAction(photoId: string) {
   }
 
   const { supabase } = auth;
+  const storageSupabase = createGalleryStorageAdminClient();
+  if (!storageSupabase) {
+    throw new Error("Upload de fotos não configurado neste ambiente.");
+  }
+
   const { data: photo, error: fetchError } = await supabase
     .from("class_gallery_photos")
     .select("id, class_id, storage_path")
@@ -222,7 +271,7 @@ export async function deleteClassGalleryPhotoAction(photoId: string) {
     throw new Error("Foto não encontrada.");
   }
 
-  const { error: storageError } = await supabase.storage
+  const { error: storageError } = await storageSupabase.storage
     .from(CLASS_GALLERY_BUCKET)
     .remove([photo.storage_path]);
 
