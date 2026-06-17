@@ -1,11 +1,105 @@
 export const STUDENT_PHOTO_MAX_SIZE = 1200;
 export const STUDENT_PHOTO_QUALITY = 0.9;
+const DEFAULT_COMPRESSED_IMAGE_TYPE = "image/webp";
+
+type ImageFileCompressor = (
+  file: File,
+  maxWidth: number,
+  maxHeight: number,
+  quality: number,
+  mimeType: string
+) => Promise<File>;
+
+interface CompressImageToMaxSizeOptions {
+  maxBytes: number;
+  maxWidth?: number;
+  maxHeight?: number;
+  initialQuality?: number;
+  minQuality?: number;
+  qualityStep?: number;
+  minScale?: number;
+  scaleStep?: number;
+  mimeType?: string;
+}
+
+function getCompressedFileName(fileName: string, mimeType: string) {
+  const extension = mimeType === "image/jpeg" ? "jpg" : mimeType.split("/").at(-1) || "webp";
+  const extlessName = fileName.replace(/\.[^/.]+$/, "") || "foto";
+
+  return `${extlessName}.${extension}`;
+}
 
 export async function compressImage(
   file: File,
   maxWidth = STUDENT_PHOTO_MAX_SIZE,
   maxHeight = STUDENT_PHOTO_MAX_SIZE,
-  quality = STUDENT_PHOTO_QUALITY
+  quality = STUDENT_PHOTO_QUALITY,
+  mimeType = DEFAULT_COMPRESSED_IMAGE_TYPE
+): Promise<File> {
+  return resizeImageFile(file, maxWidth, maxHeight, quality, mimeType);
+}
+
+export async function compressImageToMaxSize(
+  file: File,
+  options: CompressImageToMaxSizeOptions,
+  compressor: ImageFileCompressor = resizeImageFile
+): Promise<File> {
+  const {
+    maxBytes,
+    maxWidth = STUDENT_PHOTO_MAX_SIZE,
+    maxHeight = STUDENT_PHOTO_MAX_SIZE,
+    initialQuality = STUDENT_PHOTO_QUALITY,
+    minQuality = 0.5,
+    qualityStep = 0.1,
+    minScale = 0.4,
+    scaleStep = 0.82,
+    mimeType = DEFAULT_COMPRESSED_IMAGE_TYPE,
+  } = options;
+
+  if (!file.type.startsWith("image/") || file.size <= maxBytes) {
+    return file;
+  }
+
+  let bestFile = file;
+  let scale = 1;
+
+  while (scale >= minScale) {
+    const scaledMaxWidth = Math.max(320, Math.round(maxWidth * scale));
+    const scaledMaxHeight = Math.max(320, Math.round(maxHeight * scale));
+    let quality = initialQuality;
+
+    while (quality >= minQuality) {
+      const compressedFile = await compressor(
+        file,
+        scaledMaxWidth,
+        scaledMaxHeight,
+        quality,
+        mimeType
+      );
+
+      if (compressedFile.size < bestFile.size) {
+        bestFile = compressedFile;
+      }
+
+      if (compressedFile.size <= maxBytes) {
+        return compressedFile;
+      }
+
+      quality = Number((quality - qualityStep).toFixed(2));
+    }
+
+    scale = Number((scale * scaleStep).toFixed(2));
+  }
+
+  return bestFile;
+}
+
+async function resizeImageFile(
+  file: File,
+  maxWidth: number,
+  maxHeight: number,
+  quality: number,
+  mimeType: string
 ): Promise<File> {
   return new Promise((resolve) => {
     // Retorna original se não for imagem
@@ -53,17 +147,17 @@ export async function compressImage(
               return;
             }
 
-            const extlessName = file.name.replace(/\.[^/.]+$/, "");
-            const newFileName = `${extlessName}.webp`;
+            const outputType = blob.type || mimeType;
+            const newFileName = getCompressedFileName(file.name, outputType);
 
             const newFile = new File([blob], newFileName, {
-              type: "image/webp",
+              type: outputType,
               lastModified: Date.now(),
             });
 
             resolve(newFile);
           },
-          "image/webp",
+          mimeType,
           quality
         );
       };

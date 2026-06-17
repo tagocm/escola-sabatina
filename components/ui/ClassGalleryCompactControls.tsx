@@ -19,9 +19,11 @@ import {
 import {
   formatGalleryPhotoTagLabel,
   GALLERY_PHOTO_TAGS,
+  MAX_GALLERY_PHOTO_SIZE,
   MAX_GALLERY_PHOTOS_PER_UPLOAD,
   type GalleryPhotoTag,
 } from "@/lib/gallery/sabbath";
+import { compressImageToMaxSize } from "@/lib/utils/image";
 import {
   AlertTriangle,
   Camera,
@@ -58,6 +60,17 @@ interface ClassGalleryCompactControlsProps {
 type ActivePanel = "capture" | "gallery" | null;
 
 const initialUploadState: GalleryUploadState = { status: "idle" };
+const GALLERY_UPLOAD_IMAGE_MAX_DIMENSION = 1800;
+const GALLERY_UPLOAD_INITIAL_QUALITY = 0.82;
+const GALLERY_UPLOAD_MIN_QUALITY = 0.5;
+const GALLERY_UPLOAD_QUALITY_STEP = 0.08;
+const GALLERY_UPLOAD_MIN_SCALE = 0.35;
+const GALLERY_UPLOAD_SCALE_STEP = 0.8;
+
+type PhotoPrepMessage = {
+  tone: "info" | "error";
+  text: string;
+};
 
 function formatFileSize(size: number) {
   if (size < 1024 * 1024) {
@@ -81,8 +94,11 @@ export default function ClassGalleryCompactControls({
   const [selectedTags, setSelectedTags] = useState<GalleryPhotoTag[]>([]);
   const [caption, setCaption] = useState("");
   const [showUploadMessage, setShowUploadMessage] = useState(false);
+  const [isPreparingFiles, setIsPreparingFiles] = useState(false);
+  const [photoPrepMessage, setPhotoPrepMessage] = useState<PhotoPrepMessage | null>(null);
   const clearSelectedFile = useCallback(() => {
     setSelectedFiles([]);
+    setPhotoPrepMessage(null);
     if (cameraInputRef.current) {
       cameraInputRef.current.value = "";
     }
@@ -116,7 +132,7 @@ export default function ClassGalleryCompactControls({
     },
     initialUploadState,
   );
-  const canAddPhoto = selectedPhotoCount < MAX_GALLERY_PHOTOS_PER_UPLOAD && !isPending;
+  const canAddPhoto = selectedPhotoCount < MAX_GALLERY_PHOTOS_PER_UPLOAD && !isPending && !isPreparingFiles;
 
   function syncCameraInputFiles(files: File[]) {
     if (!cameraInputRef.current) return;
@@ -127,17 +143,18 @@ export default function ClassGalleryCompactControls({
   }
 
   const closePanel = useCallback(() => {
-    if (isPending) return;
+    if (isPending || isPreparingFiles) return;
 
     if (activePanel === "capture") {
       clearSelectedFile();
       setSelectedTags([]);
       setCaption("");
       setShowUploadMessage(false);
+      setPhotoPrepMessage(null);
     }
 
     setActivePanel(null);
-  }, [activePanel, clearSelectedFile, isPending]);
+  }, [activePanel, clearSelectedFile, isPending, isPreparingFiles]);
 
   useEffect(() => {
     if (!activePanel) return;
@@ -165,15 +182,99 @@ export default function ClassGalleryCompactControls({
     cameraInputRef.current?.click();
   }
 
-  function handleCameraChange(event: React.ChangeEvent<HTMLInputElement>) {
+  async function prepareGalleryPhoto(file: File) {
+    return compressImageToMaxSize(file, {
+      maxBytes: MAX_GALLERY_PHOTO_SIZE,
+      maxWidth: GALLERY_UPLOAD_IMAGE_MAX_DIMENSION,
+      maxHeight: GALLERY_UPLOAD_IMAGE_MAX_DIMENSION,
+      initialQuality: GALLERY_UPLOAD_INITIAL_QUALITY,
+      minQuality: GALLERY_UPLOAD_MIN_QUALITY,
+      qualityStep: GALLERY_UPLOAD_QUALITY_STEP,
+      minScale: GALLERY_UPLOAD_MIN_SCALE,
+      scaleStep: GALLERY_UPLOAD_SCALE_STEP,
+    });
+  }
+
+  async function handleCameraChange(event: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files || []);
     if (files.length === 0) return;
 
     setShowUploadMessage(false);
-    const nextFiles = [...selectedFiles, ...files].slice(0, MAX_GALLERY_PHOTOS_PER_UPLOAD);
-    setSelectedFiles(nextFiles);
-    syncCameraInputFiles(nextFiles);
+    setPhotoPrepMessage(null);
     setActivePanel("capture");
+    setIsPreparingFiles(true);
+
+    const availableSlots = MAX_GALLERY_PHOTOS_PER_UPLOAD - selectedPhotoCount;
+    if (availableSlots <= 0) {
+      syncCameraInputFiles(selectedFiles);
+      setPhotoPrepMessage({
+        tone: "error",
+        text: `Envie no máximo ${MAX_GALLERY_PHOTOS_PER_UPLOAD} fotos por vez.`,
+      });
+      setIsPreparingFiles(false);
+      return;
+    }
+
+    const filesToPrepare = files.slice(0, availableSlots);
+
+    try {
+      const preparedFiles: File[] = [];
+      let compressedCount = 0;
+      let rejectedCount = 0;
+
+      for (const file of filesToPrepare) {
+        const preparedFile = await prepareGalleryPhoto(file);
+
+        if (preparedFile.size > MAX_GALLERY_PHOTO_SIZE) {
+          rejectedCount += 1;
+          continue;
+        }
+
+        if (
+          file.size > MAX_GALLERY_PHOTO_SIZE ||
+          preparedFile.size < file.size ||
+          preparedFile.type !== file.type
+        ) {
+          compressedCount += 1;
+        }
+
+        preparedFiles.push(preparedFile);
+      }
+
+      const nextFiles = [...selectedFiles, ...preparedFiles].slice(0, MAX_GALLERY_PHOTOS_PER_UPLOAD);
+      setSelectedFiles(nextFiles);
+      syncCameraInputFiles(nextFiles);
+
+      if (rejectedCount > 0) {
+        setPhotoPrepMessage({
+          tone: "error",
+          text: rejectedCount === 1
+            ? "Não foi possível reduzir uma foto para até 5 MB."
+            : "Não foi possível reduzir algumas fotos para até 5 MB.",
+        });
+      } else if (compressedCount > 0) {
+        setPhotoPrepMessage({
+          tone: "info",
+          text: compressedCount === 1
+            ? "Foto grande reduzida automaticamente para envio."
+            : "Fotos grandes reduzidas automaticamente para envio.",
+        });
+      } else if (files.length > filesToPrepare.length) {
+        setPhotoPrepMessage({
+          tone: "error",
+          text: `Envie no máximo ${MAX_GALLERY_PHOTOS_PER_UPLOAD} fotos por vez.`,
+        });
+      }
+    } catch (error) {
+      console.error("Falha ao preparar fotos da aula.", error);
+      syncCameraInputFiles(selectedFiles);
+      setPhotoPrepMessage({
+        tone: "error",
+        text: "Não foi possível preparar uma das fotos.",
+      });
+    } finally {
+      setIsPreparingFiles(false);
+    }
   }
 
   function removeSelectedFile(index: number) {
@@ -181,6 +282,7 @@ export default function ClassGalleryCompactControls({
     setSelectedFiles(nextFiles);
     syncCameraInputFiles(nextFiles);
     setShowUploadMessage(false);
+    setPhotoPrepMessage(null);
   }
 
   function toggleTag(tag: GalleryPhotoTag) {
@@ -248,7 +350,7 @@ export default function ClassGalleryCompactControls({
                   {selectedPhotoCount}/{MAX_GALLERY_PHOTOS_PER_UPLOAD} foto(s) no envio
                 </p>
                 <p className="mt-1 text-[9px] font-black uppercase tracking-[0.16em] opacity-40">
-                  Carregue todas antes de enviar
+                  {isPreparingFiles ? "Preparando foto..." : "Carregue todas antes de enviar"}
                 </p>
               </div>
               <button
@@ -305,6 +407,17 @@ export default function ClassGalleryCompactControls({
                 Carregar foto
               </button>
             )}
+
+            {photoPrepMessage ? (
+              <div className={`${statusMessageClass} ${photoPrepMessage.tone === "error" ? "bg-danger text-surface" : "bg-es-blue"}`}>
+                {photoPrepMessage.tone === "error" ? (
+                  <AlertTriangle className="h-4 w-4 stroke-[3]" />
+                ) : (
+                  <Images className="h-4 w-4 stroke-[3]" />
+                )}
+                <span>{photoPrepMessage.text}</span>
+              </div>
+            ) : null}
           </div>
 
           <fieldset className="flex flex-col gap-2">
@@ -347,17 +460,17 @@ export default function ClassGalleryCompactControls({
               onChange={(event) => setCaption(event.target.value)}
               placeholder="ATIVIDADE, MOMENTO..."
               className={compactInputClass}
-              disabled={isPending}
+              disabled={isPending || isPreparingFiles}
             />
           </label>
 
           <button
             type="submit"
             className={primaryActionCenteredClass}
-            disabled={isPending || selectedPhotoCount === 0}
+            disabled={isPending || isPreparingFiles || selectedPhotoCount === 0}
           >
             <Send className="h-5 w-5 stroke-[3]" />
-            {isPending ? "Enviando" : selectedPhotoCount === 1 ? "Enviar Foto" : "Enviar Fotos"}
+            {isPreparingFiles ? "Preparando" : isPending ? "Enviando" : selectedPhotoCount === 1 ? "Enviar Foto" : "Enviar Fotos"}
           </button>
 
           {showUploadMessage && uploadState.status !== "idle" && uploadState.message ? (
@@ -494,7 +607,7 @@ export default function ClassGalleryCompactControls({
           accept="image/*"
           capture="environment"
           className="sr-only"
-          disabled={isPending}
+          disabled={isPending || isPreparingFiles}
           onChange={handleCameraChange}
         />
 

@@ -230,6 +230,16 @@ test("fluxo do professor fica integrado à tela de chamada", () => {
   );
   assert.match(
     compactControlsSource,
+    /compressImageToMaxSize/,
+    "compact capture flow should compress large class photos before upload",
+  );
+  assert.match(
+    compactControlsSource,
+    /MAX_GALLERY_PHOTO_SIZE/,
+    "compact capture flow should use the same 5 MB limit enforced by the server",
+  );
+  assert.match(
+    compactControlsSource,
     /Adicionar outra foto/,
     "compact capture flow should let teachers add more photos before submitting",
   );
@@ -258,4 +268,68 @@ test("fluxo do professor fica integrado à tela de chamada", () => {
     /GALLERY_PHOTO_TAGS\.map/,
     "gallery upload form should render the configured tag controls",
   );
+});
+
+test("compressão da galeria reduz fotos grandes para o limite configurado", async () => {
+  const { compressImageToMaxSize } = await loadTypeScriptModule("lib/utils/image.ts");
+  const maxBytes = 5 * 1024 * 1024;
+  const largePhoto = {
+    name: "iphone-pro-max.jpg",
+    size: 8 * 1024 * 1024,
+    type: "image/jpeg",
+  };
+  const attempts = [];
+
+  const compressedPhoto = await compressImageToMaxSize(
+    largePhoto,
+    {
+      maxBytes,
+      maxWidth: 1800,
+      maxHeight: 1800,
+      initialQuality: 0.82,
+      minQuality: 0.5,
+      qualityStep: 0.1,
+    },
+    async (_file, maxWidth, maxHeight, quality, mimeType) => {
+      attempts.push({ maxWidth, maxHeight, quality, mimeType });
+      const size = quality <= 0.62 ? 4.7 * 1024 * 1024 : 6.2 * 1024 * 1024;
+
+      return {
+        name: "iphone-pro-max.webp",
+        size,
+        type: mimeType,
+      };
+    },
+  );
+
+  assert.ok(compressedPhoto.size <= maxBytes, "compressed photo should fit the 5 MB upload limit");
+  assert.equal(compressedPhoto.type, "image/webp");
+  assert.ok(attempts.length >= 3, "compression should retry with lower quality until it fits");
+  assert.deepEqual(
+    attempts.map((attempt) => attempt.mimeType),
+    attempts.map(() => "image/webp"),
+    "gallery compression should normalize uploads to webp",
+  );
+});
+
+test("compressão da galeria mantém fotos que já cabem no limite", async () => {
+  const { compressImageToMaxSize } = await loadTypeScriptModule("lib/utils/image.ts");
+  const smallPhoto = {
+    name: "sala.jpg",
+    size: 900 * 1024,
+    type: "image/jpeg",
+  };
+  let compressionCalls = 0;
+
+  const result = await compressImageToMaxSize(
+    smallPhoto,
+    { maxBytes: 5 * 1024 * 1024 },
+    async () => {
+      compressionCalls += 1;
+      return smallPhoto;
+    },
+  );
+
+  assert.equal(result, smallPhoto);
+  assert.equal(compressionCalls, 0, "small photos should not be recompressed unnecessarily");
 });
