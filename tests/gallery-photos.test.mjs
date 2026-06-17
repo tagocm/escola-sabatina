@@ -142,6 +142,8 @@ test("fluxo do professor fica integrado à tela de chamada", () => {
     ? readFileSync(compactControlsPath, "utf8")
     : "";
   const galleryActionSource = readFileSync(join(repoRoot, "app", "actions", "gallery.ts"), "utf8");
+  const galleryServerSource = readFileSync(join(repoRoot, "lib", "gallery", "server.ts"), "utf8");
+  const galleryPhotoRouteSource = readFileSync(join(repoRoot, "app", "galeria", "fotos", "[photoId]", "route.ts"), "utf8");
   const galleryFormSource = readFileSync(join(repoRoot, "components", "ui", "ClassGalleryUploadForm.tsx"), "utf8");
 
   assert.match(
@@ -260,23 +262,43 @@ test("fluxo do professor fica integrado à tela de chamada", () => {
   );
   assert.match(
     galleryActionSource,
-    /createGalleryStorageAdminClient/,
-    "gallery uploads should use a server-side storage admin client after teacher auth",
+    /createGalleryAdminClient/,
+    "gallery operations should use a server-side admin client after app-level auth",
+  );
+  assert.match(
+    galleryServerSource,
+    /export async function isActiveClassMember[\s\S]*\.from\("class_members"\)[\s\S]*\.eq\("user_id", userId\)[\s\S]*\.eq\("is_active", true\)/,
+    "gallery server helpers should verify active class membership before bypassing storage/table RLS",
   );
   assert.match(
     galleryActionSource,
-    /\.from\("class_members"\)[\s\S]*\.eq\("class_id", classId\)[\s\S]*\.eq\("user_id", user\.id\)[\s\S]*\.eq\("is_active", true\)/,
-    "gallery uploads should verify the teacher is an active class member before bypassing storage RLS",
-  );
-  assert.match(
-    galleryActionSource,
-    /storageSupabase\.storage[\s\S]*\.from\(CLASS_GALLERY_BUCKET\)[\s\S]*\.upload/,
+    /galleryAdminSupabase\.storage[\s\S]*\.from\(CLASS_GALLERY_BUCKET\)[\s\S]*\.upload/,
     "gallery uploads should write storage through the server-side admin client",
   );
   assert.match(
     galleryActionSource,
-    /tags,\s*uploaded_by: user\.id/s,
-    "gallery metadata insert should persist tags",
+    /metadata:\s*\{[\s\S]*classId[\s\S]*weekDate[\s\S]*tags[\s\S]*caption[\s\S]*uploadedBy[\s\S]*originalFilename/s,
+    "gallery uploads should store gallery metadata on the storage object because production PostgREST does not expose the table",
+  );
+  assert.doesNotMatch(
+    galleryActionSource,
+    /\.from\("class_gallery_photos"\)[\s\S]*\.insert/,
+    "gallery uploads should not depend on inserting into the missing class_gallery_photos PostgREST table",
+  );
+  assert.match(
+    galleryPhotoRouteSource,
+    /createGalleryAdminClient/,
+    "private gallery photo route should use the server-side admin client for metadata and storage reads",
+  );
+  assert.match(
+    galleryPhotoRouteSource,
+    /decodeGalleryPhotoId[\s\S]*canAccessClassGalleryPhoto/,
+    "private gallery photo route should keep app-level authorization before returning image bytes",
+  );
+  assert.match(
+    galleryServerSource,
+    /encodeGalleryPhotoId[\s\S]*decodeGalleryPhotoId/s,
+    "gallery server helpers should encode storage paths for private image routes and delete actions",
   );
   assert.match(
     galleryFormSource,

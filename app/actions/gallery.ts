@@ -1,8 +1,6 @@
 "use server";
 
 import { requireGuardianAction, requireTeacherAction } from "@/lib/auth/guards";
-import { createClient as createSupabaseClient } from "@supabase/supabase-js";
-import type { WebSocketLikeConstructor } from "@supabase/realtime-js";
 import {
   buildClassGalleryPhotoPath,
   CLASS_GALLERY_BUCKET,
@@ -11,10 +9,17 @@ import {
   normalizeSabbathDateInput,
   validateGalleryPhotoFile,
 } from "@/lib/gallery/sabbath";
+import {
+  createGalleryAdminClient,
+  decodeGalleryPhotoId,
+  getClassIdFromGalleryPath,
+  getGuardianClassIds,
+  isActiveClassMember,
+  listClassGalleryPhotos,
+  listClassGalleryWeeks,
+  type GalleryAdminClient,
+} from "@/lib/gallery/server";
 import { revalidatePath } from "next/cache";
-import WebSocket from "ws";
-
-const webSocketTransport = WebSocket as unknown as WebSocketLikeConstructor;
 
 export type GalleryUploadState = {
   status: "idle" | "success" | "error";
@@ -48,89 +53,72 @@ function normalizeCaption(value: FormDataEntryValue | null) {
   return caption || null;
 }
 
-function createGalleryStorageAdminClient() {
-  const serviceRoleKey =
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY;
-
-  if (!serviceRoleKey) return null;
-
-  return createSupabaseClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    serviceRoleKey,
-    {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-      realtime: {
-        transport: webSocketTransport,
-      },
-    },
-  );
-}
-
 async function cleanupUploadedGalleryPaths(
-  supabase: Awaited<ReturnType<typeof import("@/lib/supabase/server").createClient>>,
-  storageSupabase: NonNullable<ReturnType<typeof createGalleryStorageAdminClient>>,
+  galleryAdminSupabase: GalleryAdminClient,
   paths: string[],
 ) {
   if (paths.length === 0) return;
 
-  await supabase
-    .from("class_gallery_photos")
-    .delete()
-    .in("storage_path", paths);
-
-  await storageSupabase.storage.from(CLASS_GALLERY_BUCKET).remove(paths);
+  await galleryAdminSupabase.storage.from(CLASS_GALLERY_BUCKET).remove(paths);
 }
 
 export async function getTeacherGalleryPhotos(classId: string, weekDate?: string) {
   const auth = await requireTeacherAction();
   if ("error" in auth) return [];
 
-  const { supabase } = auth;
-  let query = supabase
-    .from("class_gallery_photos")
-    .select("id, class_id, week_date, storage_path, original_filename, content_type, file_size, tags, caption, created_at")
-    .eq("class_id", classId)
-    .order("week_date", { ascending: false })
-    .order("created_at", { ascending: false });
+  const { user } = auth;
+  const galleryAdminSupabase = createGalleryAdminClient();
+  if (!galleryAdminSupabase) return [];
 
-  if (weekDate) {
-    query = query.eq("week_date", weekDate);
-  }
-
-  const { data, error } = await query;
-
-  if (error) {
-    console.error("Error fetching teacher gallery photos:", error);
+  if (!(await isActiveClassMember(galleryAdminSupabase, user.id, classId))) {
     return [];
   }
 
-  return (data || []) as GalleryPhotoRow[];
+  if (weekDate) {
+    return listClassGalleryPhotos(galleryAdminSupabase, classId, weekDate);
+  }
+
+  const weekDates = await listClassGalleryWeeks(galleryAdminSupabase, classId);
+  const photos = await Promise.all(
+    weekDates.map((date) => listClassGalleryPhotos(galleryAdminSupabase, classId, date)),
+  );
+
+  return photos.flat() as GalleryPhotoRow[];
 }
 
 export async function getGuardianGalleryPhotos() {
   const auth = await requireGuardianAction();
   if ("error" in auth) return [];
 
-  const { supabase } = auth;
-  const { data, error } = await supabase
-    .from("class_gallery_photos")
-    .select(`
-      id, class_id, week_date, storage_path, original_filename, content_type, file_size, caption, created_at,
-      tags,
-      classes (name)
-    `)
-    .order("week_date", { ascending: false })
-    .order("created_at", { ascending: false });
+  const { user } = auth;
+  const galleryAdminSupabase = createGalleryAdminClient();
+  if (!galleryAdminSupabase) return [];
 
-  if (error) {
-    console.error("Error fetching guardian gallery photos:", error);
-    return [];
-  }
+  const guardianClassIds = await getGuardianClassIds(galleryAdminSupabase, user.id);
+  if (guardianClassIds.length === 0) return [];
 
-  return (data || []) as GalleryPhotoRow[];
+  const { data: classes } = await galleryAdminSupabase
+    .from("classes")
+    .select("id, name")
+    .in("id", guardianClassIds);
+  const classNames = new Map((classes || []).map((item) => [item.id, item.name]));
+  const photosByClass = await Promise.all(
+    guardianClassIds.map(async (classId) => {
+      const weekDates = await listClassGalleryWeeks(galleryAdminSupabase, classId);
+      const photosByWeek = await Promise.all(
+        weekDates.map((date) => (
+          listClassGalleryPhotos(galleryAdminSupabase, classId, date, classNames.get(classId))
+        )),
+      );
+
+      return photosByWeek.flat();
+    }),
+  );
+
+  return photosByClass.flat().sort((left, right) => (
+    new Date(right.week_date).getTime() - new Date(left.week_date).getTime()
+      || new Date(right.created_at).getTime() - new Date(left.created_at).getTime()
+  )) as GalleryPhotoRow[];
 }
 
 export async function uploadClassGalleryPhotosAction(
@@ -142,7 +130,7 @@ export async function uploadClassGalleryPhotosAction(
     return { status: "error", message: auth.error };
   }
 
-  const { supabase, user } = auth;
+  const { user } = auth;
   const classId = String(formData.get("classId") || "").trim();
   const weekDate = normalizeSabbathDateInput(formData.get("weekDate"));
   const tags = normalizeGalleryPhotoTags(formData.getAll("tags"));
@@ -181,21 +169,13 @@ export async function uploadClassGalleryPhotosAction(
     }
   }
 
-  const { data: classMembership, error: classMembershipError } = await supabase
-    .from("class_members")
-    .select("id")
-    .eq("class_id", classId)
-    .eq("user_id", user.id)
-    .eq("is_active", true)
-    .maybeSingle();
-
-  if (classMembershipError || !classMembership) {
-    return { status: "error", message: "Professor não pertence à classe informada." };
+  const galleryAdminSupabase = createGalleryAdminClient();
+  if (!galleryAdminSupabase) {
+    return { status: "error", message: "Upload de fotos não configurado neste ambiente." };
   }
 
-  const storageSupabase = createGalleryStorageAdminClient();
-  if (!storageSupabase) {
-    return { status: "error", message: "Upload de fotos não configurado neste ambiente." };
+  if (!(await isActiveClassMember(galleryAdminSupabase, user.id, classId))) {
+    return { status: "error", message: "Professor não pertence à classe informada." };
   }
 
   const uploadedPaths: string[] = [];
@@ -203,40 +183,28 @@ export async function uploadClassGalleryPhotosAction(
   for (const file of files) {
     const storagePath = buildClassGalleryPhotoPath(classId, weekDate, file.type);
 
-    const { error: uploadError } = await storageSupabase.storage
+    const { error: uploadError } = await galleryAdminSupabase.storage
       .from(CLASS_GALLERY_BUCKET)
       .upload(storagePath, file, {
         contentType: file.type,
+        metadata: {
+          classId,
+          weekDate,
+          tags,
+          caption,
+          uploadedBy: user.id,
+          originalFilename: file.name || null,
+        },
         upsert: false,
       });
 
     if (uploadError) {
-      await cleanupUploadedGalleryPaths(supabase, storageSupabase, uploadedPaths);
+      await cleanupUploadedGalleryPaths(galleryAdminSupabase, uploadedPaths);
       console.error("Error uploading class gallery photo:", uploadError);
       return { status: "error", message: "Não foi possível enviar uma das fotos." };
     }
 
     uploadedPaths.push(storagePath);
-
-    const { error: insertError } = await supabase
-      .from("class_gallery_photos")
-      .insert({
-        class_id: classId,
-        week_date: weekDate,
-        storage_path: storagePath,
-        original_filename: file.name || null,
-        content_type: file.type,
-        file_size: file.size,
-        caption,
-        tags,
-        uploaded_by: user.id,
-      });
-
-    if (insertError) {
-      await cleanupUploadedGalleryPaths(supabase, storageSupabase, uploadedPaths);
-      console.error("Error inserting class gallery photo metadata:", insertError);
-      return { status: "error", message: "Não foi possível registrar uma das fotos." };
-    }
   }
 
   revalidatePath("/relatorios/lancamento");
@@ -255,39 +223,29 @@ export async function deleteClassGalleryPhotoAction(photoId: string) {
     throw new Error(auth.error);
   }
 
-  const { supabase } = auth;
-  const storageSupabase = createGalleryStorageAdminClient();
-  if (!storageSupabase) {
+  const galleryAdminSupabase = createGalleryAdminClient();
+  if (!galleryAdminSupabase) {
     throw new Error("Upload de fotos não configurado neste ambiente.");
   }
 
-  const { data: photo, error: fetchError } = await supabase
-    .from("class_gallery_photos")
-    .select("id, class_id, storage_path")
-    .eq("id", photoId)
-    .maybeSingle();
+  const storagePath = decodeGalleryPhotoId(photoId);
+  const classId = storagePath ? getClassIdFromGalleryPath(storagePath) : null;
 
-  if (fetchError || !photo) {
+  if (!storagePath || !classId) {
     throw new Error("Foto não encontrada.");
   }
 
-  const { error: storageError } = await storageSupabase.storage
+  if (!(await isActiveClassMember(galleryAdminSupabase, auth.user.id, classId))) {
+    throw new Error("Foto não encontrada.");
+  }
+
+  const { error: storageError } = await galleryAdminSupabase.storage
     .from(CLASS_GALLERY_BUCKET)
-    .remove([photo.storage_path]);
+    .remove([storagePath]);
 
   if (storageError) {
     console.error("Error deleting class gallery photo object:", storageError);
     throw new Error("Não foi possível remover a foto.");
-  }
-
-  const { error: deleteError } = await supabase
-    .from("class_gallery_photos")
-    .delete()
-    .eq("id", photoId);
-
-  if (deleteError) {
-    console.error("Error deleting class gallery photo metadata:", deleteError);
-    throw new Error("Não foi possível concluir a remoção da foto.");
   }
 
   revalidatePath("/relatorios/lancamento");
