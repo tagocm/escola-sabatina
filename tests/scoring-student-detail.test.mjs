@@ -135,6 +135,44 @@ test("monta auditoria individual com categorias, ajustes e ranking diário", () 
         updated_at: "2026-04-11T12:10:00Z",
       },
     ],
+    auditLogs: [
+      {
+        id: "audit-2",
+        request_id: "request-2",
+        table_name: "student_attendance_records",
+        operation: "update",
+        row_id: "ana-d2",
+        day_id: "d2",
+        student_id: "ana",
+        actor_user_id: "teacher-2",
+        actor_name: "Professor João",
+        changed_at: "2026-04-18T12:30:00Z",
+        transaction_id: 102,
+        reason: "Correção após revisão da chamada",
+        source: "save_student_attendance_record",
+        metadata: { is_update: true },
+        old_data: { total_points: 3 },
+        new_data: { total_points: 2 },
+      },
+      {
+        id: "audit-1",
+        request_id: "request-1",
+        table_name: "student_attendance_records",
+        operation: "insert",
+        row_id: "ana-d1",
+        day_id: "d1",
+        student_id: "ana",
+        actor_user_id: "teacher-1",
+        actor_name: "Professora Marta",
+        changed_at: "2026-04-11T12:00:00Z",
+        transaction_id: 101,
+        reason: "Lançamento regular da pontuação semanal.",
+        source: "save_student_attendance_record",
+        metadata: { is_update: false },
+        old_data: null,
+        new_data: { total_points: 7 },
+      },
+    ],
     trimesterStartDate: "2026-04-11",
     currentDate: "2026-04-25",
   });
@@ -162,6 +200,25 @@ test("monta auditoria individual com categorias, ajustes e ranking diário", () 
   assert.equal(detail.strongestCategory?.category, "frequencia");
   assert.equal(detail.weakestCategory?.category, "participacao");
   assert.equal(detail.disciplineEvents[0].reason, "Conversa paralela");
+  assert.deepEqual(detail.auditLog.map((entry) => ({
+    operation: entry.operation,
+    actor: entry.actorName,
+    reason: entry.reason,
+    source: entry.source,
+  })), [
+    {
+      operation: "update",
+      actor: "Professor João",
+      reason: "Correção após revisão da chamada",
+      source: "save_student_attendance_record",
+    },
+    {
+      operation: "insert",
+      actor: "Professora Marta",
+      reason: "Lançamento regular da pontuação semanal.",
+      source: "save_student_attendance_record",
+    },
+  ]);
 
   assert.deepEqual(detail.timeline.slice(0, 3).map((week) => ({
     date: week.dayDate,

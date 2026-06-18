@@ -61,6 +61,25 @@ export interface StudentScoringDetailDisciplineEventInput {
   updated_at: string | null;
 }
 
+export interface StudentScoringAuditLogInput {
+  id: string;
+  request_id: string | null;
+  table_name: string;
+  operation: string;
+  row_id: string;
+  day_id: string | null;
+  student_id: string | null;
+  actor_user_id: string | null;
+  actor_name: string | null;
+  changed_at: string | null;
+  transaction_id: number | null;
+  reason: string | null;
+  source: string | null;
+  metadata: Record<string, unknown> | null;
+  old_data: Record<string, unknown> | null;
+  new_data: Record<string, unknown> | null;
+}
+
 export interface StudentScoringRuleBreakdown {
   ruleId: string;
   name: string;
@@ -103,6 +122,25 @@ export interface StudentScoringDetailWeek {
   classSize: number;
   dailyRank: number | null;
   dailyDelta: number;
+}
+
+export interface StudentScoringAuditEntry {
+  id: string;
+  requestId: string | null;
+  tableName: string;
+  operation: string;
+  rowId: string;
+  dayId: string | null;
+  studentId: string | null;
+  actorUserId: string | null;
+  actorName: string;
+  changedAt: string | null;
+  transactionId: number | null;
+  reason: string;
+  source: string;
+  metadata: Record<string, unknown>;
+  oldData: Record<string, unknown> | null;
+  newData: Record<string, unknown> | null;
 }
 
 export interface StudentScoringCategorySummary {
@@ -148,6 +186,7 @@ export interface StudentScoringDetail {
   strongestCategory: StudentScoringCategorySummary | null;
   weakestCategory: StudentScoringCategorySummary | null;
   disciplineEvents: StudentScoringDisciplineEvent[];
+  auditLog: StudentScoringAuditEntry[];
   timeline: StudentScoringDetailWeek[];
 }
 
@@ -159,6 +198,7 @@ interface BuildStudentScoringDetailInput {
   records: StudentScoringDetailRecordInput[];
   scores: StudentScoringDetailScoreInput[];
   disciplineEvents: StudentScoringDetailDisciplineEventInput[];
+  auditLogs?: StudentScoringAuditLogInput[];
   trimesterStartDate?: string;
   currentDate?: string;
 }
@@ -295,6 +335,27 @@ function mapDisciplineEvent(
   };
 }
 
+function mapAuditLogEntry(entry: StudentScoringAuditLogInput): StudentScoringAuditEntry {
+  return {
+    id: entry.id,
+    requestId: entry.request_id,
+    tableName: entry.table_name,
+    operation: entry.operation,
+    rowId: entry.row_id,
+    dayId: entry.day_id,
+    studentId: entry.student_id,
+    actorUserId: entry.actor_user_id,
+    actorName: String(entry.actor_name || "Sistema"),
+    changedAt: entry.changed_at,
+    transactionId: entry.transaction_id,
+    reason: String(entry.reason || "Motivo não informado"),
+    source: String(entry.source || "database"),
+    metadata: entry.metadata || {},
+    oldData: entry.old_data,
+    newData: entry.new_data,
+  };
+}
+
 export function buildStudentScoringDetail({
   student,
   students,
@@ -303,6 +364,7 @@ export function buildStudentScoringDetail({
   records,
   scores,
   disciplineEvents,
+  auditLogs = [],
   trimesterStartDate = SECOND_TRIMESTER_2026_START_DATE,
   currentDate,
 }: BuildStudentScoringDetailInput): StudentScoringDetail | null {
@@ -471,6 +533,10 @@ export function buildStudentScoringDetail({
   const detailDisciplineEvents = timeline
     .flatMap((week) => week.disciplineEvents)
     .sort((left, right) => left.dayDate.localeCompare(right.dayDate));
+  const auditLog = auditLogs
+    .filter((entry) => !entry.student_id || entry.student_id === student.id)
+    .map(mapAuditLogEntry)
+    .sort((left, right) => String(right.changedAt || "").localeCompare(String(left.changedAt || "")));
   const daysWithoutRecord = timeline.filter((week) => week.isElapsed && !week.hasRecord).length;
 
   return {
@@ -508,6 +574,7 @@ export function buildStudentScoringDetail({
     strongestCategory,
     weakestCategory,
     disciplineEvents: detailDisciplineEvents,
+    auditLog,
     timeline,
   };
 }

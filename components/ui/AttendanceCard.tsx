@@ -10,6 +10,7 @@ import type { AttendanceDisciplineEvent } from "@/lib/types/attendance";
 import AttendanceStudentEditModal from "@/components/ui/AttendanceStudentEditModal";
 import AttendanceDisciplinePenaltyModal from "@/components/ui/AttendanceDisciplinePenaltyModal";
 import AttendanceDisciplineEventsCard from "@/components/ui/AttendanceDisciplineEventsCard";
+import { fieldLabelClass } from "@/components/ui/design-system";
 
 interface Rule {
   id: string;
@@ -161,6 +162,9 @@ export default function AttendanceCard({
   const [disciplineEvents, setDisciplineEvents] = useState<AttendanceDisciplineEvent[]>(() =>
     initialDisciplineEvents.map(normalizeDisciplineEvent),
   );
+  const [changeReason, setChangeReason] = useState(() =>
+    isSaved ? "" : "Lançamento regular da pontuação semanal.",
+  );
   const [isPending, startTransition] = useTransition();
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -214,6 +218,13 @@ export default function AttendanceCard({
   const handleSave = () => {
     setSaveError(null);
 
+    const normalizedChangeReason = changeReason.trim();
+
+    if (!normalizedChangeReason) {
+      setSaveError("Informe o motivo do lançamento ou correção da pontuação.");
+      return;
+    }
+
     startTransition(async () => {
       const result = await saveStudentAttendanceRecord(
         classId,
@@ -222,6 +233,7 @@ export default function AttendanceCard({
         selectedIds,
         extraActivityPoints,
         disciplineEvents,
+        normalizedChangeReason,
       );
 
       if ("error" in result && result.error) {
@@ -426,18 +438,36 @@ export default function AttendanceCard({
                 Editar
               </button>
             ) : (
-              <button
-                onClick={handleSave}
-                disabled={isPending}
-                className="border-4 border-foreground py-2.5 px-4 shadow-editorial-sm hover:translate-y-0.5 active:translate-y-1 transition-all flex items-center justify-center gap-2.5 font-black uppercase tracking-widest text-[9px] disabled:opacity-50 disabled:cursor-wait bg-es-blue"
-              >
-                {isPending ? (
-                  <ButtonLoader size="sm" label="Salvando chamada" />
-                ) : (
-                  <Save className="w-4 h-4" />
-                )}
-                {isSaved ? "Atualizar" : "Salvar"}
-              </button>
+              <>
+                <label className="flex flex-col gap-1.5">
+                  <span className={fieldLabelClass}>Motivo</span>
+                  <textarea
+                    value={changeReason}
+                    onChange={(event) => {
+                      setChangeReason(event.target.value);
+                      if (saveError) {
+                        setSaveError(null);
+                      }
+                    }}
+                    rows={3}
+                    className="min-h-[84px] w-full resize-none border-4 border-foreground bg-background px-2 py-2 text-[10px] font-bold uppercase leading-relaxed outline-none focus:bg-es-lilac/10"
+                    placeholder={isSaved ? "Descreva a correção" : "Lançamento regular"}
+                  />
+                </label>
+
+                <button
+                  onClick={handleSave}
+                  disabled={isPending}
+                  className="border-4 border-foreground py-2.5 px-4 shadow-editorial-sm hover:translate-y-0.5 active:translate-y-1 transition-all flex items-center justify-center gap-2.5 font-black uppercase tracking-widest text-[9px] disabled:opacity-50 disabled:cursor-wait bg-es-blue"
+                >
+                  {isPending ? (
+                    <ButtonLoader size="sm" label="Salvando chamada" />
+                  ) : (
+                    <Save className="w-4 h-4" />
+                  )}
+                  {isSaved ? "Atualizar" : "Salvar"}
+                </button>
+              </>
             )}
 
             {isEditing ? (

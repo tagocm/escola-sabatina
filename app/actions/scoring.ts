@@ -2,11 +2,16 @@
 
 import { requireTeacherAction } from "@/lib/auth/guards";
 import {
+  SCORING_AUDIT_NOT_APPLIED_MESSAGE,
+  isScoringAuditContractMissing,
+} from "@/lib/scoring/audit-contract";
+import {
   SECOND_TRIMESTER_2026_START_DATE,
   buildClassScoringRanking,
 } from "@/lib/scoring/ranking";
 import {
   buildStudentScoringDetail,
+  type StudentScoringAuditLogInput,
   type StudentScoringDetailStudentInput,
 } from "@/lib/scoring/student-detail";
 import { revalidatePath } from "next/cache";
@@ -118,6 +123,7 @@ export async function getStudentScoringDetail(classId: string, studentId: string
     recordsResult,
     scoresResult,
     disciplineEventsResult,
+    auditLogsResult,
   ] = await Promise.all([
     supabase
       .from("students")
@@ -174,6 +180,30 @@ export async function getStudentScoringDetail(classId: string, studentId: string
         updated_at
       `)
       .eq("class_id", classId),
+    supabase
+      .from("scoring_audit_log")
+      .select(`
+        id,
+        request_id,
+        table_name,
+        operation,
+        row_id,
+        day_id,
+        student_id,
+        actor_user_id,
+        actor_name,
+        changed_at,
+        transaction_id,
+        reason,
+        source,
+        metadata,
+        old_data,
+        new_data
+      `)
+      .eq("class_id", classId)
+      .eq("student_id", studentId)
+      .order("changed_at", { ascending: false })
+      .limit(200),
   ]);
 
   if (studentResult.error) return { error: "Não foi possível carregar o aluno." };
@@ -184,6 +214,13 @@ export async function getStudentScoringDetail(classId: string, studentId: string
   if (recordsResult.error) return { error: "Não foi possível carregar os registros de pontuação." };
   if (scoresResult.error) return { error: "Não foi possível carregar a composição dos pontos." };
   if (disciplineEventsResult.error) return { error: "Não foi possível carregar os eventos de indisciplina." };
+  if (auditLogsResult.error) {
+    return {
+      error: isScoringAuditContractMissing(auditLogsResult.error)
+        ? SCORING_AUDIT_NOT_APPLIED_MESSAGE
+        : "Não foi possível carregar o log de auditoria da pontuação.",
+    };
+  }
 
   const teacherIds = Array.from(new Set(
     (recordsResult.data || [])
@@ -225,6 +262,7 @@ export async function getStudentScoringDetail(classId: string, studentId: string
     records,
     scores: scoresResult.data || [],
     disciplineEvents: disciplineEventsResult.data || [],
+    auditLogs: (auditLogsResult.data || []) as StudentScoringAuditLogInput[],
     trimesterStartDate: SECOND_TRIMESTER_2026_START_DATE,
     currentDate: getTodayDateInSaoPaulo(),
   });

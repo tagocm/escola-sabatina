@@ -7,6 +7,7 @@ import {
   CalendarClock,
   CheckCircle2,
   ClipboardList,
+  FileClock,
   History,
   MinusCircle,
   PlusCircle,
@@ -31,6 +32,7 @@ import { getStudentPhotoSrc } from "@/lib/storage/student-photos";
 import {
   buildStudentScoringChartData,
   buildStudentScoringCumulativeChartData,
+  type StudentScoringAuditEntry,
   type ScoringCategory,
   type StudentScoringDetail,
   type StudentScoringDetailWeek,
@@ -171,6 +173,85 @@ function EmptyCell({ children }: { children: React.ReactNode }) {
   );
 }
 
+function formatShortId(value: string | null | undefined) {
+  if (!value) return "--";
+  return value.slice(0, 8);
+}
+
+function formatAuditOperation(operation: string) {
+  const labels: Record<string, string> = {
+    baseline: "Snapshot",
+    insert: "Criado",
+    update: "Alterado",
+    delete: "Removido",
+  };
+
+  return labels[operation] || operation;
+}
+
+function formatAuditTable(tableName: string) {
+  const labels: Record<string, string> = {
+    student_attendance_records: "Registro",
+    attendance_scores: "Critério",
+    attendance_discipline_events: "Indisciplina",
+  };
+
+  return labels[tableName] || tableName;
+}
+
+function readAuditValue(entry: StudentScoringAuditEntry, key: string) {
+  return entry.newData?.[key] ?? entry.oldData?.[key] ?? null;
+}
+
+function formatAuditNumber(value: unknown) {
+  if (typeof value === "number") return formatNumber(value);
+  if (typeof value === "string" && value.trim() && !Number.isNaN(Number(value))) {
+    return formatNumber(Number(value));
+  }
+  return "--";
+}
+
+function formatAuditText(value: unknown) {
+  if (typeof value === "string" && value.trim()) return value.trim();
+  if (typeof value === "number") return String(value);
+  return "--";
+}
+
+function describeAuditEntry(entry: StudentScoringAuditEntry) {
+  if (entry.operation === "baseline") {
+    return "Estado existente preservado antes da auditoria robusta.";
+  }
+
+  if (entry.tableName === "student_attendance_records") {
+    const oldTotal = entry.oldData?.total_points;
+    const newTotal = entry.newData?.total_points;
+    const oldExtra = entry.oldData?.extra_activity_points;
+    const newExtra = entry.newData?.extra_activity_points;
+    const oldPenalty = entry.oldData?.discipline_penalty_points;
+    const newPenalty = entry.newData?.discipline_penalty_points;
+
+    return [
+      `Total ${formatAuditNumber(oldTotal)} -> ${formatAuditNumber(newTotal)}`,
+      `Extra ${formatAuditNumber(oldExtra)} -> ${formatAuditNumber(newExtra)}`,
+      `Desconto ${formatAuditNumber(oldPenalty)} -> ${formatAuditNumber(newPenalty)}`,
+    ].join(" / ");
+  }
+
+  if (entry.tableName === "attendance_scores") {
+    const ruleId = formatShortId(formatAuditText(readAuditValue(entry, "rule_id")));
+    const points = formatAuditNumber(readAuditValue(entry, "points_earned"));
+    return `Critério ${ruleId} com ${points} ponto(s).`;
+  }
+
+  if (entry.tableName === "attendance_discipline_events") {
+    const points = formatAuditNumber(readAuditValue(entry, "points"));
+    const reason = formatAuditText(readAuditValue(entry, "reason"));
+    return `Desconto de ${points} ponto(s). Motivo: ${reason}`;
+  }
+
+  return "Alteração registrada na pontuação.";
+}
+
 function CategoryBars({ detail }: { detail: StudentScoringDetail }) {
   return (
     <section className={`${surfaceClass} flex flex-col gap-5 p-5 md:p-6`}>
@@ -267,6 +348,63 @@ function DiagnosticGrid({ detail }: { detail: StudentScoringDetail }) {
         detail="Último sábado contra média anterior"
         tone={trendTone}
       />
+    </section>
+  );
+}
+
+function AuditLogSection({ detail }: { detail: StudentScoringDetail }) {
+  return (
+    <section className={`${surfaceClass} flex flex-col gap-5 p-5 md:p-6`}>
+      <div className="flex items-center gap-3">
+        <div className="flex h-11 w-11 items-center justify-center border-4 border-foreground bg-es-green shadow-editorial-sm">
+          <FileClock className="h-5 w-5 stroke-[3]" />
+        </div>
+        <div>
+          <h2 className="text-xl font-black uppercase leading-none">Log de auditoria</h2>
+          <p className="mt-1 text-[9px] font-black uppercase tracking-[0.18em] opacity-40">
+            Histórico de alterações com motivo, ator e horário
+          </p>
+        </div>
+      </div>
+
+      {detail.auditLog.length > 0 ? (
+        <div className="overflow-x-auto border-4 border-foreground bg-surface shadow-editorial-sm">
+          <div className="min-w-[1040px]">
+            <div className="grid grid-cols-[9rem_11rem_7rem_7rem_1.2fr_1.5fr_6rem] gap-3 border-b-4 border-foreground bg-background px-4 py-3 text-[9px] font-black uppercase tracking-[0.16em]">
+              <span>Quando</span>
+              <span>Responsável</span>
+              <span>Área</span>
+              <span>Ação</span>
+              <span>Motivo</span>
+              <span>Resumo</span>
+              <span>Grupo</span>
+            </div>
+
+            {detail.auditLog.map((entry) => (
+              <div
+                key={entry.id}
+                className="grid grid-cols-[9rem_11rem_7rem_7rem_1.2fr_1.5fr_6rem] items-start gap-3 border-b-2 border-foreground/10 px-4 py-4 text-[10px] font-bold uppercase leading-relaxed tracking-[0.08em] last:border-b-0"
+              >
+                <span className="font-black">{formatDateTime(entry.changedAt)}</span>
+                <span>{entry.actorName}</span>
+                <span className="font-black">{formatAuditTable(entry.tableName)}</span>
+                <span>{formatAuditOperation(entry.operation)}</span>
+                <span>{entry.reason}</span>
+                <span>{describeAuditEntry(entry)}</span>
+                <span className="font-mono text-[9px] uppercase opacity-55">
+                  {entry.requestId ? formatShortId(entry.requestId) : formatShortId(String(entry.transactionId || ""))}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="border-4 border-dashed border-foreground/25 bg-background p-6 text-center shadow-editorial-sm">
+          <p className="text-sm font-black uppercase tracking-[0.12em] opacity-45">
+            Nenhum evento de auditoria registrado para este participante.
+          </p>
+        </div>
+      )}
     </section>
   );
 }
@@ -657,6 +795,7 @@ export default async function StudentScoringDetailPage({ params }: Props) {
         </section>
 
         <LaunchRecords detail={detail} />
+        <AuditLogSection detail={detail} />
         <TimelineTable detail={detail} />
         <DisciplineEvents detail={detail} />
       </main>

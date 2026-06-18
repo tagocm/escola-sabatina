@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "check:scoring-audit": "node scripts/check-scoring-audit-deployment.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

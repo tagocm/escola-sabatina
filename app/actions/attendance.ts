@@ -1,6 +1,10 @@
 "use server";
 
 import { requireTeacherAction } from "@/lib/auth/guards";
+import {
+  SCORING_AUDIT_NOT_APPLIED_MESSAGE,
+  isScoringAuditContractMissing,
+} from "@/lib/scoring/audit-contract";
 import type { AttendanceDisciplineEvent } from "@/lib/types/attendance";
 import { revalidatePath } from "next/cache";
 
@@ -101,6 +105,7 @@ export async function saveStudentAttendanceRecord(
   ruleIds: string[],
   extraActivityPoints = 0,
   disciplineEvents: AttendanceDisciplineEvent[] = [],
+  changeReason = "",
 ) {
   const auth = await requireTeacherAction();
   if ("error" in auth) return auth;
@@ -118,6 +123,7 @@ export async function saveStudentAttendanceRecord(
           .filter(Boolean),
       ))
     : [];
+  const normalizedChangeReason = String(changeReason || "").trim();
 
   const normalizedSubmittedEvents = Array.isArray(disciplineEvents)
     ? disciplineEvents
@@ -133,6 +139,10 @@ export async function saveStudentAttendanceRecord(
     return { error: "Informe o motivo do desconto por indisciplina." };
   }
 
+  if (!normalizedChangeReason) {
+    return { error: "Informe o motivo do lançamento ou correção da pontuação." };
+  }
+
   const { data: savedRows, error: recordError } = await supabase.rpc(
     "save_student_attendance_record",
     {
@@ -142,16 +152,22 @@ export async function saveStudentAttendanceRecord(
       p_rule_ids: normalizedRuleIds,
       p_extra_activity_points: safeExtraActivityPoints,
       p_discipline_events: normalizedSubmittedEvents,
+      p_change_reason: normalizedChangeReason,
     },
   );
 
   if (recordError) {
+    if (isScoringAuditContractMissing(recordError)) {
+      return { error: SCORING_AUDIT_NOT_APPLIED_MESSAGE };
+    }
+
     const safeMessages = [
       "Acesso não autorizado.",
       "Aluno não pertence à classe informada.",
       "Critério de pontuação inválido para esta classe.",
       "Evento de indisciplina inválido para este registro.",
       "Informe o motivo do desconto por indisciplina.",
+      "Informe o motivo do lançamento ou correção da pontuação.",
       "Os eventos de indisciplina excedem a pontuação disponível do aluno.",
       "Pontuação extra acima do limite permitido.",
       "Professor não pertence à classe informada.",

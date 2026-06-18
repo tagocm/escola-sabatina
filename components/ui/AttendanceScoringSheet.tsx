@@ -7,7 +7,7 @@ import { AlertTriangle, Check, Minus, Plus, Save, UserCircle, X } from "lucide-r
 import { saveStudentAttendanceRecord } from "@/app/actions/attendance";
 import AttendanceDisciplinePenaltyModal from "@/components/ui/AttendanceDisciplinePenaltyModal";
 import { ButtonLoader } from "@/components/ui/AppLoader";
-import { bottomSheetClass, iconButtonClass } from "@/components/ui/design-system";
+import { bottomSheetClass, fieldLabelClass, iconButtonClass } from "@/components/ui/design-system";
 import { getStudentPhotoSrc } from "@/lib/storage/student-photos";
 import { formatAttendanceStudentName } from "@/lib/attendance/student-display";
 import type {
@@ -73,6 +73,9 @@ export default function AttendanceScoringSheet({
   const [disciplineEvents, setDisciplineEvents] = useState<AttendanceDisciplineEvent[]>(() =>
     item.initialDisciplineEvents.map(normalizeDisciplineEvent),
   );
+  const [changeReason, setChangeReason] = useState(() =>
+    isSaved ? "" : "Lançamento regular da pontuação semanal.",
+  );
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isDisciplineModalOpen, setIsDisciplineModalOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -128,6 +131,13 @@ export default function AttendanceScoringSheet({
       return;
     }
 
+    const normalizedChangeReason = changeReason.trim();
+
+    if (!normalizedChangeReason) {
+      setSaveError("Informe o motivo do lançamento ou correção da pontuação.");
+      return;
+    }
+
     startTransition(async () => {
       const result = await saveStudentAttendanceRecord(
         classId,
@@ -136,6 +146,7 @@ export default function AttendanceScoringSheet({
         selectedIds,
         extraActivityPoints,
         disciplineEvents,
+        normalizedChangeReason,
       );
 
       if ("error" in result && result.error) {
@@ -328,6 +339,24 @@ export default function AttendanceScoringSheet({
                 </p>
               ) : null}
             </div>
+          </section>
+
+          <section className="border-4 border-foreground bg-surface p-4 shadow-editorial-sm">
+            <label className="flex flex-col gap-2">
+              <span className={fieldLabelClass}>Motivo do lançamento</span>
+              <textarea
+                value={changeReason}
+                onChange={(event) => {
+                  setChangeReason(event.target.value);
+                  if (saveError) {
+                    setSaveError(null);
+                  }
+                }}
+                rows={3}
+                placeholder={isSaved ? "Descreva a correção" : "Lançamento regular da pontuação semanal"}
+                className="min-h-[92px] w-full resize-none border-4 border-foreground bg-background px-3 py-3 text-sm font-bold leading-relaxed outline-none transition-colors focus:bg-es-lilac/10"
+              />
+            </label>
           </section>
 
           {disciplineEvents.length > 0 ? (

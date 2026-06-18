@@ -8,6 +8,7 @@ Create a Vercel project from the GitHub repository and use these environment var
 
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
 
 Recommended project name:
 
@@ -22,6 +23,14 @@ After the first Vercel deploy, update Auth URL settings in the Supabase dashboar
   - `http://localhost:3000/**`
   - `https://escola-sabatina-staging.vercel.app/**`
 
+Before publishing scoring changes, apply the latest Supabase migrations and run:
+
+```bash
+npm run check:scoring-audit
+```
+
+The check must pass against the configured Supabase project before the app is published. It verifies the robust scoring audit table, the `student_attendance_records.updated_at` column, and the reasoned scoring RPC signature.
+
 ## Status
 
-The remote database for project ref `ayrbdpksfbtjspprovnt` already has all local migrations from `0001` to `0022`.
+The remote database for project ref `ayrbdpksfbtjspprovnt` must include the robust scoring audit migration before scoring launches or corrections can be used safely.
