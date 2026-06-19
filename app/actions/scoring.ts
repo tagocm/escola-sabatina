@@ -1,10 +1,7 @@
 "use server";
 
 import { requireTeacherAction } from "@/lib/auth/guards";
-import {
-  SCORING_AUDIT_NOT_APPLIED_MESSAGE,
-  isScoringAuditContractMissing,
-} from "@/lib/scoring/audit-contract";
+import { isScoringAuditContractMissing } from "@/lib/scoring/audit-contract";
 import {
   SECOND_TRIMESTER_2026_START_DATE,
   buildClassScoringRanking,
@@ -214,12 +211,8 @@ export async function getStudentScoringDetail(classId: string, studentId: string
   if (recordsResult.error) return { error: "Não foi possível carregar os registros de pontuação." };
   if (scoresResult.error) return { error: "Não foi possível carregar a composição dos pontos." };
   if (disciplineEventsResult.error) return { error: "Não foi possível carregar os eventos de indisciplina." };
-  if (auditLogsResult.error) {
-    return {
-      error: isScoringAuditContractMissing(auditLogsResult.error)
-        ? SCORING_AUDIT_NOT_APPLIED_MESSAGE
-        : "Não foi possível carregar o log de auditoria da pontuação.",
-    };
+  if (auditLogsResult.error && !isScoringAuditContractMissing(auditLogsResult.error)) {
+    return { error: "Não foi possível carregar o log de auditoria da pontuação." };
   }
 
   const teacherIds = Array.from(new Set(
@@ -262,7 +255,7 @@ export async function getStudentScoringDetail(classId: string, studentId: string
     records,
     scores: scoresResult.data || [],
     disciplineEvents: disciplineEventsResult.data || [],
-    auditLogs: (auditLogsResult.data || []) as StudentScoringAuditLogInput[],
+    auditLogs: (auditLogsResult.error ? [] : auditLogsResult.data || []) as StudentScoringAuditLogInput[],
     trimesterStartDate: SECOND_TRIMESTER_2026_START_DATE,
     currentDate: getTodayDateInSaoPaulo(),
   });

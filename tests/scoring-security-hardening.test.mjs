@@ -84,7 +84,7 @@ test("scoring audit migration gates writes through reasoned RPC", () => {
   );
 });
 
-test("attendance action does not trust client-supplied point values", () => {
+test("attendance action prefers audited RPC and keeps fallback server-calculated", () => {
   const actionSource = readFileSync(join(repoRoot, "app", "actions", "attendance.ts"), "utf8");
   const saveActionBody = actionSource.slice(
     actionSource.indexOf("export async function saveStudentAttendanceRecord"),
@@ -106,24 +106,29 @@ test("attendance action does not trust client-supplied point values", () => {
     /Informe o motivo do lançamento ou correção da pontuação\./,
     "save action should reject saves without an audit reason",
   );
-  assert.doesNotMatch(
-    saveActionBody,
-    /\.from\(\s*["']attendance_scores["']\s*\)\s*\.\s*insert/s,
-    "save action should not insert attendance scores directly",
+  assert.match(
+    actionSource,
+    /saveStudentAttendanceRecordDirectly/,
+    "save action should keep a temporary compatibility path while production is not migrated",
+  );
+  assert.match(
+    actionSource,
+    /\.from\(\s*["']class_scoring_rules["']\s*\)\s*[\s\S]*\.select\(\s*["']id, points["']\s*\)/,
+    "compatibility fallback should recalculate selected rule points from the database",
   );
   assert.doesNotMatch(
-    saveActionBody,
-    /\.from\(\s*["']student_attendance_records["']\s*\)\s*\.\s*upsert/s,
-    "save action should not upsert attendance records directly",
-  );
-  assert.doesNotMatch(
-    saveActionBody,
+    actionSource,
     /rulesMetadata/,
     "save action should not accept rule point metadata from the client",
   );
+  assert.match(
+    saveActionBody,
+    /isScoringAuditContractMissing\(recordError\)[\s\S]*saveStudentAttendanceRecordDirectly/,
+    "direct compatibility fallback should only run when the audited RPC contract is missing",
+  );
 });
 
-test("scoring actions fail closed when audit database contract is missing", () => {
+test("scoring actions degrade gracefully when audit database contract is missing", () => {
   const contractSource = readFileSync(join(repoRoot, "lib", "scoring", "audit-contract.ts"), "utf8");
   const attendanceSource = readFileSync(join(repoRoot, "app", "actions", "attendance.ts"), "utf8");
   const scoringSource = readFileSync(join(repoRoot, "app", "actions", "scoring.ts"), "utf8");
@@ -146,11 +151,11 @@ test("scoring actions fail closed when audit database contract is missing", () =
   assert.match(
     attendanceSource,
     /isScoringAuditContractMissing\(recordError\)/,
-    "saving should fail closed if the reasoned scoring RPC is not deployed",
+    "saving should detect when the reasoned scoring RPC is not deployed",
   );
   assert.match(
     scoringSource,
-    /isScoringAuditContractMissing\(auditLogsResult\.error\)/,
-    "student scoring detail should fail closed if the audit log is not deployed",
+    /auditLogs:\s*\(auditLogsResult\.error \? \[\] : auditLogsResult\.data \|\| \[\]\)/,
+    "student scoring detail should continue without audit rows while the audit table is not deployed",
   );
 });
