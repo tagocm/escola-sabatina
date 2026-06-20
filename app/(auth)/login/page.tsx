@@ -37,11 +37,7 @@ export default function LoginPage() {
       const result = await signInWithPassword(formData);
       
       if (result?.error) {
-        if (result.error.includes("Invalid login credentials")) {
-          setErrorMsg("CREDENCIAIS INCORRETAS.");
-        } else {
-          setErrorMsg("FALHA AO ENTRAR.");
-        }
+        setErrorMsg(result.error);
       } else {
         router.push("/");
       }
@@ -79,8 +75,12 @@ export default function LoginPage() {
             disabled={isPending}
             id="email"
             type="email"
-            placeholder="COORDENADOR@ESCOLA.COM"
-            className="w-full h-14 px-4 bg-surface border-[3px] border-foreground focus:outline-none focus:ring-0 focus:shadow-editorial-sm transition-shadow text-base font-bold placeholder:text-foreground/30 uppercase disabled:opacity-50"
+            autoComplete="email"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            placeholder="coordenador@escola.com"
+            className="w-full h-14 px-4 bg-surface border-[3px] border-foreground focus:outline-none focus:ring-0 focus:shadow-editorial-sm transition-shadow text-base font-bold placeholder:text-foreground/30 disabled:opacity-50"
           />
         </div>
 
@@ -98,9 +98,19 @@ export default function LoginPage() {
             disabled={isPending}
             id="password"
             type="password"
+            autoComplete="current-password"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
             placeholder="••••••••"
-            className="w-full h-14 px-4 bg-surface border-[3px] border-foreground focus:outline-none focus:ring-0 focus:shadow-editorial-sm transition-shadow text-base font-bold placeholder:text-foreground/30 uppercase disabled:opacity-50"
+            className="w-full h-14 px-4 bg-surface border-[3px] border-foreground focus:outline-none focus:ring-0 focus:shadow-editorial-sm transition-shadow text-base font-bold placeholder:text-foreground/30 disabled:opacity-50"
           />
+          <Link
+            href="/esqueci-minha-senha"
+            className="self-end text-[10px] font-black uppercase tracking-[0.18em] underline underline-offset-4 hover:text-es-orange transition-colors"
+          >
+            Esqueci minha senha
+          </Link>
         </div>
 
         <button

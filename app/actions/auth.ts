@@ -3,6 +3,7 @@
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import type { WebSocketLikeConstructor } from "@supabase/realtime-js";
 import { createClient } from "@/lib/supabase/server";
+import { headers } from "next/headers";
 import WebSocket from "ws";
 
 const webSocketTransport = WebSocket as unknown as WebSocketLikeConstructor;
@@ -35,6 +36,49 @@ function mapSignUpError(error: { message?: string; code?: string; status?: numbe
   }
 
   return "Não foi possível criar a conta.";
+}
+
+function mapPasswordResetError(error: { message?: string; code?: string; status?: number } | null) {
+  if (error?.code === "over_email_send_rate_limit" || error?.status === 429) {
+    return "Muitas tentativas em pouco tempo. Aguarde alguns minutos e tente novamente.";
+  }
+
+  return "Não foi possível enviar o e-mail de redefinição.";
+}
+
+function normalizeConfiguredOrigin(value: string | undefined) {
+  if (!value) return null;
+  return value.startsWith("http://") || value.startsWith("https://")
+    ? value
+    : `https://${value}`;
+}
+
+async function getRequestOrigin() {
+  const configuredOrigin =
+    normalizeConfiguredOrigin(process.env.NEXT_PUBLIC_SITE_URL) ||
+    normalizeConfiguredOrigin(process.env.SITE_URL) ||
+    normalizeConfiguredOrigin(process.env.NEXT_PUBLIC_APP_URL) ||
+    normalizeConfiguredOrigin(process.env.VERCEL_PROJECT_PRODUCTION_URL) ||
+    normalizeConfiguredOrigin(process.env.VERCEL_URL);
+
+  if (configuredOrigin) return configuredOrigin;
+
+  const headerStore = await headers();
+  const origin = headerStore.get("origin");
+  if (origin) return origin;
+
+  const host = headerStore.get("x-forwarded-host") || headerStore.get("host");
+  if (!host) return "http://localhost:3000";
+
+  const protocol = headerStore.get("x-forwarded-proto") || "https";
+  return `${protocol}://${host}`;
+}
+
+async function getPasswordResetRedirectUrl() {
+  const origin = await getRequestOrigin();
+  const callbackUrl = new URL("/auth/callback", origin);
+  callbackUrl.searchParams.set("next", "/auth/nova-senha");
+  return callbackUrl.toString();
 }
 
 function createAdminClient() {
@@ -143,6 +187,56 @@ export async function signInWithPassword(formData: FormData) {
     return { error: "E-mail ou senha inválidos." };
   }
   
+  return { success: true };
+}
+
+export async function requestPasswordReset(formData: FormData) {
+  const email = normalizeEmail(formData.get("email"));
+
+  if (!email) {
+    return { error: "Informe um e-mail válido." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: await getPasswordResetRedirectUrl(),
+  });
+
+  if (error) {
+    return { error: mapPasswordResetError(error) };
+  }
+
+  return { success: true };
+}
+
+export async function updatePasswordAfterReset(formData: FormData) {
+  const password = String(formData.get("password") || "");
+  const confirmPassword = String(formData.get("confirmPassword") || "");
+
+  const passwordValidationError = validatePassword(password);
+  if (passwordValidationError) return { error: passwordValidationError };
+
+  if (password !== confirmPassword) {
+    return { error: "As senhas não conferem." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Link expirado ou inválido. Solicite uma nova redefinição de senha." };
+  }
+
+  const { error } = await supabase.auth.updateUser({ password });
+
+  if (error) {
+    return { error: "Não foi possível atualizar a senha." };
+  }
+
+  await supabase.auth.signOut();
+
   return { success: true };
 }
 

@@ -56,6 +56,7 @@ export async function updateSession(request: NextRequest) {
   if (
     !user &&
     !request.nextUrl.pathname.startsWith('/login') &&
+    !request.nextUrl.pathname.startsWith('/esqueci-minha-senha') &&
     !request.nextUrl.pathname.startsWith('/cadastro-responsavel') &&
     !request.nextUrl.pathname.startsWith('/convite') &&
     !request.nextUrl.pathname.startsWith('/auth')
@@ -67,7 +68,14 @@ export async function updateSession(request: NextRequest) {
   }
 
   // If user is already logged in and tries to access login or signup page, redirect to dashboard
-  if (user && (request.nextUrl.pathname.startsWith('/login') || request.nextUrl.pathname.startsWith('/cadastro-responsavel'))) {
+  if (
+    user &&
+    (
+      request.nextUrl.pathname.startsWith('/login') ||
+      request.nextUrl.pathname.startsWith('/esqueci-minha-senha') ||
+      request.nextUrl.pathname.startsWith('/cadastro-responsavel')
+    )
+  ) {
     const url = request.nextUrl.clone();
     url.pathname = '/';
     return NextResponse.redirect(url);
