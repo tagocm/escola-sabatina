@@ -38,7 +38,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useActionState, useCallback, useEffect, useId, useRef, useState } from "react";
+import { startTransition, useActionState, useCallback, useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 export interface ClassGalleryCompactPhoto {
@@ -134,14 +134,6 @@ export default function ClassGalleryCompactControls({
   );
   const canAddPhoto = selectedPhotoCount < MAX_GALLERY_PHOTOS_PER_UPLOAD && !isPending && !isPreparingFiles;
 
-  function syncCameraInputFiles(files: File[]) {
-    if (!cameraInputRef.current) return;
-
-    const dataTransfer = new DataTransfer();
-    files.forEach((file) => dataTransfer.items.add(file));
-    cameraInputRef.current.files = dataTransfer.files;
-  }
-
   const closePanel = useCallback(() => {
     if (isPending || isPreparingFiles) return;
 
@@ -198,6 +190,7 @@ export default function ClassGalleryCompactControls({
   async function handleCameraChange(event: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files || []);
     if (files.length === 0) return;
+    event.target.value = "";
 
     setShowUploadMessage(false);
     setPhotoPrepMessage(null);
@@ -206,7 +199,6 @@ export default function ClassGalleryCompactControls({
 
     const availableSlots = MAX_GALLERY_PHOTOS_PER_UPLOAD - selectedPhotoCount;
     if (availableSlots <= 0) {
-      syncCameraInputFiles(selectedFiles);
       setPhotoPrepMessage({
         tone: "error",
         text: `Envie no máximo ${MAX_GALLERY_PHOTOS_PER_UPLOAD} fotos por vez.`,
@@ -243,7 +235,6 @@ export default function ClassGalleryCompactControls({
 
       const nextFiles = [...selectedFiles, ...preparedFiles].slice(0, MAX_GALLERY_PHOTOS_PER_UPLOAD);
       setSelectedFiles(nextFiles);
-      syncCameraInputFiles(nextFiles);
 
       if (rejectedCount > 0) {
         setPhotoPrepMessage({
@@ -267,7 +258,6 @@ export default function ClassGalleryCompactControls({
       }
     } catch (error) {
       console.error("Falha ao preparar fotos da aula.", error);
-      syncCameraInputFiles(selectedFiles);
       setPhotoPrepMessage({
         tone: "error",
         text: "Não foi possível preparar uma das fotos.",
@@ -280,9 +270,31 @@ export default function ClassGalleryCompactControls({
   function removeSelectedFile(index: number) {
     const nextFiles = selectedFiles.filter((_, fileIndex) => fileIndex !== index);
     setSelectedFiles(nextFiles);
-    syncCameraInputFiles(nextFiles);
     setShowUploadMessage(false);
     setPhotoPrepMessage(null);
+  }
+
+  function buildCaptureFormData() {
+    const formData = new FormData();
+
+    formData.set("classId", classId);
+    formData.set("weekDate", weekDate);
+    formData.set("caption", caption);
+    selectedTags.forEach((tag) => formData.append("tags", tag));
+    selectedFiles.forEach((file) => formData.append("photos", file));
+
+    return formData;
+  }
+
+  function handleCaptureSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (isPending || isPreparingFiles || selectedPhotoCount === 0) return;
+
+    setShowUploadMessage(false);
+    startTransition(() => {
+      formAction(buildCaptureFormData());
+    });
   }
 
   function toggleTag(tag: GalleryPhotoTag) {
@@ -335,6 +347,7 @@ export default function ClassGalleryCompactControls({
         <form
           id={captureFormId}
           action={formAction}
+          onSubmit={handleCaptureSubmit}
           className="flex flex-col gap-4 overflow-y-auto p-4"
         >
           <input type="hidden" name="classId" value={classId} />

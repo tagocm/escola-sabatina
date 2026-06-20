@@ -207,6 +207,11 @@ test("fluxo do professor fica integrado à tela de chamada", () => {
   );
   assert.match(
     compactControlsSource,
+    /onSubmit=\{handleCaptureSubmit\}/,
+    "compact capture form should intercept submit to include the accumulated photo batch",
+  );
+  assert.match(
+    compactControlsSource,
     /form=\{captureFormId\}/,
     "the hidden camera input should be associated with the capture form",
   );
@@ -222,8 +227,13 @@ test("fluxo do professor fica integrado à tela de chamada", () => {
   );
   assert.match(
     compactControlsSource,
+    /buildCaptureFormData[\s\S]*selectedFiles\.forEach\(\(file\) => formData\.append\("photos", file\)\)/,
+    "compact capture flow should submit all accumulated files from component state",
+  );
+  assert.doesNotMatch(
+    compactControlsSource,
     /new DataTransfer\(\)/,
-    "compact capture flow should sync accumulated files to the native file input",
+    "compact capture flow should not rely on programmatically mutating native input files",
   );
   assert.match(
     compactControlsSource,
@@ -250,10 +260,10 @@ test("fluxo do professor fica integrado à tela de chamada", () => {
     /name="photos"[\s\S]*form=\{captureFormId\}/,
     "the camera file input should submit as the photos field",
   );
-  assert.doesNotMatch(
+  assert.match(
     compactControlsSource,
-    /onSubmit=\{/,
-    "compact capture flow should not rebuild FormData manually in an onSubmit handler",
+    /startTransition\(\(\) => \{[\s\S]*formAction\(buildCaptureFormData\(\)\);[\s\S]*\}\)/,
+    "compact capture flow should dispatch the rebuilt FormData through the server action state",
   );
   assert.match(
     galleryActionSource,
