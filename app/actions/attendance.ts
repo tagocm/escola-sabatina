@@ -33,6 +33,9 @@ interface DirectScoringSaveInput {
   disciplineEvents: NormalizedDisciplineEventInput[];
 }
 
+const DEFAULT_SCORING_CHANGE_REASON = "Pontuação salva sem motivo informado.";
+const DEFAULT_DISCIPLINE_EVENT_REASON = "Desconto registrado sem motivo informado.";
+
 function mapDisciplineEventRow(row: DisciplineEventRow): AttendanceDisciplineEvent {
   return {
     id: row.id,
@@ -438,7 +441,7 @@ export async function saveStudentAttendanceRecord(
           .filter(Boolean),
       ))
     : [];
-  const normalizedChangeReason = String(changeReason || "").trim();
+  const normalizedChangeReason = String(changeReason || "").trim() || DEFAULT_SCORING_CHANGE_REASON;
 
   const normalizedSubmittedEvents = Array.isArray(disciplineEvents)
     ? disciplineEvents
@@ -446,17 +449,9 @@ export async function saveStudentAttendanceRecord(
         .map((event) => ({
           id: typeof event.id === "string" && event.id.trim() ? event.id.trim() : undefined,
           points: Number.isFinite(event.points) ? Math.max(1, Math.trunc(event.points)) : 1,
-          reason: String(event.reason || "").trim(),
+          reason: String(event.reason || "").trim() || DEFAULT_DISCIPLINE_EVENT_REASON,
         }))
     : [];
-
-  if (normalizedSubmittedEvents.some((event) => !event.reason)) {
-    return { error: "Informe o motivo do desconto por indisciplina." };
-  }
-
-  if (!normalizedChangeReason) {
-    return { error: "Informe o motivo do lançamento ou correção da pontuação." };
-  }
 
   const { data: savedRows, error: recordError } = await supabase.rpc(
     "save_student_attendance_record",
@@ -490,8 +485,6 @@ export async function saveStudentAttendanceRecord(
       "Aluno não pertence à classe informada.",
       "Critério de pontuação inválido para esta classe.",
       "Evento de indisciplina inválido para este registro.",
-      "Informe o motivo do desconto por indisciplina.",
-      "Informe o motivo do lançamento ou correção da pontuação.",
       "Os eventos de indisciplina excedem a pontuação disponível do aluno.",
       "Pontuação extra acima do limite permitido.",
       "Professor não pertence à classe informada.",

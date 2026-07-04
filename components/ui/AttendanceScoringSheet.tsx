@@ -133,11 +133,6 @@ export default function AttendanceScoringSheet({
 
     const normalizedChangeReason = changeReason.trim();
 
-    if (!normalizedChangeReason) {
-      setSaveError("Informe o motivo do lançamento ou correção da pontuação.");
-      return;
-    }
-
     startTransition(async () => {
       const result = await saveStudentAttendanceRecord(
         classId,
@@ -343,7 +338,7 @@ export default function AttendanceScoringSheet({
 
           <section className="border-4 border-foreground bg-surface p-4 shadow-editorial-sm">
             <label className="flex flex-col gap-2">
-              <span className={fieldLabelClass}>Motivo do lançamento</span>
+              <span className={fieldLabelClass}>Motivo do lançamento (opcional)</span>
               <textarea
                 value={changeReason}
                 onChange={(event) => {
@@ -353,7 +348,7 @@ export default function AttendanceScoringSheet({
                   }
                 }}
                 rows={3}
-                placeholder={isSaved ? "Descreva a correção" : "Lançamento regular da pontuação semanal"}
+                placeholder={isSaved ? "Opcional: descreva a correção" : "Lançamento regular da pontuação semanal"}
                 className="min-h-[92px] w-full resize-none border-4 border-foreground bg-background px-3 py-3 text-sm font-bold leading-relaxed outline-none transition-colors focus:bg-es-lilac/10"
               />
             </label>

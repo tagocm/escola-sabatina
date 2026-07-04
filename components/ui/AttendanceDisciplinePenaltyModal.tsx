@@ -2,9 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { AlertTriangle, X } from "lucide-react";
+import { X } from "lucide-react";
 import {
-  alertClass,
   fieldLabelClass,
   primaryActionCenteredClass,
   secondaryActionClass,
@@ -32,7 +31,6 @@ export default function AttendanceDisciplinePenaltyModal({
   onConfirm,
 }: AttendanceDisciplinePenaltyModalProps) {
   const [reason, setReason] = useState(initialReason);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -46,14 +44,7 @@ export default function AttendanceDisciplinePenaltyModal({
   }, [onClose]);
 
   const handleSubmit = () => {
-    const trimmedReason = reason.trim();
-
-    if (!trimmedReason) {
-      setErrorMsg("Informe o motivo do desconto por indisciplina.");
-      return;
-    }
-
-    onConfirm(trimmedReason);
+    onConfirm(reason.trim());
   };
 
   const isEditing = mode === "edit";
@@ -94,13 +85,6 @@ export default function AttendanceDisciplinePenaltyModal({
         </div>
 
         <div className="flex flex-col gap-5 overflow-y-auto p-4 md:p-5">
-          {errorMsg ? (
-            <div className={alertClass}>
-              <AlertTriangle className="h-5 w-5 stroke-[3]" />
-              <p className="text-[10px] font-black uppercase tracking-[0.18em]">{errorMsg}</p>
-            </div>
-          ) : null}
-
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div className="border-2 border-foreground bg-surface px-4 py-3 sm:col-span-2">
               <p className="text-[9px] font-black uppercase tracking-[0.18em] opacity-40">Aluno</p>
@@ -122,16 +106,11 @@ export default function AttendanceDisciplinePenaltyModal({
           </div>
 
           <label className="flex flex-col gap-2">
-            <span className={fieldLabelClass}>Motivo do desconto</span>
+            <span className={fieldLabelClass}>Motivo do desconto (opcional)</span>
             <textarea
               value={reason}
-              onChange={(event) => {
-                setReason(event.target.value);
-                if (errorMsg) {
-                  setErrorMsg(null);
-                }
-              }}
-              placeholder="Descreva o ocorrido"
+              onChange={(event) => setReason(event.target.value)}
+              placeholder="Opcional: descreva o ocorrido"
               rows={5}
               className="min-h-[132px] w-full resize-none border-4 border-foreground bg-surface px-3 py-3 text-sm font-bold leading-relaxed outline-none transition-colors focus:bg-es-orange/10"
             />

@@ -99,12 +99,37 @@ test("attendance action prefers audited RPC and keeps fallback server-calculated
   assert.match(
     saveActionBody,
     /p_change_reason:\s*normalizedChangeReason/,
-    "save action should forward the human audit reason to the RPC",
+    "save action should forward a normalized audit reason to the RPC",
+  );
+  assert.match(
+    actionSource,
+    /const DEFAULT_SCORING_CHANGE_REASON = "Pontuação salva sem motivo informado\."/,
+    "save action should keep an automatic audit reason for blank user input",
+  );
+  assert.match(
+    actionSource,
+    /const DEFAULT_DISCIPLINE_EVENT_REASON = "Desconto registrado sem motivo informado\."/,
+    "save action should keep an automatic discipline reason for blank user input",
   );
   assert.match(
     saveActionBody,
-    /Informe o motivo do lançamento ou correção da pontuação\./,
-    "save action should reject saves without an audit reason",
+    /String\(changeReason \|\| ""\)\.trim\(\) \|\| DEFAULT_SCORING_CHANGE_REASON/,
+    "save action should allow a blank user reason by falling back to the automatic audit reason",
+  );
+  assert.match(
+    saveActionBody,
+    /reason:\s*String\(event\.reason \|\| ""\)\.trim\(\) \|\| DEFAULT_DISCIPLINE_EVENT_REASON/,
+    "save action should allow blank discipline reasons by falling back to the automatic discipline reason",
+  );
+  assert.doesNotMatch(
+    saveActionBody,
+    /if \(!normalizedChangeReason\)/,
+    "save action should not force teachers to type a scoring change reason",
+  );
+  assert.doesNotMatch(
+    saveActionBody,
+    /Informe o motivo do (desconto por indisciplina|lançamento ou correção da pontuação)\./,
+    "save action should not expose any teacher-facing reason requirement",
   );
   assert.match(
     actionSource,
@@ -125,6 +150,26 @@ test("attendance action prefers audited RPC and keeps fallback server-calculated
     saveActionBody,
     /isScoringAuditContractMissing\(recordError\)[\s\S]*saveStudentAttendanceRecordDirectly/,
     "direct compatibility fallback should only run when the audited RPC contract is missing",
+  );
+});
+
+test("attendance discipline modal does not require a typed reason", () => {
+  const modalSource = readFileSync(join(repoRoot, "components", "ui", "AttendanceDisciplinePenaltyModal.tsx"), "utf8");
+
+  assert.doesNotMatch(
+    modalSource,
+    /setErrorMsg\("Informe o motivo do desconto por indisciplina\."\)/,
+    "discipline modal should not block saves without a typed reason",
+  );
+  assert.match(
+    modalSource,
+    /Motivo do desconto \(opcional\)/,
+    "discipline modal should label the reason field as optional",
+  );
+  assert.match(
+    modalSource,
+    /onConfirm\(reason\.trim\(\)\)/,
+    "discipline modal should submit the trimmed reason without requiring it",
   );
 });
 

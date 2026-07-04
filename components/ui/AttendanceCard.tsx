@@ -220,11 +220,6 @@ export default function AttendanceCard({
 
     const normalizedChangeReason = changeReason.trim();
 
-    if (!normalizedChangeReason) {
-      setSaveError("Informe o motivo do lançamento ou correção da pontuação.");
-      return;
-    }
-
     startTransition(async () => {
       const result = await saveStudentAttendanceRecord(
         classId,
@@ -440,7 +435,7 @@ export default function AttendanceCard({
             ) : (
               <>
                 <label className="flex flex-col gap-1.5">
-                  <span className={fieldLabelClass}>Motivo</span>
+                  <span className={fieldLabelClass}>Motivo (opcional)</span>
                   <textarea
                     value={changeReason}
                     onChange={(event) => {
@@ -451,7 +446,7 @@ export default function AttendanceCard({
                     }}
                     rows={3}
                     className="min-h-[84px] w-full resize-none border-4 border-foreground bg-background px-2 py-2 text-[10px] font-bold uppercase leading-relaxed outline-none focus:bg-es-lilac/10"
-                    placeholder={isSaved ? "Descreva a correção" : "Lançamento regular"}
+                    placeholder={isSaved ? "Opcional: descreva a correção" : "Lançamento regular"}
                   />
                 </label>
 
