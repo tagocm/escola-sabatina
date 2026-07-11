@@ -27,3 +27,14 @@ test("tela de chamada busca o verso bíblico do sábado selecionado", () => {
     "attendance page should not keep a shifted verse week variable",
   );
 });
+
+test("cartão do verso mostra a referência bíblica em negrito após o texto", () => {
+  const verseCard = readFileSync(
+    join(repoRoot, "components", "ui", "WeeklyBibleVerseStickyCard.tsx"),
+    "utf8",
+  );
+
+  assert.match(verseCard, /\{verse\.verse_text\}/);
+  assert.match(verseCard, /<strong className="font-black">/);
+  assert.match(verseCard, /\{verse\.bible_book\} \{verse\.chapter_number\}:\{verse\.verse_reference\}/);
+});

@@ -156,6 +156,11 @@ test("fluxo do professor fica integrado à tela de chamada", () => {
     /<ClassGallerySection\s+classId=\{classId\}\s+weekDate=\{saturdayStr\}/s,
     "attendance page should render gallery photos for the selected sabbath",
   );
+  assert.match(
+    attendancePageSource,
+    /subtitleAccessory=\{\([\s\S]*<ClassGallerySection/,
+    "attendance page should align the gallery controls with the selected period subtitle",
+  );
   assert.equal(
     existsSync(join(repoRoot, "app", "fotos", "page.tsx")),
     false,

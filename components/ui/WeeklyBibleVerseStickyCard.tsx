@@ -36,7 +36,10 @@ export default function WeeklyBibleVerseStickyCard({
 
         <div className="px-4 py-3 pr-12 md:px-5 md:py-4 md:pr-12">
           <p className="max-h-28 overflow-y-auto pr-1 text-[13px] font-semibold leading-6 text-foreground md:max-h-32 md:text-sm md:leading-6">
-            {verse.verse_text}
+            {verse.verse_text}{" "}
+            <strong className="font-black">
+              {verse.bible_book} {verse.chapter_number}:{verse.verse_reference}
+            </strong>
           </p>
         </div>
       </div>

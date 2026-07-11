@@ -196,6 +196,12 @@ export default async function LancamentoFrequenciaPage({ searchParams }: Params)
           <PageHeader
             title="Lançar Frequência"
             subtitle={selectedPeriod.label}
+            subtitleAccessory={(
+              <ClassGallerySection
+                classId={classId}
+                weekDate={saturdayStr}
+              />
+            )}
             backHref="/"
             backLabel="Voltar ao Painel"
           />
@@ -218,11 +224,6 @@ export default async function LancamentoFrequenciaPage({ searchParams }: Params)
 
         <WeeklyBibleVerseStickyCard
           verse={weeklyBibleVerse}
-        />
-
-        <ClassGallerySection
-          classId={classId}
-          weekDate={saturdayStr}
         />
 
         <AttendanceStudentLists

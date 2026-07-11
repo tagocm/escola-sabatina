@@ -16,7 +16,7 @@ export default async function ClassGallerySection({ classId, weekDate }: ClassGa
     <section
       id="fotos-da-aula"
       aria-label="Fotos da aula"
-      className="flex justify-end"
+      className="flex shrink-0"
     >
       <ClassGalleryCompactControls
         classId={classId}
