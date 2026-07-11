@@ -20,6 +20,7 @@ test("design tokens expose primitive, semantic and component layers", () => {
   assert.ok(designTokens.semantic.color.surfacePattern.$value);
   assert.ok(designTokens.semantic.color.chartGrid.$value);
   assert.ok(designTokens.component.button.primary.className);
+  assert.ok(designTokens.component.modal.compactPanel.className);
   assert.ok(designTokens.component.polaroid.tile.className);
 });
 

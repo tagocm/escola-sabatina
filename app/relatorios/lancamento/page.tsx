@@ -199,6 +199,10 @@ export default async function LancamentoFrequenciaPage({ searchParams }: Params)
               <ClassGallerySection
                 classId={classId}
                 weekDate={saturdayStr}
+                periodId={selectedPeriod.id}
+                initialOfferingAmount={Number(attendanceData.day?.total_offering || 0)}
+                offeringReadOnly={!selectedPeriod.canWrite}
+                offeringRequiresChangeReason={selectedPeriod.requiresChangeReason}
               />
             )}
             backHref="/"

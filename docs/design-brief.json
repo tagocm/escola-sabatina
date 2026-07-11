@@ -61,5 +61,14 @@
     "rationale": "Operational and audit states must be understandable without relying on color alone.",
     "owner": "product",
     "date": "2026-07-10"
+  },
+  "attendance_offering_quick_entry": {
+    "value": "The attendance header exposes a compact offering action immediately before the camera action. It opens a small dialog for the selected Saturday with an editable, initially focused currency field plus explicit Save and Cancel actions, while preserving scoring-period write and audit rules.",
+    "status": "confirmed",
+    "confidence": 1,
+    "source": "User request on 2026-07-11 and the existing period-aware offering contract",
+    "rationale": "Teachers can record the day's offering without leaving the attendance workflow or bypassing the audited backend action.",
+    "owner": "product",
+    "date": "2026-07-11"
   }
 }

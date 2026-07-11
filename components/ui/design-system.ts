@@ -79,6 +79,8 @@ export const modalOverlayClass = componentTokens.modal.overlay.className;
 
 export const modalPanelClass = componentTokens.modal.panel.className;
 
+export const compactModalPanelClass = componentTokens.modal.compactPanel.className;
+
 export const bottomSheetClass = componentTokens.modal.sheet.className;
 
 export const alertClass = componentTokens.alert.warning.className;

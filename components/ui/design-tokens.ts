@@ -272,6 +272,9 @@ export const designTokens = {
       panel: {
         className: "relative z-10 flex max-h-[90svh] w-full max-w-xl flex-col overflow-hidden border-4 border-foreground bg-background shadow-editorial",
       },
+      compactPanel: {
+        className: "relative z-10 flex max-h-[90svh] w-full max-w-sm flex-col overflow-hidden border-4 border-foreground bg-background shadow-editorial",
+      },
       sheet: {
         className: "relative z-10 flex max-h-[92svh] w-full max-w-2xl flex-col overflow-hidden border-t-4 border-foreground bg-background shadow-editorial sm:border-4",
       },

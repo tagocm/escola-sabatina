@@ -7,6 +7,7 @@ import {
 } from "@/app/actions/gallery";
 import {
   bottomSheetClass,
+  compactModalPanelClass,
   compactInputClass,
   fieldLabelClass,
   iconButtonClass,
@@ -16,6 +17,7 @@ import {
   statusBadgeClass,
   statusMessageClass,
 } from "@/components/ui/design-system";
+import OfferingInput from "@/components/ui/OfferingInput";
 import {
   formatGalleryPhotoTagLabel,
   GALLERY_PHOTO_TAGS,
@@ -28,6 +30,7 @@ import {
   AlertTriangle,
   Camera,
   CheckCircle2,
+  HandCoins,
   ImageOff,
   Images,
   Plus,
@@ -55,9 +58,13 @@ interface ClassGalleryCompactControlsProps {
   weekDate: string;
   sabbathLabel: string;
   photos: ClassGalleryCompactPhoto[];
+  periodId: string;
+  initialOfferingAmount: number;
+  offeringReadOnly: boolean;
+  offeringRequiresChangeReason: boolean;
 }
 
-type ActivePanel = "capture" | "gallery" | null;
+type ActivePanel = "offering" | "capture" | "gallery" | null;
 
 const initialUploadState: GalleryUploadState = { status: "idle" };
 const GALLERY_UPLOAD_IMAGE_MAX_DIMENSION = 1800;
@@ -85,6 +92,10 @@ export default function ClassGalleryCompactControls({
   weekDate,
   sabbathLabel,
   photos,
+  periodId,
+  initialOfferingAmount,
+  offeringReadOnly,
+  offeringRequiresChangeReason,
 }: ClassGalleryCompactControlsProps) {
   const router = useRouter();
   const captureFormId = useId();
@@ -95,6 +106,7 @@ export default function ClassGalleryCompactControls({
   const [caption, setCaption] = useState("");
   const [showUploadMessage, setShowUploadMessage] = useState(false);
   const [isPreparingFiles, setIsPreparingFiles] = useState(false);
+  const [isOfferingPending, setIsOfferingPending] = useState(false);
   const [photoPrepMessage, setPhotoPrepMessage] = useState<PhotoPrepMessage | null>(null);
   const clearSelectedFile = useCallback(() => {
     setSelectedFiles([]);
@@ -135,7 +147,7 @@ export default function ClassGalleryCompactControls({
   const canAddPhoto = selectedPhotoCount < MAX_GALLERY_PHOTOS_PER_UPLOAD && !isPending && !isPreparingFiles;
 
   const closePanel = useCallback(() => {
-    if (isPending || isPreparingFiles) return;
+    if (isPending || isPreparingFiles || isOfferingPending) return;
 
     if (activePanel === "capture") {
       clearSelectedFile();
@@ -146,7 +158,7 @@ export default function ClassGalleryCompactControls({
     }
 
     setActivePanel(null);
-  }, [activePanel, clearSelectedFile, isPending, isPreparingFiles]);
+  }, [activePanel, clearSelectedFile, isOfferingPending, isPending, isPreparingFiles]);
 
   useEffect(() => {
     if (!activePanel) return;
@@ -501,6 +513,59 @@ export default function ClassGalleryCompactControls({
     </div>
   ) : null;
 
+  const offeringDialog = activePanel === "offering" ? (
+    <div className={modalOverlayClass}>
+      <button
+        type="button"
+        aria-label="Cancelar registro da oferta do dia"
+        className="absolute inset-0"
+        onClick={closePanel}
+        disabled={isOfferingPending}
+      />
+
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="attendance-offering-title"
+        className={compactModalPanelClass}
+      >
+        <div className="flex items-center gap-3 border-b-4 border-foreground bg-es-yellow px-4 py-4">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center border-4 border-foreground bg-surface shadow-editorial-sm">
+            <HandCoins className="h-5 w-5 stroke-[3]" />
+          </div>
+          <div className="min-w-0">
+            <span className="block truncate text-[9px] font-black uppercase tracking-[0.18em] opacity-50">
+              {sabbathLabel}
+            </span>
+            <h3
+              id="attendance-offering-title"
+              className="mt-1 text-lg font-black uppercase leading-none tracking-tight"
+            >
+              Oferta do dia
+            </h3>
+          </div>
+        </div>
+
+        <div className="overflow-y-auto p-4">
+          <OfferingInput
+            key={`${periodId}:${weekDate}:${initialOfferingAmount}`}
+            classId={classId}
+            periodId={periodId}
+            date={weekDate}
+            initialAmount={initialOfferingAmount}
+            readOnly={offeringReadOnly}
+            requiresChangeReason={offeringRequiresChangeReason}
+            autoFocus
+            onCancel={closePanel}
+            onPendingChange={setIsOfferingPending}
+            onSaved={() => setActivePanel(null)}
+            scrollToHistoryOnSave={false}
+          />
+        </div>
+      </div>
+    </div>
+  ) : null;
+
   const galleryDialog = activePanel === "gallery" ? (
     <div className="fixed inset-0 z-[110] flex items-end justify-center bg-foreground/45 p-0 backdrop-blur-[3px] sm:items-center sm:p-5">
       <button
@@ -626,6 +691,16 @@ export default function ClassGalleryCompactControls({
 
         <button
           type="button"
+          onClick={() => setActivePanel("offering")}
+          className={`${iconButtonClass} bg-es-yellow`}
+          aria-label="Registrar oferta do dia"
+          title="Oferta do dia"
+        >
+          <HandCoins className="h-5 w-5 stroke-[3]" />
+        </button>
+
+        <button
+          type="button"
           onClick={openCamera}
           className={iconButtonClass}
           aria-label="Abrir câmera para foto da aula"
@@ -652,6 +727,9 @@ export default function ClassGalleryCompactControls({
 
       {typeof document !== "undefined" && captureDialog
         ? createPortal(captureDialog, document.body)
+        : null}
+      {typeof document !== "undefined" && offeringDialog
+        ? createPortal(offeringDialog, document.body)
         : null}
       {typeof document !== "undefined" && galleryDialog
         ? createPortal(galleryDialog, document.body)
