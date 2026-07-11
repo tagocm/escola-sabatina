@@ -14,10 +14,17 @@ function transpile(pathname) {
   }).outputText;
 }
 
-const rankingOutput = transpile("../lib/scoring/ranking.ts");
+const calendarOutput = transpile("../lib/calendar/sabbath-period.ts");
+const calendarUrl = `data:text/javascript;base64,${Buffer.from(calendarOutput).toString("base64")}`;
+const periodsOutput = transpile("../lib/scoring/periods.ts")
+  .replace(/from "\.\.\/calendar\/sabbath-period"/g, `from "${calendarUrl}"`);
+const periodsUrl = `data:text/javascript;base64,${Buffer.from(periodsOutput).toString("base64")}`;
+const rankingOutput = transpile("../lib/scoring/ranking.ts")
+  .replace(/from "\.\/periods"/g, `from "${periodsUrl}"`);
 const rankingUrl = `data:text/javascript;base64,${Buffer.from(rankingOutput).toString("base64")}`;
 const detailOutput = transpile("../lib/scoring/student-detail.ts")
-  .replace(/from "\.\/ranking"/g, `from "${rankingUrl}"`);
+  .replace(/from "\.\/ranking"/g, `from "${rankingUrl}"`)
+  .replace(/from "\.\/periods"/g, `from "${periodsUrl}"`);
 const {
   buildStudentScoringDetail,
   buildStudentScoringChartData,
@@ -181,6 +188,9 @@ test("monta auditoria individual com categorias, ajustes e ranking diário", () 
   assert.equal(detail.summary.rank, 2);
   assert.equal(detail.summary.totalPoints, 9);
   assert.equal(detail.summary.launchedSaturdays, 3);
+  assert.equal(detail.summary.elapsedSaturdays, 3);
+  assert.equal(detail.summary.saturdaysWithRecords, 3);
+  assert.equal(detail.summary.completeSaturdays, 2);
   assert.equal(detail.summary.daysWithoutRecord, 1);
   assert.deepEqual(detail.adjustmentTotals, {
     extraActivityPoints: 2,
@@ -268,4 +278,128 @@ test("monta auditoria individual com categorias, ajustes e ranking diário", () 
 
   assert.deepEqual(buildStudentScoringChartData(detail).map((point) => point.studentScore), [7, 2, 0]);
   assert.deepEqual(buildStudentScoringCumulativeChartData(detail).map((point) => point.studentScore), [7, 9, 9]);
+});
+
+test("limita detalhe e auditoria ao período selecionado", () => {
+  const makeRecord = (id, dayId, totalPoints) => ({
+    id,
+    student_id: "ana",
+    day_id: dayId,
+    total_points: totalPoints,
+    extra_activity_points: 0,
+    discipline_penalty_points: 0,
+    saved_by: "teacher-1",
+    saved_by_name: "Professora Marta",
+    saved_at: "2026-07-11T12:00:00Z",
+  });
+  const makeAudit = (id, dayId, changedAt) => ({
+    id,
+    request_id: id,
+    table_name: "student_attendance_records",
+    operation: "insert",
+    row_id: id,
+    day_id: dayId,
+    student_id: "ana",
+    actor_user_id: "teacher-1",
+    actor_name: "Professora Marta",
+    changed_at: changedAt,
+    transaction_id: 1,
+    reason: "Lançamento regular",
+    source: "save_student_attendance_record",
+    metadata: {},
+    old_data: null,
+    new_data: { total_points: 7 },
+  });
+  const detail = buildStudentScoringDetail({
+    student: students[0],
+    students: [students[0]],
+    days: [
+      { id: "q2-last", day_date: "2026-07-04" },
+      { id: "q3-first", day_date: "2026-07-11" },
+    ],
+    rules: [rules[0]],
+    records: [
+      makeRecord("record-q2", "q2-last", 20),
+      makeRecord("record-q3", "q3-first", 7),
+    ],
+    scores: [
+      { student_id: "ana", day_id: "q2-last", rule_id: "presenca", points_earned: 2 },
+      { student_id: "ana", day_id: "q3-first", rule_id: "presenca", points_earned: 2 },
+    ],
+    disciplineEvents: [],
+    auditLogs: [
+      makeAudit("audit-q2", "q2-last", "2026-07-04T12:00:00Z"),
+      makeAudit("audit-q3", "q3-first", "2026-07-11T12:00:00Z"),
+    ],
+    period: {
+      id: "2026-q3",
+      label: "3º trimestre de 2026",
+      startDate: "2026-07-11",
+      expectedSaturdays: 13,
+    },
+    currentDate: "2026-07-11",
+  });
+
+  assert.ok(detail);
+  assert.equal(detail.period?.id, "2026-q3");
+  assert.equal(detail.summary.totalPoints, 7);
+  assert.equal(detail.summary.elapsedSaturdays, 1);
+  assert.equal(detail.summary.saturdaysWithRecords, 1);
+  assert.equal(detail.summary.completeSaturdays, 1);
+  assert.equal(detail.timeline[0].dayDate, "2026-07-11");
+  assert.equal(detail.timeline.some((week) => week.dayDate === "2026-07-04"), false);
+  assert.deepEqual(detail.auditLog.map((entry) => entry.id), ["audit-q3"]);
+});
+
+test("não conta sábados anteriores à entrada do participante", () => {
+  const transferredStudent = {
+    ...students[0],
+    joined_on: "2026-07-25",
+    left_on: null,
+  };
+  const detail = buildStudentScoringDetail({
+    student: transferredStudent,
+    students: [transferredStudent],
+    days: [
+      { id: "d1", day_date: "2026-07-11" },
+      { id: "d2", day_date: "2026-07-18" },
+      { id: "d3", day_date: "2026-07-25" },
+      { id: "d4", day_date: "2026-08-01" },
+    ],
+    rules: [rules[0]],
+    records: [
+      {
+        id: "before-join",
+        student_id: "ana",
+        day_id: "d1",
+        total_points: 99,
+        extra_activity_points: 0,
+        discipline_penalty_points: 0,
+      },
+      {
+        id: "after-join",
+        student_id: "ana",
+        day_id: "d3",
+        total_points: 2,
+        extra_activity_points: 0,
+        discipline_penalty_points: 0,
+      },
+    ],
+    scores: [],
+    disciplineEvents: [],
+    period: {
+      id: "transfer-period",
+      label: "Período de transferência",
+      startDate: "2026-07-11",
+      expectedSaturdays: 4,
+    },
+    currentDate: "2026-08-01",
+  });
+
+  assert.ok(detail);
+  assert.equal(detail.summary.totalPoints, 2);
+  assert.equal(detail.summary.launchedSaturdays, 2);
+  assert.equal(detail.summary.possiblePointsToDate, 4);
+  assert.equal(detail.summary.daysWithoutRecord, 1);
+  assert.deepEqual(detail.timeline.map((week) => week.isEligible), [false, false, true, true]);
 });

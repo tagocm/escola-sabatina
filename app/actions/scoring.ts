@@ -1,16 +1,26 @@
 "use server";
 
 import { requireTeacherAction } from "@/lib/auth/guards";
+import { getTodayInSaoPaulo } from "@/lib/calendar/sabbath-period";
 import { isScoringAuditContractMissing } from "@/lib/scoring/audit-contract";
 import {
   SECOND_TRIMESTER_2026_START_DATE,
   buildClassScoringRanking,
 } from "@/lib/scoring/ranking";
 import {
+  resolveScoringPeriod,
+  type ResolvedScoringPeriod,
+} from "@/lib/scoring/periods";
+import {
   buildStudentScoringDetail,
   type StudentScoringAuditLogInput,
+  type StudentScoringDetailDisciplineEventInput,
+  type StudentScoringDetailRecordInput,
+  type StudentScoringDetailRuleInput,
+  type StudentScoringDetailScoreInput,
   type StudentScoringDetailStudentInput,
 } from "@/lib/scoring/student-detail";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 
 interface StudentDetailRow {
@@ -27,20 +37,390 @@ interface StudentDetailRow {
   }[] | null;
 }
 
-function getTodayDateInSaoPaulo() {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Sao_Paulo",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
+interface AcademicTermSaturdayRow {
+  id: string;
+  week_number: number;
+  saturday_date: string;
 }
 
-export async function getScoringRules(classId: string) {
+interface AcademicTermRow {
+  id: string;
+  name: string;
+  start_date: string;
+  end_date: string;
+  expected_saturdays: number;
+  status: string;
+  academic_term_saturdays?: AcademicTermSaturdayRow[] | null;
+}
+
+interface ClassRelationRow {
+  id?: string | null;
+  name?: string | null;
+}
+
+interface ClassScoringPeriodRow {
+  id: string;
+  class_id: string;
+  term_id: string;
+  status: string;
+  academic_terms?: AcademicTermRow | AcademicTermRow[] | null;
+  classes?: ClassRelationRow | ClassRelationRow[] | null;
+}
+
+interface PeriodStudentRow {
+  id: string;
+  student_id: string | null;
+  student_name_snapshot: string;
+  status: string;
+  joined_on: string | null;
+  left_on: string | null;
+  students?: {
+    id?: string | null;
+    photo_url?: string | null;
+  } | {
+    id?: string | null;
+    photo_url?: string | null;
+  }[] | null;
+}
+
+interface PeriodRuleRow extends StudentScoringDetailRuleInput {
+  period_id: string;
+  class_id: string;
+  source_rule_id: string | null;
+  effective_from: string | null;
+  effective_until: string | null;
+}
+
+interface PeriodScoreRow {
+  student_id: string;
+  day_id: string;
+  rule_id: string;
+  period_rule_id: string | null;
+  points_earned: number | null;
+}
+
+interface QueryErrorLike {
+  code?: string | null;
+  message?: string | null;
+  details?: string | null;
+  hint?: string | null;
+}
+
+export interface ScoringPeriodReadState {
+  periodId: string;
+  periodStatus: string;
+  termId: string;
+  termStatus: string;
+}
+
+interface LoadedScoringPeriodContext {
+  id: string;
+  period: ResolvedScoringPeriod;
+  state: ScoringPeriodReadState;
+  students: StudentScoringDetailStudentInput[];
+  rules: PeriodRuleRow[];
+}
+
+type ScoringPeriodContextResult =
+  | { kind: "period"; context: LoadedScoringPeriodContext }
+  | { kind: "legacy" }
+  | { kind: "error"; error: string };
+
+function asSingleRelation<T>(value: T | T[] | null | undefined) {
+  return Array.isArray(value) ? value[0] || null : value || null;
+}
+
+function isScoringPeriodContractMissing(error: QueryErrorLike | null | undefined) {
+  const text = [error?.code, error?.message, error?.details, error?.hint]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  return text.includes("class_scoring_periods")
+    || text.includes("academic_terms")
+    || text.includes("class_scoring_period_students")
+    || text.includes("class_scoring_period_rules")
+    || text.includes("period_id")
+    || text.includes("period_rule_id")
+    || text.includes("pgrst200")
+    || text.includes("pgrst204")
+    || text.includes("pgrst205")
+    || text.includes("42p01")
+    || text.includes("42703");
+}
+
+function selectDefaultPeriod(rows: ClassScoringPeriodRow[], currentDate: string) {
+  const candidates = rows.flatMap((row) => {
+    const term = asSingleRelation(row.academic_terms);
+    return term ? [{ row, term }] : [];
+  });
+  const containing = candidates
+    .filter(({ term }) => term.start_date <= currentDate && term.end_date >= currentDate)
+    .sort((left, right) => {
+      const openDelta = Number(right.row.status === "open") - Number(left.row.status === "open");
+      return openDelta || right.term.start_date.localeCompare(left.term.start_date);
+    })[0];
+  if (containing) return containing.row;
+
+  const open = candidates
+    .filter(({ row }) => row.status === "open")
+    .sort((left, right) => right.term.start_date.localeCompare(left.term.start_date))[0];
+  if (open) return open.row;
+
+  const latestPast = candidates
+    .filter(({ term }) => term.end_date < currentDate)
+    .sort((left, right) => right.term.end_date.localeCompare(left.term.end_date))[0];
+  if (latestPast) return latestPast.row;
+
+  return candidates
+    .filter(({ term }) => term.start_date > currentDate)
+    .sort((left, right) => left.term.start_date.localeCompare(right.term.start_date))[0]
+    ?.row || null;
+}
+
+function periodLoadFailure(
+  error: QueryErrorLike | null | undefined,
+  periodId: string | undefined,
+  message: string,
+): ScoringPeriodContextResult {
+  if (!periodId && isScoringPeriodContractMissing(error)) return { kind: "legacy" };
+  return { kind: "error", error: message };
+}
+
+async function loadScoringPeriodContext(
+  supabase: SupabaseClient,
+  classId: string,
+  periodId?: string,
+): Promise<ScoringPeriodContextResult> {
+  let periodsQuery = supabase
+    .from("class_scoring_periods")
+    .select(`
+      id,
+      class_id,
+      term_id,
+      status,
+      academic_terms (
+        id,
+        name,
+        start_date,
+        end_date,
+        expected_saturdays,
+        status,
+        academic_term_saturdays (
+          id,
+          week_number,
+          saturday_date
+        )
+      ),
+      classes (
+        id,
+        name
+      )
+    `)
+    .eq("class_id", classId);
+
+  if (periodId) periodsQuery = periodsQuery.eq("id", periodId);
+
+  const periodsResult = await periodsQuery;
+  if (periodsResult.error) {
+    return periodLoadFailure(
+      periodsResult.error,
+      periodId,
+      "Não foi possível carregar o período de pontuação.",
+    );
+  }
+
+  const periodRows = (periodsResult.data || []) as unknown as ClassScoringPeriodRow[];
+  const selectedRow = periodId
+    ? periodRows[0] || null
+    : selectDefaultPeriod(periodRows, getTodayInSaoPaulo());
+
+  if (!selectedRow) {
+    return periodId
+      ? { kind: "error", error: "Período de pontuação não encontrado nesta classe." }
+      : { kind: "legacy" };
+  }
+
+  const term = asSingleRelation(selectedRow.academic_terms);
+  if (!term) return { kind: "error", error: "Calendário acadêmico do período não encontrado." };
+
+  const schedule = [...(term.academic_term_saturdays || [])]
+    .sort((left, right) => left.week_number - right.week_number)
+    .map((row) => row.saturday_date);
+  let resolvedPeriod: ResolvedScoringPeriod | null;
+
+  try {
+    resolvedPeriod = resolveScoringPeriod({
+      period: {
+        id: selectedRow.id,
+        label: term.name,
+        startDate: term.start_date,
+        endDate: term.end_date,
+        expectedSaturdays: term.expected_saturdays,
+        schedule,
+      },
+    });
+  } catch {
+    return { kind: "error", error: "Calendário acadêmico do período é inválido." };
+  }
+
+  if (!resolvedPeriod) return { kind: "error", error: "Período de pontuação inválido." };
+
+  const [studentsResult, rulesResult] = await Promise.all([
+    supabase
+      .from("class_scoring_period_students")
+      .select(`
+        id,
+        student_id,
+        student_name_snapshot,
+        status,
+        joined_on,
+        left_on,
+        students (
+          id,
+          photo_url
+        )
+      `)
+      .eq("period_id", selectedRow.id)
+      .eq("class_id", classId),
+    supabase
+      .from("class_scoring_period_rules")
+      .select(`
+        id,
+        period_id,
+        class_id,
+        source_rule_id,
+        name,
+        category,
+        points,
+        is_active,
+        display_order,
+        effective_from,
+        effective_until
+      `)
+      .eq("period_id", selectedRow.id)
+      .eq("class_id", classId)
+      .order("display_order", { ascending: true }),
+  ]);
+
+  if (studentsResult.error) {
+    return periodLoadFailure(
+      studentsResult.error,
+      periodId,
+      "Não foi possível carregar os participantes do período.",
+    );
+  }
+  if (rulesResult.error) {
+    return periodLoadFailure(
+      rulesResult.error,
+      periodId,
+      "Não foi possível carregar os critérios do período.",
+    );
+  }
+
+  const classRow = asSingleRelation(selectedRow.classes);
+  const students = ((studentsResult.data || []) as unknown as PeriodStudentRow[])
+    .filter((row) => (
+      row.status !== "excluded"
+      && Boolean(row.student_id)
+      && (!row.joined_on || row.joined_on <= resolvedPeriod.endDate)
+      && (!row.left_on || row.left_on > resolvedPeriod.startDate)
+    ))
+    .map((row) => {
+      const currentStudent = asSingleRelation(row.students);
+      return {
+        id: row.student_id!,
+        full_name: row.student_name_snapshot,
+        photo_url: currentStudent?.photo_url || null,
+        class_id: classId,
+        class_name: classRow?.name || null,
+        joined_on: row.joined_on,
+        left_on: row.left_on,
+      };
+    });
+  const rules = (rulesResult.data || []) as unknown as PeriodRuleRow[];
+
+  return {
+    kind: "period",
+    context: {
+      id: selectedRow.id,
+      period: resolvedPeriod,
+      state: {
+        periodId: selectedRow.id,
+        periodStatus: selectedRow.status,
+        termId: term.id,
+        termStatus: term.status,
+      },
+      students,
+      rules,
+    },
+  };
+}
+
+async function loadPeriodDays(
+  supabase: SupabaseClient,
+  classId: string,
+  context: LoadedScoringPeriodContext,
+) {
+  return supabase
+    .from("attendance_days")
+    .select("id, day_date, period_id")
+    .eq("class_id", classId)
+    .in("day_date", context.period.schedule)
+    .or(`period_id.eq.${context.id},period_id.is.null`)
+    .order("day_date", { ascending: true });
+}
+
+function mapPeriodScoreRows(
+  rows: PeriodScoreRow[],
+  context: LoadedScoringPeriodContext,
+  dayDateById: Map<string, string>,
+) {
+  const ruleById = new Map(context.rules.map((rule) => [rule.id, rule] as const));
+  const rulesBySourceId = new Map<string, PeriodRuleRow[]>();
+
+  for (const rule of context.rules) {
+    if (!rule.source_rule_id) continue;
+    rulesBySourceId.set(rule.source_rule_id, [
+      ...(rulesBySourceId.get(rule.source_rule_id) || []),
+      rule,
+    ]);
+  }
+
+  return rows.map((row) => {
+    const directRule = row.period_rule_id ? ruleById.get(row.period_rule_id) : null;
+    const dayDate = dayDateById.get(row.day_id) || null;
+    const sourceCandidates = rulesBySourceId.get(row.rule_id) || [];
+    const effectiveCandidates = sourceCandidates.filter((rule) => (
+      (!dayDate || !rule.effective_from || rule.effective_from <= dayDate)
+      && (!dayDate || !rule.effective_until || rule.effective_until >= dayDate)
+    ));
+    const matchedRule = directRule
+      || effectiveCandidates.find((rule) => Number(rule.points) === Number(row.points_earned))
+      || effectiveCandidates[0]
+      || sourceCandidates[0];
+
+    return {
+      student_id: row.student_id,
+      day_id: row.day_id,
+      rule_id: matchedRule?.id || row.period_rule_id || row.rule_id,
+      points_earned: row.points_earned,
+    };
+  });
+}
+
+export async function getScoringRules(classId: string, periodId?: string) {
   const auth = await requireTeacherAction();
   if ("error" in auth) return [];
 
   const { supabase } = auth;
+
+  if (periodId) {
+    const periodResult = await loadScoringPeriodContext(supabase, classId, periodId);
+    if (periodResult.kind !== "period") return [];
+    return periodResult.context.rules.filter((rule) => rule.is_active !== false);
+  }
+
   const { data, error } = await supabase
     .from("class_scoring_rules")
     .select("*")
@@ -51,12 +431,7 @@ export async function getScoringRules(classId: string) {
   return data;
 }
 
-export async function getClassScoringRanking(classId: string) {
-  const auth = await requireTeacherAction();
-  if ("error" in auth) return { error: auth.error };
-
-  const { supabase } = auth;
-
+async function getLegacyClassScoringRanking(supabase: SupabaseClient, classId: string) {
   const [studentsResult, daysResult, rulesResult, recordsResult] = await Promise.all([
     supabase
       .from("students")
@@ -90,8 +465,48 @@ export async function getClassScoringRanking(classId: string) {
     rules: rulesResult.data || [],
     records: recordsResult.data || [],
     trimesterStartDate: SECOND_TRIMESTER_2026_START_DATE,
-    currentDate: getTodayDateInSaoPaulo(),
+    currentDate: getTodayInSaoPaulo(),
   });
+}
+
+export async function getClassScoringRanking(classId: string, periodId?: string) {
+  const auth = await requireTeacherAction();
+  if ("error" in auth) return { error: auth.error };
+
+  const { supabase } = auth;
+  const periodResult = await loadScoringPeriodContext(supabase, classId, periodId);
+  if (periodResult.kind === "error") return { error: periodResult.error };
+  if (periodResult.kind === "legacy") return getLegacyClassScoringRanking(supabase, classId);
+
+  const { context } = periodResult;
+  const daysResult = await loadPeriodDays(supabase, classId, context);
+  if (daysResult.error) return { error: "Não foi possível carregar os sábados do período." };
+
+  const days = daysResult.data || [];
+  const dayIds = days.map((day) => day.id);
+  const studentIds = context.students.map((student) => student.id);
+  const recordsResult = dayIds.length > 0 && studentIds.length > 0
+    ? await supabase
+        .from("student_attendance_records")
+        .select("student_id, day_id, total_points")
+        .eq("class_id", classId)
+        .in("day_id", dayIds)
+        .in("student_id", studentIds)
+    : { data: [], error: null };
+
+  if (recordsResult.error) return { error: "Não foi possível carregar os pontos do período." };
+
+  return {
+    ...buildClassScoringRanking({
+      students: context.students,
+      days,
+      rules: context.rules,
+      records: recordsResult.data || [],
+      period: context.period,
+      currentDate: getTodayInSaoPaulo(),
+    }),
+    periodState: context.state,
+  };
 }
 
 function mapStudentDetailRow(row: StudentDetailRow): StudentScoringDetailStudentInput {
@@ -106,12 +521,11 @@ function mapStudentDetailRow(row: StudentDetailRow): StudentScoringDetailStudent
   };
 }
 
-export async function getStudentScoringDetail(classId: string, studentId: string) {
-  const auth = await requireTeacherAction();
-  if ("error" in auth) return { error: auth.error };
-
-  const { supabase } = auth;
-
+async function getLegacyStudentScoringDetail(
+  supabase: SupabaseClient,
+  classId: string,
+  studentId: string,
+) {
   const [
     studentResult,
     studentsResult,
@@ -134,11 +548,7 @@ export async function getStudentScoringDetail(classId: string, studentId: string
       .eq("class_id", classId)
       .eq("is_active", true)
       .order("full_name", { ascending: true }),
-    supabase
-      .from("attendance_days")
-      .select("id, day_date")
-      .eq("class_id", classId)
-      .order("day_date", { ascending: true }),
+    supabase.from("attendance_days").select("id, day_date").eq("class_id", classId).order("day_date"),
     supabase
       .from("class_scoring_rules")
       .select("id, name, category, points, is_active, display_order")
@@ -147,16 +557,9 @@ export async function getStudentScoringDetail(classId: string, studentId: string
     supabase
       .from("student_attendance_records")
       .select(`
-        id,
-        student_id,
-        day_id,
-        total_points,
-        extra_activity_points,
-        discipline_penalty_points,
-        saved_by,
-        discipline_penalty_reason,
-        discipline_penalty_applied_by_name,
-        saved_at
+        id, student_id, day_id, total_points, extra_activity_points,
+        discipline_penalty_points, saved_by, discipline_penalty_reason,
+        discipline_penalty_applied_by_name, saved_at
       `)
       .eq("class_id", classId),
     supabase
@@ -166,36 +569,16 @@ export async function getStudentScoringDetail(classId: string, studentId: string
     supabase
       .from("attendance_discipline_events")
       .select(`
-        id,
-        record_id,
-        day_id,
-        student_id,
-        points,
-        reason,
-        applied_by_name,
-        created_at,
-        updated_at
+        id, record_id, day_id, student_id, points, reason,
+        applied_by_name, created_at, updated_at
       `)
       .eq("class_id", classId),
     supabase
       .from("scoring_audit_log")
       .select(`
-        id,
-        request_id,
-        table_name,
-        operation,
-        row_id,
-        day_id,
-        student_id,
-        actor_user_id,
-        actor_name,
-        changed_at,
-        transaction_id,
-        reason,
-        source,
-        metadata,
-        old_data,
-        new_data
+        id, request_id, table_name, operation, row_id, day_id, student_id,
+        actor_user_id, actor_name, changed_at, transaction_id, reason,
+        source, metadata, old_data, new_data
       `)
       .eq("class_id", classId)
       .eq("student_id", studentId)
@@ -215,16 +598,52 @@ export async function getStudentScoringDetail(classId: string, studentId: string
     return { error: "Não foi possível carregar o log de auditoria da pontuação." };
   }
 
+  return finishStudentScoringDetail({
+    supabase,
+    student: mapStudentDetailRow(studentResult.data as StudentDetailRow),
+    students: (studentsResult.data || []).map((row) => mapStudentDetailRow(row as StudentDetailRow)),
+    days: daysResult.data || [],
+    rules: rulesResult.data || [],
+    records: recordsResult.data || [],
+    scores: scoresResult.data || [],
+    disciplineEvents: disciplineEventsResult.data || [],
+    auditLogs: (auditLogsResult.error ? [] : auditLogsResult.data || []),
+    period: null,
+  });
+}
+
+interface FinishStudentScoringDetailInput {
+  supabase: SupabaseClient;
+  student: StudentScoringDetailStudentInput;
+  students: StudentScoringDetailStudentInput[];
+  days: Array<{ id: string; day_date: string }>;
+  rules: StudentScoringDetailRuleInput[];
+  records: StudentScoringDetailRecordInput[];
+  scores: StudentScoringDetailScoreInput[];
+  disciplineEvents: StudentScoringDetailDisciplineEventInput[];
+  auditLogs: StudentScoringAuditLogInput[];
+  period: LoadedScoringPeriodContext | null;
+}
+
+async function finishStudentScoringDetail({
+  supabase,
+  student,
+  students,
+  days,
+  rules,
+  records,
+  scores,
+  disciplineEvents,
+  auditLogs,
+  period,
+}: FinishStudentScoringDetailInput) {
   const teacherIds = Array.from(new Set(
-    (recordsResult.data || [])
+    records
       .map((record) => record.saved_by)
       .filter((teacherId): teacherId is string => Boolean(teacherId)),
   ));
   const profilesResult = teacherIds.length > 0
-    ? await supabase
-        .from("profiles")
-        .select("id, full_name")
-        .in("id", teacherIds)
+    ? await supabase.from("profiles").select("id, full_name").in("id", teacherIds)
     : { data: [], error: null };
 
   if (profilesResult.error) {
@@ -237,11 +656,7 @@ export async function getStudentScoringDetail(classId: string, studentId: string
       String(profile.full_name || "Professor não identificado"),
     ] as const),
   );
-  const student = mapStudentDetailRow(studentResult.data as StudentDetailRow);
-  const students = (studentsResult.data || []).map((row) =>
-    mapStudentDetailRow(row as StudentDetailRow),
-  );
-  const records = (recordsResult.data || []).map((record) => ({
+  const recordsWithTeacher = records.map((record) => ({
     ...record,
     saved_by_name: record.saved_by
       ? teacherNameById.get(record.saved_by) || "Professor não identificado"
@@ -250,18 +665,126 @@ export async function getStudentScoringDetail(classId: string, studentId: string
   const detail = buildStudentScoringDetail({
     student,
     students,
-    days: daysResult.data || [],
-    rules: rulesResult.data || [],
-    records,
-    scores: scoresResult.data || [],
-    disciplineEvents: disciplineEventsResult.data || [],
-    auditLogs: (auditLogsResult.error ? [] : auditLogsResult.data || []) as StudentScoringAuditLogInput[],
-    trimesterStartDate: SECOND_TRIMESTER_2026_START_DATE,
-    currentDate: getTodayDateInSaoPaulo(),
+    days,
+    rules,
+    records: recordsWithTeacher,
+    scores,
+    disciplineEvents,
+    auditLogs,
+    ...(period
+      ? { period: period.period }
+      : { trimesterStartDate: SECOND_TRIMESTER_2026_START_DATE }),
+    currentDate: getTodayInSaoPaulo(),
   });
 
   if (!detail) return { error: "Aluno não encontrado no ranking ativo da classe." };
-  return detail;
+  return period ? { ...detail, periodState: period.state } : detail;
+}
+
+export async function getStudentScoringDetail(
+  classId: string,
+  studentId: string,
+  periodId?: string,
+) {
+  const auth = await requireTeacherAction();
+  if ("error" in auth) return { error: auth.error };
+
+  const { supabase } = auth;
+  const periodResult = await loadScoringPeriodContext(supabase, classId, periodId);
+  if (periodResult.kind === "error") return { error: periodResult.error };
+  if (periodResult.kind === "legacy") {
+    return getLegacyStudentScoringDetail(supabase, classId, studentId);
+  }
+
+  const { context } = periodResult;
+  const student = context.students.find((row) => row.id === studentId);
+  if (!student) return { error: "Aluno não encontrado neste período da classe." };
+
+  const daysResult = await loadPeriodDays(supabase, classId, context);
+  if (daysResult.error) return { error: "Não foi possível carregar os sábados do período." };
+
+  const days = daysResult.data || [];
+  const dayIds = days.map((day) => day.id);
+  const periodRuleIds = context.rules.map((rule) => rule.id);
+  const snapshotStudentIds = context.students.map((row) => row.id);
+  const emptyResult = { data: [], error: null };
+  const recordsPromise = dayIds.length > 0 && snapshotStudentIds.length > 0
+    ? supabase
+        .from("student_attendance_records")
+        .select(`
+          id, student_id, day_id, total_points, extra_activity_points,
+          discipline_penalty_points, saved_by, discipline_penalty_reason,
+          discipline_penalty_applied_by_name, saved_at
+        `)
+        .eq("class_id", classId)
+        .in("day_id", dayIds)
+        .in("student_id", snapshotStudentIds)
+    : Promise.resolve(emptyResult);
+  const [recordsResult, scoresResult, disciplineEventsResult, auditLogsResult] = dayIds.length > 0
+    ? await Promise.all([
+        recordsPromise,
+        supabase
+          .from("attendance_scores")
+          .select("student_id, day_id, rule_id, period_rule_id, points_earned")
+          .eq("class_id", classId)
+          .eq("student_id", studentId)
+          .in("day_id", dayIds)
+          .or(periodRuleIds.length > 0
+            ? `period_rule_id.in.(${periodRuleIds.join(",")}),period_rule_id.is.null`
+            : "period_rule_id.is.null"),
+        supabase
+          .from("attendance_discipline_events")
+          .select(`
+            id, record_id, day_id, student_id, points, reason,
+            applied_by_name, created_at, updated_at
+          `)
+          .eq("class_id", classId)
+          .eq("student_id", studentId)
+          .in("day_id", dayIds),
+        supabase
+          .from("scoring_audit_log")
+          .select(`
+            id, request_id, table_name, operation, row_id, day_id, student_id,
+            period_id, actor_user_id, actor_name, changed_at, transaction_id, reason,
+            source, metadata, old_data, new_data
+          `)
+          .eq("class_id", classId)
+          .eq("student_id", studentId)
+          .in("day_id", dayIds)
+          .or(`period_id.eq.${context.id},period_id.is.null`)
+          .order("changed_at", { ascending: false })
+          .limit(200),
+      ])
+    : [emptyResult, emptyResult, emptyResult, emptyResult];
+
+  if (recordsResult.error) return { error: "Não foi possível carregar os registros do período." };
+  if (scoresResult.error) return { error: "Não foi possível carregar a composição dos pontos do período." };
+  if (disciplineEventsResult.error) return { error: "Não foi possível carregar os eventos do período." };
+  if (auditLogsResult.error && !isScoringAuditContractMissing(auditLogsResult.error)) {
+    return { error: "Não foi possível carregar o log de auditoria do período." };
+  }
+
+  const dayDateById = new Map(days.map((day) => [day.id, day.day_date] as const));
+  const periodScores = mapPeriodScoreRows(
+    (scoresResult.data || []) as unknown as PeriodScoreRow[],
+    context,
+    dayDateById,
+  );
+
+  return finishStudentScoringDetail({
+    supabase,
+    student,
+    students: context.students,
+    days,
+    rules: context.rules,
+    records: (recordsResult.data || []) as unknown as StudentScoringDetailRecordInput[],
+    scores: periodScores,
+    disciplineEvents: (disciplineEventsResult.data || []) as unknown as StudentScoringDetailDisciplineEventInput[],
+    auditLogs: (auditLogsResult.error
+      ? []
+      : auditLogsResult.data || []) as unknown as StudentScoringAuditLogInput[],
+    period: context,
+  });
 }
 
 export async function upsertScoringRule(classId: string, ruleId: string | undefined, formData: FormData) {
@@ -312,10 +835,11 @@ export async function deleteScoringRule(classId: string, ruleId: string) {
   const { supabase } = auth;
   const { error } = await supabase
     .from("class_scoring_rules")
-    .delete()
-    .eq("id", ruleId);
+    .update({ is_active: false })
+    .eq("id", ruleId)
+    .eq("class_id", classId);
 
-  if (error) return { error: "Não foi possível remover o critério." };
+  if (error) return { error: "Não foi possível desativar o critério." };
   revalidatePath(`/classes/${classId}`);
   return { success: true };
 }

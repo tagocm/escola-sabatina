@@ -3,11 +3,17 @@ import Link from "next/link";
 import { ArrowUpRight, BarChart3, Medal, Trophy, TrendingUp, Users } from "lucide-react";
 import { getActiveClassContext } from "@/app/actions/classes";
 import { getClassScoringRanking } from "@/app/actions/scoring";
+import {
+  getClassScoringPeriodContext,
+} from "@/app/actions/scoring-periods";
 import Header from "@/components/ui/Header";
 import PageHeader from "@/components/ui/PageHeader";
+import ScoringPeriodSelector from "@/components/ui/ScoringPeriodSelector";
+import ScoringPeriodStatusPanel from "@/components/ui/ScoringPeriodStatusPanel";
 import { pageMainClass, pageShellClass, surfaceClass } from "@/components/ui/design-system";
 import { getStudentPhotoSrc } from "@/lib/storage/student-photos";
 import { redirect } from "next/navigation";
+import { getScoringPeriodStatusLabel } from "@/lib/scoring/period-status";
 
 const statusMeta = {
   subindo: { label: "Subindo", className: "bg-es-green" },
@@ -15,6 +21,10 @@ const statusMeta = {
   recuperando: { label: "Recuperando", className: "bg-es-lilac" },
   atencao: { label: "Atenção", className: "bg-es-orange" },
 } as const;
+
+interface Props {
+  searchParams: Promise<{ period?: string }>;
+}
 
 function formatNumber(value: number) {
   return new Intl.NumberFormat("pt-BR", {
@@ -80,11 +90,21 @@ function StudentAvatar({
   );
 }
 
-export default async function RankingPontuacaoPage() {
+export default async function RankingPontuacaoPage({ searchParams }: Props) {
   const classId = await getActiveClassContext();
   if (!classId) redirect("/classes");
 
-  const ranking = await getClassScoringRanking(classId);
+  const query = await searchParams;
+  const periodContext = await getClassScoringPeriodContext(classId, {
+    periodId: query.period,
+  });
+  const selectedPeriod = periodContext.selectedPeriod;
+
+  if (selectedPeriod && query.period !== selectedPeriod.id) {
+    redirect(`/relatorios/pontuacao?period=${selectedPeriod.id}`);
+  }
+
+  const ranking = await getClassScoringRanking(classId, selectedPeriod?.id || query.period);
   if ("error" in ranking) {
     return (
       <div className={pageShellClass}>
@@ -125,6 +145,37 @@ export default async function RankingPontuacaoPage() {
           backLabel="Voltar ao Painel"
         />
 
+        {selectedPeriod ? (
+          <>
+            <ScoringPeriodSelector
+              periods={periodContext.periods.map((period) => ({
+                id: period.id,
+                label: period.label,
+                statusLabel: getScoringPeriodStatusLabel(period.status),
+              }))}
+              selectedPeriodId={selectedPeriod.id}
+              pathname="/relatorios/pontuacao"
+            />
+
+            <ScoringPeriodStatusPanel
+              periodName={selectedPeriod.label}
+              status={selectedPeriod.status}
+              elapsed={ranking.summary.elapsedSaturdays}
+              withRecords={ranking.summary.saturdaysWithRecords}
+              complete={ranking.summary.completeSaturdays}
+              expected={ranking.summary.totalSaturdays}
+            />
+
+            <Link
+              href={`/relatorios/pontuacao/auditoria?period=${selectedPeriod.id}`}
+              className="inline-flex min-h-12 items-center justify-between gap-3 border-4 border-foreground bg-surface px-5 text-[11px] font-black uppercase tracking-[0.16em] shadow-editorial-sm transition-all hover:bg-background hover:shadow-editorial-hover sm:self-start"
+            >
+              Revisar auditoria do período
+              <ArrowUpRight className="h-5 w-5 stroke-[3]" />
+            </Link>
+          </>
+        ) : null}
+
         <section className="grid grid-cols-1 gap-5 xl:grid-cols-[1.15fr_0.85fr] md:gap-6">
           <div className="border-4 border-foreground bg-es-yellow p-5 shadow-editorial md:p-6">
             <div className="flex items-start justify-between gap-4">
@@ -143,8 +194,8 @@ export default async function RankingPontuacaoPage() {
 
             <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
               <MetricCard
-                label="Sábados"
-                value={`${ranking.summary.launchedSaturdays}/${ranking.summary.totalSaturdays}`}
+                label="Sábados decorridos"
+                value={`${ranking.summary.elapsedSaturdays}/${ranking.summary.totalSaturdays}`}
               />
               <MetricCard label="Média" value={formatNumber(ranking.summary.classAverage)} />
               <MetricCard label="Maior" value={formatNumber(ranking.summary.classHighest)} />
@@ -184,7 +235,7 @@ export default async function RankingPontuacaoPage() {
               </p>
             </div>
             <Link
-              href="/relatorios/lancamento"
+              href={`/relatorios/lancamento?period=${selectedPeriod.id}`}
               className="inline-flex min-h-12 w-full items-center justify-between gap-3 border-4 border-foreground bg-es-blue px-5 text-[11px] font-black uppercase tracking-[0.16em] shadow-editorial transition-all hover:shadow-editorial-hover active:translate-x-0.5 active:translate-y-0.5 active:shadow-none sm:w-auto"
             >
               Lançar pontuações
@@ -253,7 +304,7 @@ export default async function RankingPontuacaoPage() {
                         </div>
                       </div>
                       <Link
-                        href={`/relatorios/pontuacao/${firstStudent.studentId}`}
+                        href={`/relatorios/pontuacao/${firstStudent.studentId}${selectedPeriod ? `?period=${selectedPeriod.id}` : ""}`}
                         className="inline-flex min-h-12 items-center justify-between gap-3 border-4 border-foreground bg-es-blue px-5 text-[11px] font-black uppercase tracking-[0.16em] shadow-editorial-sm transition-all hover:shadow-editorial-hover active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
                       >
                         Ver detalhe
@@ -304,7 +355,7 @@ export default async function RankingPontuacaoPage() {
                           </div>
                         </div>
                         <Link
-                          href={`/relatorios/pontuacao/${student.studentId}`}
+                          href={`/relatorios/pontuacao/${student.studentId}${selectedPeriod ? `?period=${selectedPeriod.id}` : ""}`}
                           className="inline-flex min-h-10 items-center justify-between gap-2 border-4 border-foreground bg-es-blue px-3 text-[9px] font-black uppercase tracking-[0.14em] shadow-editorial-sm transition-all hover:shadow-editorial-hover active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
                         >
                           Ver detalhe
@@ -418,7 +469,7 @@ export default async function RankingPontuacaoPage() {
                           {student.rank}
                         </span>
                         <Link
-                          href={`/relatorios/pontuacao/${student.studentId}`}
+                          href={`/relatorios/pontuacao/${student.studentId}${selectedPeriod ? `?period=${selectedPeriod.id}` : ""}`}
                           className="font-black tracking-tight underline decoration-4 underline-offset-4 transition-opacity hover:opacity-60"
                         >
                           {student.studentName}

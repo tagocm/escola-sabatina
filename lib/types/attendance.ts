@@ -10,6 +10,8 @@ export interface AttendanceDisciplineEvent {
 
 export interface AttendanceRule {
   id: string;
+  sourceRuleId?: string | null;
+  variantKind?: "declared" | "legacy_observed";
   name: string;
   category: "frequencia" | "participacao" | "espiritual" | "atividade";
   points: number;
@@ -21,7 +23,7 @@ export interface AttendanceStudentSummary {
   full_name: string;
   photo_url: string | null;
   birth_date: string | null;
-  sex: "masculino" | "feminino";
+  sex: "masculino" | "feminino" | null;
   guardian_name: string | null;
   whatsapp: string | null;
 }
@@ -32,4 +34,5 @@ export interface AttendanceStudentListItem {
   initialSelectedRuleIds: string[];
   initialExtraActivityPoints: number;
   initialDisciplineEvents: AttendanceDisciplineEvent[];
+  initialTotalPoints: number | null;
 }

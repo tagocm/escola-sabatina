@@ -22,6 +22,8 @@ Prefer exported contracts:
 - `stickySearchBarClass`, `bottomSheetClass`, `modalPanelClass`;
 - `statusBadgeClass`, `counterBadgeClass`.
 
+For quarter-aware scoring flows, reuse `ScoringPeriodSelector`, `ScoringPeriodStatusPanel` and `ScoringPeriodAuditWorkbench`. Always show the period name and written status together; ended periods warn before correction and audited periods are read-only.
+
 When a new visual pattern repeats, add it first to `components/ui/design-tokens.ts`, then expose a class contract in `components/ui/design-system.ts`. Avoid one-off raw colors, shadows, radii, and hardcoded component geometry in business screens.
 
 Do not use raw palette classes or color literals in app UI files: `bg-white`, `text-white`, `bg-black/*`, `bg-red-*`, `bg-[#...]`, `#hex`, `rgb(...)`, or `rgba(...)`. Use semantic aliases from `app/globals.css` such as `bg-surface`, `text-surface`, `bg-surface-warm`, `bg-surface-muted`, `bg-surface-soft`, `bg-surface-pattern`, `bg-danger`, and `text-danger`.

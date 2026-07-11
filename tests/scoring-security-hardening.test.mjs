@@ -84,7 +84,7 @@ test("scoring audit migration gates writes through reasoned RPC", () => {
   );
 });
 
-test("attendance action prefers audited RPC and keeps fallback server-calculated", () => {
+test("attendance action uses the period-aware audited RPC and fails closed", () => {
   const actionSource = readFileSync(join(repoRoot, "app", "actions", "attendance.ts"), "utf8");
   const saveActionBody = actionSource.slice(
     actionSource.indexOf("export async function saveStudentAttendanceRecord"),
@@ -93,8 +93,8 @@ test("attendance action prefers audited RPC and keeps fallback server-calculated
 
   assert.match(
     saveActionBody,
-    /\.rpc\(\s*["']save_student_attendance_record["']/,
-    "save action should call the database RPC",
+    /\.rpc\(\s*["']save_student_attendance_record_v2["']/,
+    "save action should call the period-aware database RPC",
   );
   assert.match(
     saveActionBody,
@@ -103,8 +103,8 @@ test("attendance action prefers audited RPC and keeps fallback server-calculated
   );
   assert.match(
     actionSource,
-    /const DEFAULT_SCORING_CHANGE_REASON = "Pontuação salva sem motivo informado\."/,
-    "save action should keep an automatic audit reason for blank user input",
+    /const DEFAULT_OPEN_PERIOD_CHANGE_REASON = "Lançamento regular da pontuação semanal\."/,
+    "open periods should keep a normalized regular-launch audit reason",
   );
   assert.match(
     actionSource,
@@ -113,44 +113,31 @@ test("attendance action prefers audited RPC and keeps fallback server-calculated
   );
   assert.match(
     saveActionBody,
-    /String\(changeReason \|\| ""\)\.trim\(\) \|\| DEFAULT_SCORING_CHANGE_REASON/,
-    "save action should allow a blank user reason by falling back to the automatic audit reason",
+    /selectedPeriod\.requiresChangeReason && submittedReason\.length < 10/,
+    "closed periods should require an explicit correction reason",
   );
   assert.match(
     saveActionBody,
     /reason:\s*String\(event\.reason \|\| ""\)\.trim\(\) \|\| DEFAULT_DISCIPLINE_EVENT_REASON/,
     "save action should allow blank discipline reasons by falling back to the automatic discipline reason",
   );
-  assert.doesNotMatch(
-    saveActionBody,
-    /if \(!normalizedChangeReason\)/,
-    "save action should not force teachers to type a scoring change reason",
-  );
-  assert.doesNotMatch(
-    saveActionBody,
-    /Informe o motivo do (desconto por indisciplina|lançamento ou correção da pontuação)\./,
-    "save action should not expose any teacher-facing reason requirement",
-  );
   assert.match(
+    saveActionBody,
+    /savedRecord\.period_id !== selectedPeriod\.id/,
+    "save action should confirm the database wrote into the selected period",
+  );
+  assert.doesNotMatch(
     actionSource,
     /saveStudentAttendanceRecordDirectly/,
-    "save action should keep a temporary compatibility path while production is not migrated",
-  );
-  assert.match(
-    actionSource,
-    /\.from\(\s*["']class_scoring_rules["']\s*\)\s*[\s\S]*\.select\(\s*["']id, points["']\s*\)/,
-    "compatibility fallback should recalculate selected rule points from the database",
+    "missing period-aware database contracts must fail closed instead of writing directly",
   );
   assert.doesNotMatch(
     actionSource,
     /rulesMetadata/,
     "save action should not accept rule point metadata from the client",
   );
-  assert.match(
-    saveActionBody,
-    /isScoringAuditContractMissing\(recordError\)[\s\S]*saveStudentAttendanceRecordDirectly/,
-    "direct compatibility fallback should only run when the audited RPC contract is missing",
-  );
+  assert.doesNotMatch(actionSource, /\.(insert|upsert|update|delete)\s*\(/,
+    "attendance actions should not contain a direct scoring write fallback");
 });
 
 test("attendance discipline modal does not require a typed reason", () => {
@@ -173,7 +160,7 @@ test("attendance discipline modal does not require a typed reason", () => {
   );
 });
 
-test("scoring actions degrade gracefully when audit database contract is missing", () => {
+test("scoring reads degrade gracefully while period writes remain fail-closed", () => {
   const contractSource = readFileSync(join(repoRoot, "lib", "scoring", "audit-contract.ts"), "utf8");
   const attendanceSource = readFileSync(join(repoRoot, "app", "actions", "attendance.ts"), "utf8");
   const scoringSource = readFileSync(join(repoRoot, "app", "actions", "scoring.ts"), "utf8");
@@ -193,11 +180,12 @@ test("scoring actions degrade gracefully when audit database contract is missing
     /pgrst205/i,
     "missing audit table should be treated as an audit contract failure",
   );
-  assert.match(
-    attendanceSource,
-    /isScoringAuditContractMissing\(recordError\)/,
-    "saving should detect when the reasoned scoring RPC is not deployed",
-  );
+  assert.match(attendanceSource, /save_student_attendance_record_v2/,
+    "saving should require the deployed period-aware RPC");
+  assert.doesNotMatch(attendanceSource, /isScoringAuditContractMissing\(recordError\)/,
+    "saving should not bypass a missing period-aware RPC");
+  assert.match(scoringSource, /isScoringPeriodContractMissing/,
+    "read-only ranking can retain an explicit legacy fallback during rollout");
   assert.match(
     scoringSource,
     /auditLogs:\s*\(auditLogsResult\.error \? \[\] : auditLogsResult\.data \|\| \[\]\)/,

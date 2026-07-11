@@ -100,6 +100,9 @@ export default function ClassForm({ initialData, action }: ClassFormProps) {
             onChange={(event) => setOfferingGoalDisplay(normalizeCurrencyInput(event.target.value))}
             className={`${compactInputClass} text-right disabled:opacity-50`}
           />
+          <p className="text-[9px] font-bold uppercase leading-relaxed tracking-[0.12em] opacity-50">
+            A mudança vale para novos períodos; a meta do trimestre atual permanece congelada.
+          </p>
         </div>
 
         <div className="flex flex-col gap-2 xl:pb-1">

@@ -4,16 +4,26 @@ import { Buffer } from "node:buffer";
 import { readFileSync } from "node:fs";
 import ts from "typescript";
 
-const source = readFileSync(new URL("../lib/scoring/ranking.ts", import.meta.url), "utf8");
-const { outputText } = ts.transpileModule(source, {
-  compilerOptions: {
-    module: ts.ModuleKind.ES2022,
-    target: ts.ScriptTarget.ES2022,
-  },
-});
+function transpile(pathname) {
+  const source = readFileSync(new URL(pathname, import.meta.url), "utf8");
+  return ts.transpileModule(source, {
+    compilerOptions: {
+      module: ts.ModuleKind.ES2022,
+      target: ts.ScriptTarget.ES2022,
+    },
+  }).outputText;
+}
+
+const calendarOutput = transpile("../lib/calendar/sabbath-period.ts");
+const calendarUrl = `data:text/javascript;base64,${Buffer.from(calendarOutput).toString("base64")}`;
+const periodsOutput = transpile("../lib/scoring/periods.ts")
+  .replace(/from "\.\.\/calendar\/sabbath-period"/g, `from "${calendarUrl}"`);
+const periodsUrl = `data:text/javascript;base64,${Buffer.from(periodsOutput).toString("base64")}`;
+const rankingOutput = transpile("../lib/scoring/ranking.ts")
+  .replace(/from "\.\/periods"/g, `from "${periodsUrl}"`);
 const {
   buildClassScoringRanking,
-} = await import(`data:text/javascript;base64,${Buffer.from(outputText).toString("base64")}`);
+} = await import(`data:text/javascript;base64,${Buffer.from(rankingOutput).toString("base64")}`);
 
 const students = [
   { id: "ana", full_name: "Ana Clara", photo_url: "ana.jpg" },
@@ -55,6 +65,9 @@ test("monta ranking trimestral com ordenação, métricas e status", () => {
 
   assert.deepEqual(ranking.summary, {
     launchedSaturdays: 3,
+    elapsedSaturdays: 3,
+    saturdaysWithRecords: 3,
+    completeSaturdays: 1,
     totalSaturdays: 13,
     standardPossiblePerSaturday: 5,
     possiblePointsToDate: 15,
@@ -157,9 +170,103 @@ test("usa os sábados decorridos do trimestre como denominador", () => {
   });
 
   assert.equal(ranking.summary.launchedSaturdays, 8);
+  assert.equal(ranking.summary.elapsedSaturdays, 8);
+  assert.equal(ranking.summary.saturdaysWithRecords, 2);
+  assert.equal(ranking.summary.completeSaturdays, 0);
   assert.equal(ranking.summary.possiblePointsToDate, 40);
   assert.equal(ranking.students.find((student) => student.studentId === "ana")?.totalPoints, 22);
   assert.equal(ranking.weeklyAverages[7].label, "30/05");
   assert.equal(ranking.weeklyAverages[8].label, "06/06");
   assert.equal(ranking.weeklyAverages[8].classAverage, 0);
+});
+
+test("isola o novo período na fronteira entre 04/07 e 11/07", () => {
+  const ranking = buildClassScoringRanking({
+    students,
+    days: [
+      { id: "q2-last", day_date: "2026-07-04" },
+      { id: "q3-first", day_date: "2026-07-11" },
+    ],
+    rules,
+    records: [
+      { student_id: "ana", day_id: "q2-last", total_points: 99 },
+      { student_id: "ana", day_id: "q3-first", total_points: 7 },
+      { student_id: "bia", day_id: "q3-first", total_points: 5 },
+    ],
+    period: {
+      id: "2026-q3",
+      label: "3º trimestre de 2026",
+      startDate: "2026-07-11",
+      expectedSaturdays: 13,
+    },
+    currentDate: "2026-07-11",
+  });
+
+  assert.equal(ranking.period?.id, "2026-q3");
+  assert.equal(ranking.period?.startDate, "2026-07-11");
+  assert.equal(ranking.period?.endDate, "2026-10-03");
+  assert.equal(ranking.summary.launchedSaturdays, 1);
+  assert.equal(ranking.summary.elapsedSaturdays, 1);
+  assert.equal(ranking.summary.saturdaysWithRecords, 1);
+  assert.equal(ranking.summary.completeSaturdays, 0);
+  assert.equal(ranking.students.find((student) => student.studentId === "ana")?.totalPoints, 7);
+  assert.equal(ranking.weeklyAverages[0].dayDate, "2026-07-11");
+  assert.equal(ranking.weeklyAverages.at(-1)?.dayDate, "2026-10-03");
+  assert.equal(ranking.weeklyAverages.some((week) => week.dayDate === "2026-07-04"), false);
+});
+
+test("usa joined_on e left_on para completude e denominador após transferência", () => {
+  const ranking = buildClassScoringRanking({
+    students: [
+      {
+        id: "ana",
+        full_name: "Ana Clara",
+        photo_url: null,
+        joined_on: "2026-07-11",
+        left_on: "2026-07-25",
+      },
+      {
+        id: "bia",
+        full_name: "Bia Santos",
+        photo_url: null,
+        joined_on: "2026-07-25",
+        left_on: null,
+      },
+    ],
+    days: [
+      { id: "d1", day_date: "2026-07-11" },
+      { id: "d2", day_date: "2026-07-18" },
+      { id: "d3", day_date: "2026-07-25" },
+      { id: "d4", day_date: "2026-08-01" },
+    ],
+    rules,
+    records: [
+      { student_id: "ana", day_id: "d1", total_points: 5 },
+      { student_id: "ana", day_id: "d2", total_points: 5 },
+      { student_id: "ana", day_id: "d3", total_points: 99 },
+      { student_id: "bia", day_id: "d1", total_points: 99 },
+      { student_id: "bia", day_id: "d3", total_points: 5 },
+      { student_id: "bia", day_id: "d4", total_points: 5 },
+    ],
+    period: {
+      id: "transfer-period",
+      label: "Período de transferência",
+      startDate: "2026-07-11",
+      expectedSaturdays: 4,
+    },
+    currentDate: "2026-08-01",
+  });
+
+  assert.equal(ranking.summary.completeSaturdays, 4);
+  assert.equal(ranking.summary.saturdaysWithRecords, 4);
+  assert.deepEqual(ranking.students.map((student) => ({
+    id: student.studentId,
+    total: student.totalPoints,
+    recorded: student.recordedSaturdays,
+    eligible: student.eligibleElapsedSaturdays,
+    possible: student.possiblePoints,
+  })), [
+    { id: "ana", total: 10, recorded: 2, eligible: 2, possible: 10 },
+    { id: "bia", total: 10, recorded: 2, eligible: 2, possible: 10 },
+  ]);
 });

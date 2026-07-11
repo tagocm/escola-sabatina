@@ -1,9 +1,21 @@
+import {
+  DEFAULT_SCORING_PERIOD_SATURDAYS,
+  LEGACY_SECOND_TRIMESTER_2026_START_DATE,
+  getElapsedScoringPeriodSaturdays,
+  resolveScoringPeriod,
+  type ResolvedScoringPeriod,
+  type ScoringPeriodDefinition,
+  type ScoringPeriodScheduleInput,
+} from "./periods";
+
 export type RankingStatus = "subindo" | "estavel" | "recuperando" | "atencao";
 
 export interface RankingStudentInput {
   id: string;
   full_name: string;
   photo_url: string | null;
+  joined_on?: string | null;
+  left_on?: string | null;
 }
 
 export interface RankingDayInput {
@@ -30,6 +42,8 @@ export interface ClassScoringRankingStudent {
   totalPoints: number;
   averagePoints: number;
   recordedSaturdays: number;
+  eligibleElapsedSaturdays: number;
+  eligibleTotalSaturdays: number;
   possiblePoints: number;
   progressPercent: number;
   classAverageDelta: number;
@@ -45,32 +59,42 @@ export interface ClassScoringRankingWeek {
   classAverage: number;
 }
 
+export interface ClassScoringRankingSummary {
+  /** @deprecated Use `elapsedSaturdays`; kept for existing UI consumers. */
+  launchedSaturdays: number;
+  elapsedSaturdays: number;
+  saturdaysWithRecords: number;
+  completeSaturdays: number;
+  totalSaturdays: number;
+  standardPossiblePerSaturday: number;
+  possiblePointsToDate: number;
+  projectedPossiblePoints: number;
+  classAverage: number;
+  classHighest: number;
+  studentCount: number;
+}
+
 export interface ClassScoringRanking {
-  summary: {
-    launchedSaturdays: number;
-    totalSaturdays: 13;
-    standardPossiblePerSaturday: number;
-    possiblePointsToDate: number;
-    projectedPossiblePoints: number;
-    classAverage: number;
-    classHighest: number;
-    studentCount: number;
-  };
+  period: ResolvedScoringPeriod | null;
+  summary: ClassScoringRankingSummary;
   students: ClassScoringRankingStudent[];
   weeklyAverages: ClassScoringRankingWeek[];
 }
 
-interface BuildClassScoringRankingInput {
+export interface BuildClassScoringRankingInput {
   students: RankingStudentInput[];
   days: RankingDayInput[];
   rules: RankingRuleInput[];
   records: RankingRecordInput[];
+  period?: ScoringPeriodDefinition;
+  schedule?: readonly ScoringPeriodScheduleInput[];
+  /** @deprecated Pass `period` or `schedule` instead. */
   trimesterStartDate?: string;
   currentDate?: string;
 }
 
-const TOTAL_TRIMESTER_SATURDAYS = 13;
-export const SECOND_TRIMESTER_2026_START_DATE = "2026-04-11";
+/** @deprecated Load and pass a scoring period instead. */
+export const SECOND_TRIMESTER_2026_START_DATE = LEGACY_SECOND_TRIMESTER_2026_START_DATE;
 
 function roundTo(value: number, digits = 2) {
   const factor = 10 ** digits;
@@ -82,27 +106,20 @@ function formatDayLabel(dayDate: string) {
   return `${day}/${month}`;
 }
 
-function addDays(dayDate: string, daysToAdd: number) {
-  const [year, month, day] = dayDate.split("-").map(Number);
-  const date = new Date(year, month - 1, day + daysToAdd, 12, 0, 0);
-
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-}
-
-function buildTrimesterSlots(trimesterStartDate: string) {
-  return Array.from({ length: TOTAL_TRIMESTER_SATURDAYS }, (_, index) => addDays(trimesterStartDate, index * 7));
-}
-
-function getElapsedTrimesterSaturdays(trimesterSlots: string[], currentDate: string) {
-  return trimesterSlots.filter((dayDate) => dayDate <= currentDate).length;
-}
-
 function getRecentTrend(scores: number[]) {
   if (scores.length < 2) return scores[0] || 0;
 
   const previousScores = scores.slice(0, -1);
   const previousAverage = previousScores.reduce((sum, score) => sum + score, 0) / previousScores.length;
   return roundTo(scores[scores.length - 1] - previousAverage);
+}
+
+export function isScoringParticipantEligibleOnDate(
+  student: Pick<RankingStudentInput, "joined_on" | "left_on">,
+  date: string,
+) {
+  return (!student.joined_on || student.joined_on <= date)
+    && (!student.left_on || student.left_on > date);
 }
 
 function getStatus({
@@ -148,38 +165,57 @@ export function buildClassScoringRanking({
   days,
   rules,
   records,
+  period,
+  schedule,
   trimesterStartDate,
   currentDate,
 }: BuildClassScoringRankingInput): ClassScoringRanking {
-  const trimesterSlots = trimesterStartDate ? buildTrimesterSlots(trimesterStartDate) : [];
-  const trimesterEndDate = trimesterSlots.at(-1) || null;
-  const trimesterSlotDates = new Set(trimesterSlots);
-  const effectiveEndDate = currentDate && trimesterEndDate && currentDate < trimesterEndDate
+  const resolvedPeriod = resolveScoringPeriod({
+    period,
+    schedule,
+    startDate: trimesterStartDate,
+  });
+  const periodSchedule = resolvedPeriod?.schedule || [];
+  const periodEndDate = resolvedPeriod?.endDate || null;
+  const periodScheduleDates = new Set(periodSchedule);
+  const effectiveEndDate = currentDate && periodEndDate && currentDate < periodEndDate
     ? currentDate
-    : trimesterEndDate;
+    : periodEndDate;
   const orderedDays = [...days]
     .filter((day) => {
-      if (!trimesterStartDate || !trimesterEndDate) return true;
-      return trimesterSlotDates.has(day.day_date)
-        && day.day_date >= trimesterStartDate
-        && day.day_date <= (effectiveEndDate || trimesterEndDate);
+      if (!resolvedPeriod) return !currentDate || day.day_date <= currentDate;
+      return periodScheduleDates.has(day.day_date)
+        && day.day_date >= resolvedPeriod.startDate
+        && day.day_date <= (effectiveEndDate || resolvedPeriod.endDate);
     })
     .sort((left, right) => left.day_date.localeCompare(right.day_date));
-  const launchedSaturdays = trimesterSlots.length > 0 && currentDate
-    ? getElapsedTrimesterSaturdays(trimesterSlots, currentDate)
+  const elapsedSaturdays = resolvedPeriod && currentDate
+    ? getElapsedScoringPeriodSaturdays(resolvedPeriod, currentDate)
     : orderedDays.length;
+  const elapsedPeriodSchedule = periodSchedule.slice(0, elapsedSaturdays);
+  const launchedSaturdays = elapsedSaturdays;
+  const totalSaturdays = resolvedPeriod?.expectedSaturdays
+    || DEFAULT_SCORING_PERIOD_SATURDAYS;
   const standardPossiblePerSaturday = rules
     .filter((rule) => rule.is_active !== false)
     .reduce((sum, rule) => sum + Number(rule.points || 0), 0);
   const possiblePointsToDate = standardPossiblePerSaturday * launchedSaturdays;
-  const projectedPossiblePoints = standardPossiblePerSaturday * TOTAL_TRIMESTER_SATURDAYS;
+  const projectedPossiblePoints = standardPossiblePerSaturday * totalSaturdays;
 
   const recordsByStudent = new Map<string, RankingRecordInput[]>();
   const recordsByDay = new Map<string, RankingRecordInput[]>();
   const validDayIds = new Set(orderedDays.map((day) => day.id));
+  const dayDateById = new Map(orderedDays.map((day) => [day.id, day.day_date] as const));
+  const studentById = new Map(students.map((student) => [student.id, student] as const));
+  const rankedStudentIds = new Set(students.map((student) => student.id));
 
   for (const record of records) {
     if (!validDayIds.has(record.day_id)) continue;
+    const recordStudent = studentById.get(record.student_id);
+    const recordDate = dayDateById.get(record.day_id);
+    if (!recordStudent || !recordDate || !isScoringParticipantEligibleOnDate(recordStudent, recordDate)) {
+      continue;
+    }
 
     recordsByStudent.set(record.student_id, [
       ...(recordsByStudent.get(record.student_id) || []),
@@ -191,6 +227,26 @@ export function buildClassScoringRanking({
     ]);
   }
 
+  const saturdaysWithRecords = orderedDays.filter((day) =>
+    (recordsByDay.get(day.id) || []).some((record) => rankedStudentIds.has(record.student_id)),
+  ).length;
+  const completeSaturdays = students.length > 0
+    ? orderedDays.filter((day) => {
+        const expectedStudentIds = new Set(
+          students
+            .filter((student) => isScoringParticipantEligibleOnDate(student, day.day_date))
+            .map((student) => student.id),
+        );
+        const recordedStudentIds = new Set(
+          (recordsByDay.get(day.id) || [])
+            .map((record) => record.student_id)
+            .filter((studentId) => expectedStudentIds.has(studentId)),
+        );
+        return expectedStudentIds.size > 0
+          && [...expectedStudentIds].every((studentId) => recordedStudentIds.has(studentId));
+      }).length
+    : 0;
+
   const dayIndexById = new Map(orderedDays.map((day, index) => [day.id, index]));
   const studentRows = students.map((student) => {
     const studentRecords = [...(recordsByStudent.get(student.id) || [])]
@@ -200,6 +256,15 @@ export function buildClassScoringRanking({
     const recordedSaturdays = studentRecords.length;
     const averagePoints = recordedSaturdays > 0 ? roundTo(totalPoints / recordedSaturdays) : 0;
     const recentTrend = getRecentTrend(scores);
+    const eligibleElapsedSaturdays = resolvedPeriod
+      ? elapsedPeriodSchedule
+          .filter((date) => isScoringParticipantEligibleOnDate(student, date))
+          .length
+      : launchedSaturdays;
+    const eligibleTotalSaturdays = resolvedPeriod
+      ? periodSchedule.filter((date) => isScoringParticipantEligibleOnDate(student, date)).length
+      : totalSaturdays;
+    const studentPossiblePointsToDate = standardPossiblePerSaturday * eligibleElapsedSaturdays;
 
     return {
       studentId: student.id,
@@ -209,8 +274,12 @@ export function buildClassScoringRanking({
       totalPoints,
       averagePoints,
       recordedSaturdays,
-      possiblePoints: possiblePointsToDate,
-      progressPercent: possiblePointsToDate > 0 ? roundTo((totalPoints / possiblePointsToDate) * 100) : 0,
+      eligibleElapsedSaturdays,
+      eligibleTotalSaturdays,
+      possiblePoints: studentPossiblePointsToDate,
+      progressPercent: studentPossiblePointsToDate > 0
+        ? roundTo((totalPoints / studentPossiblePointsToDate) * 100)
+        : 0,
       classAverageDelta: 0,
       pointsBehindPrevious: null,
       recentTrend,
@@ -233,7 +302,7 @@ export function buildClassScoringRanking({
         classTotalAverage: classAverage,
         classAverage: launchedSaturdays > 0 ? roundTo(classAverage / launchedSaturdays) : 0,
         recordedSaturdays: student.recordedSaturdays,
-        launchedSaturdays,
+        launchedSaturdays: student.eligibleElapsedSaturdays,
         recentTrend: student.recentTrend,
       }),
     }))
@@ -251,8 +320,8 @@ export function buildClassScoringRanking({
     }));
 
   const dayByDate = new Map(orderedDays.map((day) => [day.day_date, day]));
-  const weeklyDays = trimesterSlots.length > 0
-    ? trimesterSlots.map((dayDate) => dayByDate.get(dayDate) || { id: null, day_date: dayDate })
+  const weeklyDays = periodSchedule.length > 0
+    ? periodSchedule.map((dayDate) => dayByDate.get(dayDate) || { id: null, day_date: dayDate })
     : orderedDays;
   const weeklyAverages = weeklyDays.map((day) => {
     const dayId = day.id;
@@ -270,9 +339,13 @@ export function buildClassScoringRanking({
   });
 
   return {
+    period: resolvedPeriod,
     summary: {
       launchedSaturdays,
-      totalSaturdays: TOTAL_TRIMESTER_SATURDAYS,
+      elapsedSaturdays,
+      saturdaysWithRecords,
+      completeSaturdays,
+      totalSaturdays,
       standardPossiblePerSaturday,
       possiblePointsToDate,
       projectedPossiblePoints,

@@ -17,9 +17,11 @@ import {
 import { redirect } from "next/navigation";
 import { getActiveClassContext } from "@/app/actions/classes";
 import { getStudentScoringDetail } from "@/app/actions/scoring";
+import { getClassScoringPeriodContext } from "@/app/actions/scoring-periods";
 import Header from "@/components/ui/Header";
 import PageHeader from "@/components/ui/PageHeader";
 import PerformanceTrendChart from "@/components/ui/PerformanceTrendChart";
+import ScoringPeriodStatusPanel from "@/components/ui/ScoringPeriodStatusPanel";
 import {
   fieldLabelClass,
   pageMainClass,
@@ -41,6 +43,7 @@ import {
 
 interface Props {
   params: Promise<{ studentId: string }>;
+  searchParams: Promise<{ period?: string }>;
 }
 
 const statusMeta = {
@@ -409,7 +412,13 @@ function AuditLogSection({ detail }: { detail: StudentScoringDetail }) {
   );
 }
 
-function TimelineTable({ detail }: { detail: StudentScoringDetail }) {
+function TimelineTable({
+  detail,
+  periodId,
+}: {
+  detail: StudentScoringDetail;
+  periodId?: string;
+}) {
   return (
     <section className={`${surfaceClass} flex flex-col gap-5 p-5 md:p-6`}>
       <div className="flex items-center gap-3">
@@ -440,7 +449,7 @@ function TimelineTable({ detail }: { detail: StudentScoringDetail }) {
           </div>
 
           {detail.timeline.map((week) => (
-            <TimelineRow key={week.dayDate} week={week} />
+            <TimelineRow key={week.dayDate} week={week} periodId={periodId} />
           ))}
         </div>
       </div>
@@ -448,7 +457,13 @@ function TimelineTable({ detail }: { detail: StudentScoringDetail }) {
   );
 }
 
-function LaunchRecords({ detail }: { detail: StudentScoringDetail }) {
+function LaunchRecords({
+  detail,
+  periodId,
+}: {
+  detail: StudentScoringDetail;
+  periodId?: string;
+}) {
   const launchRecords = detail.timeline
     .filter((week) => week.hasRecord)
     .sort((left, right) => right.dayDate.localeCompare(left.dayDate));
@@ -500,7 +515,7 @@ function LaunchRecords({ detail }: { detail: StudentScoringDetail }) {
                   {formatDateTime(week.savedAt)}
                 </span>
                 <Link
-                  href={`/relatorios/lancamento?d=${week.dayDate}`}
+                  href={`/relatorios/lancamento?d=${week.dayDate}${periodId ? `&period=${periodId}` : ""}`}
                   className="inline-flex min-h-9 items-center justify-center border-2 border-foreground bg-es-blue px-2 text-[9px] font-black uppercase tracking-[0.14em] shadow-editorial-sm transition-all hover:shadow-editorial-hover active:translate-x-0.5 active:translate-y-0.5"
                 >
                   Abrir
@@ -520,7 +535,13 @@ function LaunchRecords({ detail }: { detail: StudentScoringDetail }) {
   );
 }
 
-function TimelineRow({ week }: { week: StudentScoringDetailWeek }) {
+function TimelineRow({
+  week,
+  periodId,
+}: {
+  week: StudentScoringDetailWeek;
+  periodId?: string;
+}) {
   const adjustmentText = [
     week.extraActivityPoints > 0 ? `+${formatNumber(week.extraActivityPoints)} extra` : null,
     week.disciplinePenaltyPoints > 0 ? `-${formatNumber(week.disciplinePenaltyPoints)} indisc.` : null,
@@ -577,7 +598,7 @@ function TimelineRow({ week }: { week: StudentScoringDetailWeek }) {
 
       {week.isElapsed ? (
         <Link
-          href={`/relatorios/lancamento?d=${week.dayDate}`}
+          href={`/relatorios/lancamento?d=${week.dayDate}${periodId ? `&period=${periodId}` : ""}`}
           className="inline-flex min-h-9 items-center justify-center border-2 border-foreground bg-es-blue px-2 text-[9px] font-black uppercase tracking-[0.14em] shadow-editorial-sm transition-all hover:shadow-editorial-hover active:translate-x-0.5 active:translate-y-0.5"
         >
           Abrir
@@ -637,12 +658,21 @@ function DisciplineEvents({ detail }: { detail: StudentScoringDetail }) {
   );
 }
 
-export default async function StudentScoringDetailPage({ params }: Props) {
+export default async function StudentScoringDetailPage({ params, searchParams }: Props) {
   const { studentId } = await params;
+  const query = await searchParams;
   const classId = await getActiveClassContext();
   if (!classId) redirect("/classes");
 
-  const detail = await getStudentScoringDetail(classId, studentId);
+  const periodContext = await getClassScoringPeriodContext(classId, {
+    periodId: query.period,
+  });
+  const selectedPeriod = periodContext.selectedPeriod;
+  const detail = await getStudentScoringDetail(
+    classId,
+    studentId,
+    selectedPeriod?.id || query.period,
+  );
 
   if ("error" in detail) {
     return (
@@ -652,7 +682,9 @@ export default async function StudentScoringDetailPage({ params }: Props) {
           <PageHeader
             title="Detalhe da pontuação"
             subtitle="Auditoria individual do participante"
-            backHref="/relatorios/pontuacao"
+            backHref={selectedPeriod
+              ? `/relatorios/pontuacao?period=${selectedPeriod.id}`
+              : "/relatorios/pontuacao"}
             backLabel="Voltar ao Ranking"
           />
           <section className={`${surfaceClass} p-6 md:p-8`}>
@@ -681,9 +713,22 @@ export default async function StudentScoringDetailPage({ params }: Props) {
         <PageHeader
           title="Detalhe da Pontuação"
           subtitle="Auditoria individual por sábado, critérios e evolução"
-          backHref="/relatorios/pontuacao"
+          backHref={selectedPeriod
+            ? `/relatorios/pontuacao?period=${selectedPeriod.id}`
+            : "/relatorios/pontuacao"}
           backLabel="Voltar ao Ranking"
         />
+
+        {selectedPeriod ? (
+          <ScoringPeriodStatusPanel
+            periodName={selectedPeriod.label}
+            status={selectedPeriod.status}
+            elapsed={detail.summary.elapsedSaturdays}
+            withRecords={detail.summary.saturdaysWithRecords}
+            complete={detail.summary.completeSaturdays}
+            expected={detail.summary.totalSaturdays}
+          />
+        ) : null}
 
         <section className="grid grid-cols-1 gap-5 xl:grid-cols-[0.72fr_1.28fr] md:gap-6">
           <StudentAvatar
@@ -794,9 +839,9 @@ export default async function StudentScoringDetailPage({ params }: Props) {
           </div>
         </section>
 
-        <LaunchRecords detail={detail} />
+        <LaunchRecords detail={detail} periodId={selectedPeriod?.id} />
         <AuditLogSection detail={detail} />
-        <TimelineTable detail={detail} />
+        <TimelineTable detail={detail} periodId={selectedPeriod?.id} />
         <DisciplineEvents detail={detail} />
       </main>
     </div>

@@ -18,10 +18,13 @@ import type {
 
 interface AttendanceScoringSheetProps {
   classId: string;
+  periodId: string;
   date: string;
   item: AttendanceStudentListItem;
   rules: AttendanceRule[];
   isSaved: boolean;
+  readOnly?: boolean;
+  requiresChangeReason?: boolean;
   onClose: () => void;
   onSaved: (item: AttendanceStudentListItem) => void;
 }
@@ -61,10 +64,13 @@ function getRuleShortName(name: string) {
 
 export default function AttendanceScoringSheet({
   classId,
+  periodId,
   date,
   item,
   rules,
   isSaved,
+  readOnly = false,
+  requiresChangeReason = false,
   onClose,
   onSaved,
 }: AttendanceScoringSheetProps) {
@@ -74,7 +80,7 @@ export default function AttendanceScoringSheet({
     item.initialDisciplineEvents.map(normalizeDisciplineEvent),
   );
   const [changeReason, setChangeReason] = useState(() =>
-    isSaved ? "" : "Lançamento regular da pontuação semanal.",
+    requiresChangeReason || isSaved ? "" : "Lançamento regular da pontuação semanal.",
   );
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isDisciplineModalOpen, setIsDisciplineModalOpen] = useState(false);
@@ -99,6 +105,13 @@ export default function AttendanceScoringSheet({
 
   const displayName = formatAttendanceStudentName(item.student.full_name);
   const photoSrc = getStudentPhotoSrc(item.student.id, item.student.photo_url);
+  const visibleRules = useMemo(
+    () => rules.filter((rule) => (
+      rule.variantKind !== "legacy_observed"
+      || item.initialSelectedRuleIds.includes(rule.id)
+    )),
+    [item.initialSelectedRuleIds, rules],
+  );
   const totalRulePoints = useMemo(
     () => rules
       .filter((rule) => selectedIds.includes(rule.id))
@@ -109,21 +122,57 @@ export default function AttendanceScoringSheet({
     (sum, event) => sum + Math.max(1, Number(event.points || 1)),
     0,
   );
-  const totalPoints = totalRulePoints + extraActivityPoints - disciplinePenaltyPoints;
+  const calculatedTotalPoints = totalRulePoints + extraActivityPoints - disciplinePenaltyPoints;
+  const initialRulePoints = useMemo(
+    () => rules
+      .filter((rule) => item.initialSelectedRuleIds.includes(rule.id))
+      .reduce((sum, rule) => sum + rule.points, 0),
+    [item.initialSelectedRuleIds, rules],
+  );
+  const initialDisciplinePenaltyPoints = item.initialDisciplineEvents.reduce(
+    (sum, event) => sum + Math.max(1, Number(event.points || 1)),
+    0,
+  );
+  const initialCalculatedTotalPoints = initialRulePoints
+    + item.initialExtraActivityPoints
+    - initialDisciplinePenaltyPoints;
+  const hasSameRuleSelection = selectedIds.length === item.initialSelectedRuleIds.length
+    && selectedIds.every((id) => item.initialSelectedRuleIds.includes(id));
+  const hasPointCompositionChanged = !hasSameRuleSelection
+    || extraActivityPoints !== item.initialExtraActivityPoints
+    || disciplinePenaltyPoints !== initialDisciplinePenaltyPoints;
+  const hasHistoricalTotalMismatch = isSaved
+    && item.initialTotalPoints !== null
+    && item.initialTotalPoints !== initialCalculatedTotalPoints;
+  const totalPoints = isSaved
+    && !hasPointCompositionChanged
+    && item.initialTotalPoints !== null
+    ? item.initialTotalPoints
+    : calculatedTotalPoints;
   const maxDisciplinePenaltyPoints = totalRulePoints + extraActivityPoints;
   const canAddDisciplinePenalty = disciplinePenaltyPoints < maxDisciplinePenaltyPoints;
   const hasInvalidDisciplinePenalty = disciplinePenaltyPoints > maxDisciplinePenaltyPoints;
 
   const handleToggleRule = (ruleId: string) => {
+    if (readOnly) return;
     setSaveError(null);
-    setSelectedIds((current) =>
-      current.includes(ruleId)
-        ? current.filter((id) => id !== ruleId)
-        : [...current, ruleId],
-    );
+    setSelectedIds((current) => {
+      if (current.includes(ruleId)) return current.filter((id) => id !== ruleId);
+
+      const selectedRule = rules.find((rule) => rule.id === ruleId);
+      const withoutSameSource = selectedRule?.sourceRuleId
+        ? current.filter((id) => {
+            const currentRule = rules.find((rule) => rule.id === id);
+            return currentRule?.sourceRuleId !== selectedRule.sourceRuleId;
+          })
+        : current;
+
+      return [...withoutSameSource, ruleId];
+    });
   };
 
   const handleSave = () => {
+    if (readOnly) return;
     setSaveError(null);
 
     if (hasInvalidDisciplinePenalty) {
@@ -132,6 +181,11 @@ export default function AttendanceScoringSheet({
     }
 
     const normalizedChangeReason = changeReason.trim();
+
+    if (requiresChangeReason && normalizedChangeReason.length < 10) {
+      setSaveError("Informe o motivo da correção neste período encerrado.");
+      return;
+    }
 
     startTransition(async () => {
       const result = await saveStudentAttendanceRecord(
@@ -142,6 +196,7 @@ export default function AttendanceScoringSheet({
         extraActivityPoints,
         disciplineEvents,
         normalizedChangeReason,
+        periodId,
       );
 
       if ("error" in result && result.error) {
@@ -158,6 +213,9 @@ export default function AttendanceScoringSheet({
         initialSelectedRuleIds: selectedIds,
         initialExtraActivityPoints: extraActivityPoints,
         initialDisciplineEvents: savedDisciplineEvents,
+        initialTotalPoints: "totalPoints" in result
+          ? Number(result.totalPoints || 0)
+          : calculatedTotalPoints,
       });
       onClose();
     });
@@ -227,6 +285,15 @@ export default function AttendanceScoringSheet({
             </div>
           ) : null}
 
+          {hasHistoricalTotalMismatch ? (
+            <div className="border-4 border-foreground bg-es-yellow px-4 py-3 shadow-editorial-sm">
+              <p className="text-[10px] font-black uppercase leading-relaxed tracking-[0.12em]">
+                Total salvo: {item.initialTotalPoints} pontos. Composição histórica: {initialCalculatedTotalPoints} pontos.
+                O total salvo permanece preservado enquanto a composição não for alterada.
+              </p>
+            </div>
+          ) : null}
+
           <section className="flex flex-col gap-3">
             <div className="flex items-end justify-between gap-3">
               <div>
@@ -241,20 +308,22 @@ export default function AttendanceScoringSheet({
               </div>
             </div>
 
-            {rules.length > 0 ? (
+            {visibleRules.length > 0 ? (
               <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
-                {rules.map((rule) => {
+                {visibleRules.map((rule) => {
                   const isSelected = selectedIds.includes(rule.id);
                   const colorClass = CATEGORY_STYLES[rule.category];
+                  const isHistoricalValue = rule.variantKind === "legacy_observed";
 
                   return (
                     <button
                       key={rule.id}
                       type="button"
                       onClick={() => handleToggleRule(rule.id)}
+                      disabled={readOnly}
                       className={`relative flex min-h-[64px] flex-col justify-center border-4 border-foreground px-3 py-3 text-left shadow-editorial-sm transition-all active:translate-y-0.5 ${
                         isSelected ? `${colorClass} translate-y-0.5` : "bg-surface hover:bg-background"
-                      }`}
+                      } disabled:cursor-default disabled:opacity-80`}
                     >
                       <span className="line-clamp-2 text-[12px] font-black uppercase leading-none tracking-tight">
                         {getRuleShortName(rule.name)}
@@ -262,6 +331,11 @@ export default function AttendanceScoringSheet({
                       <span className="mt-2 text-[9px] font-black uppercase tracking-[0.16em] text-foreground/45">
                         {rule.points} {rule.points === 1 ? "ponto" : "pontos"}
                       </span>
+                      {isHistoricalValue ? (
+                        <span className="mt-1 text-[8px] font-black uppercase tracking-[0.12em] text-es-orange">
+                          Valor histórico preservado
+                        </span>
+                      ) : null}
                       {isSelected ? (
                         <Check className="absolute right-2 top-2 h-4 w-4 stroke-[4]" />
                       ) : null}
@@ -287,7 +361,7 @@ export default function AttendanceScoringSheet({
                 <button
                   type="button"
                   onClick={() => setExtraActivityPoints((current) => Math.max(0, current - 1))}
-                  disabled={extraActivityPoints === 0}
+                  disabled={readOnly || extraActivityPoints === 0}
                   className="flex h-11 w-11 items-center justify-center border-4 border-foreground bg-surface shadow-editorial-sm disabled:opacity-30"
                   aria-label="Remover ponto extra"
                 >
@@ -299,6 +373,7 @@ export default function AttendanceScoringSheet({
                 <button
                   type="button"
                   onClick={() => setExtraActivityPoints((current) => current + 1)}
+                  disabled={readOnly}
                   className="flex h-11 w-11 items-center justify-center border-4 border-foreground bg-es-green shadow-editorial-sm"
                   aria-label="Adicionar ponto extra"
                 >
@@ -321,7 +396,7 @@ export default function AttendanceScoringSheet({
                     setSaveError(null);
                     setIsDisciplineModalOpen(true);
                   }}
-                  disabled={!canAddDisciplinePenalty}
+                  disabled={readOnly || !canAddDisciplinePenalty}
                   className="flex h-11 w-11 items-center justify-center border-4 border-foreground bg-es-orange shadow-editorial-sm disabled:opacity-30"
                   aria-label="Adicionar desconto por indisciplina"
                 >
@@ -338,7 +413,9 @@ export default function AttendanceScoringSheet({
 
           <section className="border-4 border-foreground bg-surface p-4 shadow-editorial-sm">
             <label className="flex flex-col gap-2">
-              <span className={fieldLabelClass}>Motivo do lançamento (opcional)</span>
+              <span className={fieldLabelClass}>
+                {requiresChangeReason ? "Motivo da correção (obrigatório)" : "Motivo do lançamento (opcional)"}
+              </span>
               <textarea
                 value={changeReason}
                 onChange={(event) => {
@@ -348,7 +425,12 @@ export default function AttendanceScoringSheet({
                   }
                 }}
                 rows={3}
-                placeholder={isSaved ? "Opcional: descreva a correção" : "Lançamento regular da pontuação semanal"}
+                disabled={readOnly}
+                placeholder={requiresChangeReason
+                  ? "Descreva por que o período encerrado precisa ser corrigido"
+                  : isSaved
+                    ? "Opcional: descreva a correção"
+                    : "Lançamento regular da pontuação semanal"}
                 className="min-h-[92px] w-full resize-none border-4 border-foreground bg-background px-3 py-3 text-sm font-bold leading-relaxed outline-none transition-colors focus:bg-es-lilac/10"
               />
             </label>
@@ -376,6 +458,7 @@ export default function AttendanceScoringSheet({
                       onClick={() => setDisciplineEvents((current) => current.filter((_, eventIndex) => eventIndex !== index))}
                       className="flex h-10 w-10 items-center justify-center border-4 border-foreground bg-surface shadow-editorial-sm hover:bg-es-orange/10"
                       aria-label="Remover evento de indisciplina"
+                      disabled={readOnly}
                     >
                       <X className="h-4 w-4 stroke-[3]" />
                     </button>
@@ -392,19 +475,29 @@ export default function AttendanceScoringSheet({
             <p className="text-2xl font-black leading-none tracking-tighter">{totalPoints} pontos</p>
           </div>
 
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={isPending || rules.length === 0}
-            className="flex min-h-12 items-center justify-center gap-2 border-4 border-foreground bg-es-blue px-5 text-[11px] font-black uppercase tracking-[0.14em] shadow-editorial transition-all active:translate-y-0.5 disabled:opacity-60"
-          >
-            {isPending ? <ButtonLoader size="sm" label="Salvando pontuação" /> : <Save className="h-4 w-4 stroke-[3]" />}
-            {isSaved ? "Atualizar" : "Salvar"}
-          </button>
+          {readOnly ? (
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex min-h-12 items-center justify-center gap-2 border-4 border-foreground bg-es-lilac px-5 text-[11px] font-black uppercase tracking-[0.14em] shadow-editorial transition-all active:translate-y-0.5"
+            >
+              Fechar consulta
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={isPending || rules.length === 0}
+              className="flex min-h-12 items-center justify-center gap-2 border-4 border-foreground bg-es-blue px-5 text-[11px] font-black uppercase tracking-[0.14em] shadow-editorial transition-all active:translate-y-0.5 disabled:opacity-60"
+            >
+              {isPending ? <ButtonLoader size="sm" label="Salvando pontuação" /> : <Save className="h-4 w-4 stroke-[3]" />}
+              {isSaved ? "Atualizar" : "Salvar"}
+            </button>
+          )}
         </div>
       </div>
 
-      {isDisciplineModalOpen ? (
+      {isDisciplineModalOpen && !readOnly ? (
         <AttendanceDisciplinePenaltyModal
           mode="create"
           studentName={item.student.full_name}

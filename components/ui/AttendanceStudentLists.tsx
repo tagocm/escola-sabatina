@@ -17,10 +17,13 @@ import type { AttendanceRule, AttendanceStudentListItem } from "@/lib/types/atte
 
 interface AttendanceStudentListsProps {
   classId: string;
+  periodId: string;
   date: string;
   rules: AttendanceRule[];
   pendingStudents: AttendanceStudentListItem[];
   savedStudents: AttendanceStudentListItem[];
+  readOnly?: boolean;
+  requiresChangeReason?: boolean;
 }
 
 type SelectedStudent = {
@@ -38,10 +41,13 @@ function EmptySearchState() {
 
 export default function AttendanceStudentLists({
   classId,
+  periodId,
   date,
   rules,
   pendingStudents,
   savedStudents,
+  readOnly = false,
+  requiresChangeReason = false,
 }: AttendanceStudentListsProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [studentGroups, setStudentGroups] = useState({
@@ -118,6 +124,14 @@ export default function AttendanceStudentLists({
         </div>
       </section>
 
+      {readOnly ? (
+        <div className="border-4 border-foreground bg-es-lilac px-5 py-4 shadow-editorial-sm">
+          <p className="text-[10px] font-black uppercase leading-relaxed tracking-[0.16em]">
+            Este período está bloqueado para alterações. Os lançamentos abaixo permanecem disponíveis somente para consulta visual.
+          </p>
+        </div>
+      ) : null}
+
       {rules.length === 0 ? (
         <div className="border-4 border-dashed border-foreground/30 bg-surface px-6 py-10 text-center">
           <p className="text-lg font-black uppercase tracking-tight opacity-40">Cadastre os critérios de avaliação da classe antes de lançar frequência</p>
@@ -151,6 +165,7 @@ export default function AttendanceStudentLists({
                 status="pending"
                 index={index}
                 onSelect={() => setSelectedStudent({ item, status: "pending" })}
+                disabled={readOnly}
               />
             ))}
           </div>
@@ -205,10 +220,13 @@ export default function AttendanceStudentLists({
       {selectedStudent ? (
         <AttendanceScoringSheet
           classId={classId}
+          periodId={periodId}
           date={date}
           item={selectedStudent.item}
           rules={rules}
           isSaved={selectedStudent.status === "saved"}
+          readOnly={readOnly}
+          requiresChangeReason={requiresChangeReason}
           onClose={() => setSelectedStudent(null)}
           onSaved={handleSaved}
         />

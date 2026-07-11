@@ -45,7 +45,7 @@ export default function ClassTransferForm({
     }
 
     const confirmed = window.confirm(
-      `Transferir ${studentCount} aluno(s) de ${currentClassName} para a nova classe?`
+      `Transferir ${studentCount} aluno(s) de ${currentClassName} para a classe selecionada? Use esta ação somente para uma mudança real de classe. Ela não fecha nem abre um trimestre.`,
     );
 
     if (!confirmed) {
@@ -91,17 +91,32 @@ export default function ClassTransferForm({
         </div>
 
         <div className="border-4 border-foreground bg-es-yellow px-4 py-3 shadow-editorial-sm">
-          <p className="text-[9px] font-black uppercase tracking-widest opacity-50">Alunos habilitados para transferência</p>
+          <p className="text-[9px] font-black uppercase tracking-widest opacity-50">
+            Alunos ativos que mudarão de classe
+          </p>
           <p className="mt-1 text-3xl font-black leading-none">{studentCount}</p>
         </div>
       </div>
 
+      <div className="flex flex-col gap-2">
+        <label className={fieldLabelClass}>Motivo da mudança</label>
+        <textarea
+          name="reason"
+          required
+          minLength={10}
+          disabled={isPending || !hasDestination}
+          rows={3}
+          className="min-h-24 resize-y border-4 border-foreground bg-background px-4 py-3 text-sm font-bold outline-none focus:bg-es-lilac/10 disabled:opacity-50"
+          placeholder="Explique por que os alunos mudarão de classe"
+        />
+      </div>
+
       <div className="flex flex-col gap-2 border-4 border-foreground bg-background px-4 py-4 shadow-editorial-sm">
         <p className="text-[10px] font-black uppercase tracking-[0.18em]">
-          Use este fluxo no fechamento do trimestre para mover a turma inteira de uma vez.
+          Use este fluxo somente quando os alunos realmente mudarem de classe.
         </p>
         <p className="text-[10px] font-bold uppercase tracking-widest opacity-60">
-          A transferência atualiza a classe apenas dos alunos ativos desta unidade, preservando status e cadastro.
+          Esta ação não encerra o trimestre, não inicia uma nova contagem de pontos e não altera o período de pontuação. Ela apenas troca a classe atual dos alunos ativos.
         </p>
       </div>
 
@@ -114,9 +129,9 @@ export default function ClassTransferForm({
           disabled={isPending || !hasDestination}
           className={primaryActionWideClass}
         >
-          <span>{isPending ? "TRANSFERINDO..." : "TRANSFERIR TURMA"}</span>
+          <span>{isPending ? "TRANSFERINDO..." : "TRANSFERIR ALUNOS"}</span>
           {isPending ? (
-            <ButtonLoader label="Transferindo turma" />
+            <ButtonLoader label="Transferindo alunos" />
           ) : (
             <ArrowRightLeft className="w-5 h-5 stroke-[3]" />
           )}

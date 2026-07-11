@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "check:scoring-audit": "node scripts/check-scoring-audit-deployment.mjs"
+    "check:scoring-audit": "node scripts/check-scoring-audit-deployment.mjs",
+    "check:scoring-periods": "node scripts/check-scoring-periods-deployment.mjs",
+    "report:scoring-q2": "node scripts/report-q2-scoring-sanitization.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

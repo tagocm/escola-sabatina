@@ -9,6 +9,7 @@ import {
   dismissGuardianMailboxMessage,
   getGuardianStudentMailbox,
   getGuardianStudentProgress,
+  getGuardianStudentScoringPeriods,
   getGuardianStudents,
   getMyEnrollmentRequests,
   type GuardianMailboxMessage,
@@ -19,9 +20,13 @@ import {
   surfaceClass,
   surfaceSoftClass,
 } from "@/components/ui/design-system";
+import ScoringPeriodSelector from "@/components/ui/ScoringPeriodSelector";
+import { SCORING_PERIOD_STATUS_LABELS } from "@/lib/scoring/period-status";
+import { getTodayInSaoPaulo } from "@/lib/calendar/sabbath-period";
 
 interface Props {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ period?: string }>;
 }
 
 interface GuardianStudent {
@@ -78,11 +83,13 @@ function getMailboxTypeMeta(type: GuardianMailboxMessage["message_type"]) {
   };
 }
 
-export default async function GuardianStudentProgressPage({ params }: Props) {
+export default async function GuardianStudentProgressPage({ params, searchParams }: Props) {
   const { id } = await params;
-  const [students, requests] = await Promise.all([
+  const query = await searchParams;
+  const [students, requests, scoringPeriods] = await Promise.all([
     getGuardianStudents(),
     getMyEnrollmentRequests(),
+    getGuardianStudentScoringPeriods(id),
   ]);
   const guardianStudents = students as unknown as GuardianStudent[];
   const enrollmentRequests = requests as unknown as EnrollmentRequest[];
@@ -92,7 +99,18 @@ export default async function GuardianStudentProgressPage({ params }: Props) {
     notFound();
   }
 
-  const progress = await getGuardianStudentProgress(id);
+  const today = getTodayInSaoPaulo();
+  const selectedPeriod = scoringPeriods.find((period) => period.id === query.period)
+    || scoringPeriods.find((period) => (
+      period.status === "open"
+      && period.participantStatus === "active"
+      && (!period.joinedOn || period.joinedOn <= today)
+      && (!period.leftOn || period.leftOn > today)
+    ))
+    || scoringPeriods.find((period) => period.status === "open")
+    || scoringPeriods[0]
+    || null;
+  const progress = await getGuardianStudentProgress(id, selectedPeriod?.id);
   const timeline = progress.map((point: GuardianStudentProgressPoint) => ({
     label: format(new Date(`${point.day_date}T12:00:00`), "dd/MM"),
     fullLabel: format(new Date(`${point.day_date}T12:00:00`), "dd 'de' MMMM", { locale: ptBR }),
@@ -132,18 +150,25 @@ export default async function GuardianStudentProgressPage({ params }: Props) {
   const requestedClassName = Array.isArray(pendingRequest?.classes)
     ? pendingRequest?.classes[0]?.name
     : pendingRequest?.classes?.name;
-  const className = student.classes?.name || requestedClassName || latestEntry?.class_name || "Turma em definição";
+  const className = selectedPeriod?.className
+    || latestEntry?.class_name
+    || requestedClassName
+    || student.classes?.name
+    || "Turma em definição";
   const studentFirstName = student.full_name.split(" ")[0] || "Aluno";
   const currencyFormatter = new Intl.NumberFormat("pt-BR", {
     style: "currency",
     currency: "BRL",
     minimumFractionDigits: 2,
   });
-  const offeringSummary = await getGuardianClassOfferingSummary(id);
+  const offeringSummary = await getGuardianClassOfferingSummary(id, selectedPeriod?.id);
   const mailboxMessages = await getGuardianStudentMailbox(id);
   const offeringGoal = Number(offeringSummary?.offering_goal || 0);
   const accumulatedOffering = Number(offeringSummary?.accumulated_offering || 0);
-  const trimesterGoal = Number(offeringSummary?.trimester_goal || offeringGoal * 13);
+  const expectedSaturdays = selectedPeriod?.expectedSaturdays || 13;
+  const trimesterGoal = Number(
+    offeringSummary?.trimester_goal || offeringGoal * expectedSaturdays,
+  );
   const thermometerProgress = trimesterGoal > 0
     ? Math.min((accumulatedOffering / trimesterGoal) * 100, 100)
     : 0;
@@ -155,6 +180,17 @@ export default async function GuardianStudentProgressPage({ params }: Props) {
         subtitle="Acompanhe o desempenho"
         backHref="/responsavel"
         backLabel="Voltar aos Dependentes"
+      />
+
+      <ScoringPeriodSelector
+        periods={scoringPeriods.map((period) => ({
+          id: period.id,
+          label: period.className ? `${period.label} · ${period.className}` : period.label,
+          statusLabel: SCORING_PERIOD_STATUS_LABELS[period.status],
+        }))}
+        selectedPeriodId={selectedPeriod?.id}
+        pathname={`/responsavel/filhos/${id}/acompanhe`}
+        emptyMessage="Nenhum período de acompanhamento disponível."
       />
 
       <section className="grid grid-cols-1 gap-5 lg:grid-cols-[1.2fr_0.8fr] md:gap-6">
@@ -203,7 +239,7 @@ export default async function GuardianStudentProgressPage({ params }: Props) {
           </div>
 
           <p className="text-[10px] font-bold uppercase tracking-[0.18em] opacity-50">
-            O termômetro mostra quanto a turma já arrecadou em relação à meta projetada para os 13 sábados do trimestre.
+            O termômetro mostra quanto a turma já arrecadou em relação à meta projetada para os {expectedSaturdays} sábados deste período.
           </p>
         </div>
 

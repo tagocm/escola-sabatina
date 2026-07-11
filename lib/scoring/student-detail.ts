@@ -1,8 +1,15 @@
 import {
-  SECOND_TRIMESTER_2026_START_DATE,
   buildClassScoringRanking,
+  isScoringParticipantEligibleOnDate,
   type RankingStatus,
 } from "./ranking";
+import {
+  getElapsedScoringPeriodSaturdays,
+  resolveScoringPeriod,
+  type ResolvedScoringPeriod,
+  type ScoringPeriodDefinition,
+  type ScoringPeriodScheduleInput,
+} from "./periods";
 
 export type ScoringCategory = "frequencia" | "participacao" | "espiritual" | "atividade";
 
@@ -12,6 +19,8 @@ export interface StudentScoringDetailStudentInput {
   photo_url: string | null;
   class_id: string | null;
   class_name?: string | null;
+  joined_on?: string | null;
+  left_on?: string | null;
 }
 
 export interface StudentScoringDetailDayInput {
@@ -21,6 +30,7 @@ export interface StudentScoringDetailDayInput {
 
 export interface StudentScoringDetailRuleInput {
   id: string;
+  source_rule_id?: string | null;
   name: string;
   category: string | null;
   points: number | null;
@@ -105,6 +115,7 @@ export interface StudentScoringDetailWeek {
   label: string;
   fullLabel: string;
   isElapsed: boolean;
+  isEligible: boolean;
   hasRecord: boolean;
   recordId: string | null;
   savedAt: string | null;
@@ -151,7 +162,32 @@ export interface StudentScoringCategorySummary {
   progressPercent: number;
 }
 
+export interface StudentScoringDetailSummary {
+  rank: number;
+  status: RankingStatus;
+  totalPoints: number;
+  averagePoints: number;
+  recordedSaturdays: number;
+  /** @deprecated Use `elapsedSaturdays`; kept for existing UI consumers. */
+  launchedSaturdays: number;
+  elapsedSaturdays: number;
+  saturdaysWithRecords: number;
+  completeSaturdays: number;
+  totalSaturdays: number;
+  standardPossiblePerSaturday: number;
+  possiblePointsToDate: number;
+  projectedPossiblePoints: number;
+  progressPercent: number;
+  classAverageDelta: number;
+  pointsBehindPrevious: number | null;
+  recentTrend: number;
+  classAverage: number;
+  classHighest: number;
+  daysWithoutRecord: number;
+}
+
 export interface StudentScoringDetail {
+  period: ResolvedScoringPeriod | null;
   student: {
     id: string;
     name: string;
@@ -159,25 +195,7 @@ export interface StudentScoringDetail {
     classId: string | null;
     className: string | null;
   };
-  summary: {
-    rank: number;
-    status: RankingStatus;
-    totalPoints: number;
-    averagePoints: number;
-    recordedSaturdays: number;
-    launchedSaturdays: number;
-    totalSaturdays: number;
-    standardPossiblePerSaturday: number;
-    possiblePointsToDate: number;
-    projectedPossiblePoints: number;
-    progressPercent: number;
-    classAverageDelta: number;
-    pointsBehindPrevious: number | null;
-    recentTrend: number;
-    classAverage: number;
-    classHighest: number;
-    daysWithoutRecord: number;
-  };
+  summary: StudentScoringDetailSummary;
   categorySummaries: StudentScoringCategorySummary[];
   adjustmentTotals: {
     extraActivityPoints: number;
@@ -190,7 +208,7 @@ export interface StudentScoringDetail {
   timeline: StudentScoringDetailWeek[];
 }
 
-interface BuildStudentScoringDetailInput {
+export interface BuildStudentScoringDetailInput {
   student: StudentScoringDetailStudentInput;
   students: StudentScoringDetailStudentInput[];
   days: StudentScoringDetailDayInput[];
@@ -199,11 +217,12 @@ interface BuildStudentScoringDetailInput {
   scores: StudentScoringDetailScoreInput[];
   disciplineEvents: StudentScoringDetailDisciplineEventInput[];
   auditLogs?: StudentScoringAuditLogInput[];
+  period?: ScoringPeriodDefinition;
+  schedule?: readonly ScoringPeriodScheduleInput[];
+  /** @deprecated Pass `period` or `schedule` instead. */
   trimesterStartDate?: string;
   currentDate?: string;
 }
-
-const TOTAL_TRIMESTER_SATURDAYS = 13;
 
 const CATEGORY_LABELS: Record<ScoringCategory, string> = {
   frequencia: "Frequência",
@@ -219,17 +238,6 @@ function roundTo(value: number, digits = 2) {
   return Math.round(value * factor) / factor;
 }
 
-function addDays(dayDate: string, daysToAdd: number) {
-  const [year, month, day] = dayDate.split("-").map(Number);
-  const date = new Date(year, month - 1, day + daysToAdd, 12, 0, 0);
-
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-}
-
-function buildTrimesterSlots(trimesterStartDate: string) {
-  return Array.from({ length: TOTAL_TRIMESTER_SATURDAYS }, (_, index) => addDays(trimesterStartDate, index * 7));
-}
-
 function formatShortDayLabel(dayDate: string) {
   const [, month, day] = dayDate.split("-");
   return `${day}/${month}`;
@@ -238,11 +246,6 @@ function formatShortDayLabel(dayDate: string) {
 function formatFullDayLabel(dayDate: string) {
   const [year, month, day] = dayDate.split("-");
   return `${day}/${month}/${year}`;
-}
-
-function getElapsedTrimesterSaturdays(trimesterSlots: string[], currentDate?: string) {
-  if (!currentDate) return trimesterSlots.length;
-  return trimesterSlots.filter((dayDate) => dayDate <= currentDate).length;
 }
 
 function normalizeCategory(category: string | null | undefined): ScoringCategory {
@@ -288,9 +291,17 @@ function buildMissedRules(
   rules: StudentScoringDetailRuleInput[],
   selectedRuleIds: Set<string>,
 ): StudentScoringRuleBreakdown[] {
+  const selectedSourceRuleIds = new Set(
+    rules
+      .filter((rule) => selectedRuleIds.has(rule.id))
+      .map((rule) => rule.source_rule_id)
+      .filter((sourceRuleId): sourceRuleId is string => Boolean(sourceRuleId)),
+  );
+
   return rules
     .filter((rule) => rule.is_active !== false)
     .filter((rule) => !selectedRuleIds.has(rule.id))
+    .filter((rule) => !rule.source_rule_id || !selectedSourceRuleIds.has(rule.source_rule_id))
     .sort((left, right) => Number(left.display_order || 0) - Number(right.display_order || 0))
     .map((rule) => ({
       ruleId: rule.id,
@@ -365,41 +376,64 @@ export function buildStudentScoringDetail({
   scores,
   disciplineEvents,
   auditLogs = [],
-  trimesterStartDate = SECOND_TRIMESTER_2026_START_DATE,
+  period,
+  schedule,
+  trimesterStartDate,
   currentDate,
 }: BuildStudentScoringDetailInput): StudentScoringDetail | null {
+  const resolvedPeriod = resolveScoringPeriod({
+    period,
+    schedule,
+    startDate: trimesterStartDate,
+  });
   const ranking = buildClassScoringRanking({
     students,
     days,
     rules,
     records,
-    trimesterStartDate,
+    period: resolvedPeriod || undefined,
     currentDate,
   });
   const rankingStudent = ranking.students.find((entry) => entry.studentId === student.id);
   if (!rankingStudent) return null;
 
-  const trimesterSlots = buildTrimesterSlots(trimesterStartDate);
-  const trimesterEndDate = trimesterSlots.at(-1) || null;
-  const trimesterSlotDates = new Set(trimesterSlots);
-  const effectiveEndDate = currentDate && trimesterEndDate && currentDate < trimesterEndDate
+  const periodSchedule = resolvedPeriod?.schedule || [];
+  const periodEndDate = resolvedPeriod?.endDate || null;
+  const periodScheduleDates = new Set(periodSchedule);
+  const effectiveEndDate = currentDate && periodEndDate && currentDate < periodEndDate
     ? currentDate
-    : trimesterEndDate;
-  const elapsedSaturdays = getElapsedTrimesterSaturdays(trimesterSlots, currentDate);
+    : periodEndDate;
   const validDays = [...days]
-    .filter((day) => trimesterSlotDates.has(day.day_date))
-    .filter((day) => day.day_date >= trimesterStartDate)
-    .filter((day) => day.day_date <= (effectiveEndDate || day.day_date))
+    .filter((day) => !resolvedPeriod || periodScheduleDates.has(day.day_date))
+    .filter((day) => !resolvedPeriod || day.day_date >= resolvedPeriod.startDate)
+    .filter((day) => resolvedPeriod
+      ? day.day_date <= (effectiveEndDate || resolvedPeriod.endDate)
+      : !currentDate || day.day_date <= currentDate)
     .sort((left, right) => left.day_date.localeCompare(right.day_date));
+  const timelineSlots = resolvedPeriod?.schedule || validDays.map((day) => day.day_date);
+  const elapsedSaturdays = resolvedPeriod && currentDate
+    ? getElapsedScoringPeriodSaturdays(resolvedPeriod, currentDate)
+    : timelineSlots.length;
   const validDayIds = new Set(validDays.map((day) => day.id));
   const dayByDate = new Map(validDays.map((day) => [day.day_date, day] as const));
+  const dayById = mapById(validDays);
   const ruleById = mapById(rules);
+  const studentById = mapById(students);
   const studentNameById = new Map(students.map((entry) => [entry.id, entry.full_name] as const));
 
   const recordsByDayId = new Map<string, StudentScoringDetailRecordInput[]>();
   const studentRecordByDayId = new Map<string, StudentScoringDetailRecordInput>();
   for (const record of records) {
     if (!validDayIds.has(record.day_id)) continue;
+    const recordDay = dayById.get(record.day_id);
+    const recordStudent = studentById.get(record.student_id);
+    if (
+      !recordDay
+      || !recordStudent
+      || !isScoringParticipantEligibleOnDate(recordStudent, recordDay.day_date)
+    ) {
+      continue;
+    }
     pushGrouped(recordsByDayId, record.day_id, record);
     if (record.student_id === student.id) {
       studentRecordByDayId.set(record.day_id, record);
@@ -409,12 +443,30 @@ export function buildStudentScoringDetail({
   const scoresByStudentDay = new Map<string, StudentScoringDetailScoreInput[]>();
   for (const score of scores) {
     if (!validDayIds.has(score.day_id)) continue;
+    const scoreDay = dayById.get(score.day_id);
+    const scoreStudent = studentById.get(score.student_id);
+    if (
+      !scoreDay
+      || !scoreStudent
+      || !isScoringParticipantEligibleOnDate(scoreStudent, scoreDay.day_date)
+    ) {
+      continue;
+    }
     pushGrouped(scoresByStudentDay, getStudentDayKey(score.student_id, score.day_id), score);
   }
 
   const disciplineEventsByRecordId = new Map<string, StudentScoringDetailDisciplineEventInput[]>();
   for (const event of disciplineEvents) {
     if (!validDayIds.has(event.day_id)) continue;
+    const eventDay = dayById.get(event.day_id);
+    const eventStudent = studentById.get(event.student_id);
+    if (
+      !eventDay
+      || !eventStudent
+      || !isScoringParticipantEligibleOnDate(eventStudent, eventDay.day_date)
+    ) {
+      continue;
+    }
     pushGrouped(disciplineEventsByRecordId, event.record_id, event);
   }
 
@@ -422,12 +474,13 @@ export function buildStudentScoringDetail({
   let extraActivityTotal = 0;
   let disciplinePenaltyTotal = 0;
 
-  const timeline = trimesterSlots.map<StudentScoringDetailWeek>((dayDate, index) => {
+  const timeline = timelineSlots.map<StudentScoringDetailWeek>((dayDate, index) => {
     const day = dayByDate.get(dayDate) || null;
     const dayId = day?.id || null;
     const classRecords = dayId ? recordsByDayId.get(dayId) || [] : [];
     const record = dayId ? studentRecordByDayId.get(dayId) || null : null;
-    const isElapsed = index < elapsedSaturdays;
+    const isEligible = isScoringParticipantEligibleOnDate(student, dayDate);
+    const isElapsed = index < elapsedSaturdays && isEligible;
     const classAverage = classRecords.length > 0
       ? roundTo(classRecords.reduce((sum, row) => sum + Number(row.total_points || 0), 0) / classRecords.length)
       : 0;
@@ -483,6 +536,7 @@ export function buildStudentScoringDetail({
       label: formatShortDayLabel(dayDate),
       fullLabel: formatFullDayLabel(dayDate),
       isElapsed,
+      isEligible,
       hasRecord: Boolean(record),
       recordId: record?.id || null,
       savedAt: record?.saved_at || null,
@@ -512,7 +566,8 @@ export function buildStudentScoringDetail({
 
   const categorySummaries = CATEGORIES.map((category) => {
     const points = categoryTotals.get(category) || 0;
-    const possiblePoints = (activePossibleByCategory.get(category) || 0) * ranking.summary.launchedSaturdays;
+    const possiblePoints = (activePossibleByCategory.get(category) || 0)
+      * rankingStudent.eligibleElapsedSaturdays;
 
     return {
       category,
@@ -535,11 +590,13 @@ export function buildStudentScoringDetail({
     .sort((left, right) => left.dayDate.localeCompare(right.dayDate));
   const auditLog = auditLogs
     .filter((entry) => !entry.student_id || entry.student_id === student.id)
+    .filter((entry) => !resolvedPeriod || Boolean(entry.day_id && validDayIds.has(entry.day_id)))
     .map(mapAuditLogEntry)
     .sort((left, right) => String(right.changedAt || "").localeCompare(String(left.changedAt || "")));
   const daysWithoutRecord = timeline.filter((week) => week.isElapsed && !week.hasRecord).length;
 
   return {
+    period: resolvedPeriod,
     student: {
       id: student.id,
       name: student.full_name,
@@ -553,11 +610,15 @@ export function buildStudentScoringDetail({
       totalPoints: rankingStudent.totalPoints,
       averagePoints: rankingStudent.averagePoints,
       recordedSaturdays: rankingStudent.recordedSaturdays,
-      launchedSaturdays: ranking.summary.launchedSaturdays,
+      launchedSaturdays: rankingStudent.eligibleElapsedSaturdays,
+      elapsedSaturdays: ranking.summary.elapsedSaturdays,
+      saturdaysWithRecords: ranking.summary.saturdaysWithRecords,
+      completeSaturdays: ranking.summary.completeSaturdays,
       totalSaturdays: ranking.summary.totalSaturdays,
       standardPossiblePerSaturday: ranking.summary.standardPossiblePerSaturday,
-      possiblePointsToDate: ranking.summary.possiblePointsToDate,
-      projectedPossiblePoints: ranking.summary.projectedPossiblePoints,
+      possiblePointsToDate: rankingStudent.possiblePoints,
+      projectedPossiblePoints: ranking.summary.standardPossiblePerSaturday
+        * rankingStudent.eligibleTotalSaturdays,
       progressPercent: rankingStudent.progressPercent,
       classAverageDelta: rankingStudent.classAverageDelta,
       pointsBehindPrevious: rankingStudent.pointsBehindPrevious,

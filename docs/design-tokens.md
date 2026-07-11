@@ -76,6 +76,16 @@ Attendance/student photo lists should use the polaroid contract: `polaroidTileCl
 
 Floating interactions should use `bottomSheetClass` for mobile-first sheets and `modalPanelClass` for blocking dialogs.
 
+## Scoring Period Patterns
+
+Quarter-aware screens must use the same shared patterns instead of creating route-specific controls:
+
+- `ScoringPeriodSelector`: a labeled, mobile-safe period selector using `compactInputClass`;
+- `ScoringPeriodStatusPanel`: a text-first status and completeness summary that distinguishes elapsed, with-record and completed Saturdays;
+- `ScoringPeriodAuditWorkbench`: a `surfaceClass` review surface with explicit pending, resolved and blocked states.
+
+Period state must never be conveyed by color alone. Use the canonical Portuguese labels `Programado`, `Em andamento`, `Encerrado - aguardando auditoria`, `Auditoria em andamento`, and `Auditado - somente leitura`. Corrections in an ended period must display a warning and require an explicit reason; audited periods render all mutation controls disabled or absent.
+
 ## Accessibility Baseline
 
 - Touch targets must be at least `44px`.

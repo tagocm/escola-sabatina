@@ -9,39 +9,34 @@ import {
   getClassWeeklyBibleVerseByWeek,
 } from "@/app/actions/classes";
 import { getAttendanceContext } from "@/app/actions/attendance";
-import { getStudents } from "@/app/actions/students";
-import { getScoringRules } from "@/app/actions/scoring";
+import {
+  getClassScoringPeriodContext,
+  getScoringPeriodOperationalMetrics,
+  getScoringPeriodRules,
+  getScoringPeriodStudents,
+} from "@/app/actions/scoring-periods";
 import Header from "@/components/ui/Header";
 import PageHeader from "@/components/ui/PageHeader";
 import AttendanceStudentLists from "@/components/ui/AttendanceStudentLists";
+import ScoringPeriodSelector from "@/components/ui/ScoringPeriodSelector";
+import ScoringPeriodStatusPanel from "@/components/ui/ScoringPeriodStatusPanel";
 import WeeklyBibleVerseStickyCard from "@/components/ui/WeeklyBibleVerseStickyCard";
 import ClassGallerySection from "@/components/ui/ClassGallerySection";
 import { pageMainClass, pageShellClass } from "@/components/ui/design-system";
 import type { AttendanceDisciplineEvent } from "@/lib/types/attendance";
+import { getScoringPeriodStatusLabel } from "@/lib/scoring/period-status";
 
 interface Params {
-  searchParams: Promise<{ d?: string }>;
+  searchParams: Promise<{ d?: string; period?: string }>;
 }
 
-function computeSaturday(input?: string) {
-  const baseDate = input ? new Date(`${input}T12:00:00`) : new Date();
-
-  if (Number.isNaN(baseDate.getTime())) {
-    return computeSaturday();
-  }
-
-  const saturday = new Date(baseDate);
-  saturday.setHours(12, 0, 0, 0);
-  saturday.setDate(saturday.getDate() + (6 - saturday.getDay()));
-
-  return `${saturday.getFullYear()}-${String(saturday.getMonth() + 1).padStart(2, "0")}-${String(saturday.getDate()).padStart(2, "0")}`;
-}
-
-function shiftSaturday(input: string, weeks: number) {
-  const [year, month, day] = input.split("-").map(Number);
-  const shiftedDate = new Date(year, month - 1, day + (weeks * 7), 12, 0, 0);
-
-  return `${shiftedDate.getFullYear()}-${String(shiftedDate.getMonth() + 1).padStart(2, "0")}-${String(shiftedDate.getDate()).padStart(2, "0")}`;
+function resolveScheduledSaturday(
+  requestedDate: string | undefined,
+  schedule: string[],
+  today: string,
+) {
+  if (requestedDate && schedule.includes(requestedDate)) return requestedDate;
+  return schedule.find((date) => date >= today) || schedule.at(-1) || null;
 }
 
 export default async function LancamentoFrequenciaPage({ searchParams }: Params) {
@@ -55,23 +50,45 @@ export default async function LancamentoFrequenciaPage({ searchParams }: Params)
   const classId = await getActiveClassContext();
   if (!classId) redirect("/classes");
 
-  const d = (await searchParams).d;
-  const saturdayStr = computeSaturday(d);
+  const query = await searchParams;
+  const periodContext = await getClassScoringPeriodContext(classId, {
+    periodId: query.period,
+    date: query.period ? null : query.d,
+  });
+  const selectedPeriod = periodContext.selectedPeriod;
 
-  if (d !== saturdayStr) {
-    redirect(`/relatorios/lancamento?d=${saturdayStr}`);
+  if (!selectedPeriod) {
+    return <div className="p-8 font-black uppercase">Nenhum período de pontuação foi configurado para esta classe.</div>;
+  }
+
+  const today = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+  const saturdayStr = resolveScheduledSaturday(query.d, selectedPeriod.schedule, today);
+
+  if (!saturdayStr) {
+    return <div className="p-8 font-black uppercase">O calendário deste período não possui sábados configurados.</div>;
+  }
+
+  if (query.d !== saturdayStr || query.period !== selectedPeriod.id) {
+    redirect(`/relatorios/lancamento?period=${selectedPeriod.id}&d=${saturdayStr}`);
   }
 
   const [tY, tM, tD] = saturdayStr.split("-").map(Number);
   const targetDate = new Date(tY, tM - 1, tD, 12, 0, 0);
-  const prevSat = shiftSaturday(saturdayStr, -1);
-  const nextSat = shiftSaturday(saturdayStr, 1);
+  const saturdayIndex = selectedPeriod.schedule.indexOf(saturdayStr);
+  const prevSat = selectedPeriod.schedule[Math.max(0, saturdayIndex - 1)] || saturdayStr;
+  const nextSat = selectedPeriod.schedule[Math.min(selectedPeriod.schedule.length - 1, saturdayIndex + 1)] || saturdayStr;
 
-  const [attendanceData, students, rules, weeklyBibleVerse] = await Promise.all([
-    getAttendanceContext(classId, saturdayStr),
-    getStudents(classId),
-    getScoringRules(classId),
+  const [attendanceData, students, rules, weeklyBibleVerse, periodMetrics] = await Promise.all([
+    getAttendanceContext(classId, saturdayStr, selectedPeriod.id),
+    getScoringPeriodStudents(classId, selectedPeriod.id, saturdayStr),
+    getScoringPeriodRules(classId, selectedPeriod.id),
     getClassWeeklyBibleVerseByWeek(classId, saturdayStr),
+    getScoringPeriodOperationalMetrics(classId, selectedPeriod.id),
   ]);
 
   if ("error" in attendanceData) {
@@ -82,8 +99,19 @@ export default async function LancamentoFrequenciaPage({ searchParams }: Params)
     attendanceData.records.map((record) => [record.student_id, record]),
   );
 
+  const periodRuleIds = new Set(rules.map((rule) => rule.id));
+  const declaredRuleIdBySourceId = new Map(
+    rules.flatMap((rule) => (
+      rule.variantKind === "declared" && rule.sourceRuleId
+        ? [[rule.sourceRuleId, rule.id] as const]
+        : []
+    )),
+  );
   const selectedRuleIdsByStudentId = attendanceData.scores.reduce<Record<string, string[]>>((acc, score) => {
-    acc[score.student_id] = [...(acc[score.student_id] || []), score.rule_id];
+    const selectedRuleId = score.period_rule_id && periodRuleIds.has(score.period_rule_id)
+      ? score.period_rule_id
+      : declaredRuleIdBySourceId.get(score.rule_id) || score.rule_id;
+    acc[score.student_id] = [...(acc[score.student_id] || []), selectedRuleId];
     return acc;
   }, {});
 
@@ -144,6 +172,7 @@ export default async function LancamentoFrequenciaPage({ searchParams }: Params)
     return {
       extraActivityPoints: record?.extra_activity_points ?? 0,
       disciplineEvents,
+      totalPoints: record ? Number((record as { total_points?: number | null }).total_points || 0) : null,
     };
   };
   const buildStudentListItem = (student: (typeof students)[number]) => {
@@ -155,6 +184,7 @@ export default async function LancamentoFrequenciaPage({ searchParams }: Params)
       initialSelectedRuleIds: selectedRuleIdsByStudentId[student.id] || [],
       initialExtraActivityPoints: adjustments.extraActivityPoints,
       initialDisciplineEvents: adjustments.disciplineEvents,
+      initialTotalPoints: adjustments.totalPoints,
     };
   };
   const pendingStudentItems = pendingStudents.map(buildStudentListItem);
@@ -176,7 +206,7 @@ export default async function LancamentoFrequenciaPage({ searchParams }: Params)
           />
 
           <div className="flex h-12 w-full shrink-0 overflow-hidden border-4 border-foreground bg-surface shadow-editorial-sm sm:w-auto">
-            <Link href={`?d=${prevSat}`} className="w-12 flex items-center justify-center border-r-4 border-foreground hover:bg-background transition-colors" title="Sábado Anterior">
+            <Link href={`?period=${selectedPeriod.id}&d=${prevSat}`} className="w-12 flex items-center justify-center border-r-4 border-foreground hover:bg-background transition-colors" title="Sábado Anterior">
               <ArrowLeft className="w-4 h-4 stroke-[3]" />
             </Link>
 
@@ -185,11 +215,31 @@ export default async function LancamentoFrequenciaPage({ searchParams }: Params)
               <span className="text-[11px] font-black uppercase tracking-tighter">{displayDate}</span>
             </div>
 
-            <Link href={`?d=${nextSat}`} className="w-12 flex items-center justify-center border-l-4 border-foreground hover:bg-background transition-colors" title="Próximo Sábado">
+            <Link href={`?period=${selectedPeriod.id}&d=${nextSat}`} className="w-12 flex items-center justify-center border-l-4 border-foreground hover:bg-background transition-colors" title="Próximo Sábado">
               <ArrowRight className="w-4 h-4 stroke-[3]" />
             </Link>
           </div>
         </div>
+
+        <ScoringPeriodSelector
+          periods={periodContext.periods.map((period) => ({
+            id: period.id,
+            label: period.label,
+            statusLabel: getScoringPeriodStatusLabel(period.status),
+          }))}
+          selectedPeriodId={selectedPeriod.id}
+          pathname="/relatorios/lancamento"
+          query={{ d: saturdayStr }}
+        />
+
+        <ScoringPeriodStatusPanel
+          periodName={selectedPeriod.label}
+          status={selectedPeriod.status}
+          elapsed={periodMetrics?.elapsed || 0}
+          withRecords={periodMetrics?.withRecords || 0}
+          complete={periodMetrics?.complete || 0}
+          expected={selectedPeriod.expectedSaturdays}
+        />
 
         <WeeklyBibleVerseStickyCard
           verse={weeklyBibleVerse}
@@ -203,10 +253,13 @@ export default async function LancamentoFrequenciaPage({ searchParams }: Params)
         <AttendanceStudentLists
           key={saturdayStr}
           classId={classId}
+          periodId={selectedPeriod.id}
           date={saturdayStr}
           rules={rules}
           pendingStudents={pendingStudentItems}
           savedStudents={savedStudentItems}
+          readOnly={!selectedPeriod.canWrite}
+          requiresChangeReason={selectedPeriod.requiresChangeReason}
         />
       </main>
     </div>

@@ -51,7 +51,7 @@ export default function ScoringSection({ classId, rules }: ScoringSectionProps) 
   };
 
   const handleDelete = (ruleId: string) => {
-    if (confirm("Tem certeza que deseja excluir este item?")) {
+    if (confirm("Desativar este item para os próximos períodos? Os históricos existentes serão preservados.")) {
       startTransition(async () => {
         await deleteScoringRule(classId, ruleId);
       });
@@ -89,6 +89,10 @@ export default function ScoringSection({ classId, rules }: ScoringSectionProps) 
           </button>
         </div>
       </div>
+
+      <p className="border-4 border-foreground bg-es-yellow px-4 py-3 text-[10px] font-black uppercase leading-relaxed tracking-[0.14em] shadow-editorial-sm">
+        Alterações nesta configuração valem para novos períodos. Regras já congeladas em um trimestre preservam o valor histórico usado na contagem.
+      </p>
 
       {(isAdding || editingRule) && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/25 p-3 backdrop-blur-[2px] md:items-center md:p-6">
@@ -177,9 +181,11 @@ export default function ScoringSection({ classId, rules }: ScoringSectionProps) 
                             handleDelete(rule.id);
                           }}
                           disabled={isPending}
+                          aria-label={`Desativar ${rule.name} para os próximos períodos`}
+                          title="Desativar para os próximos períodos"
                           className="p-1 hover:bg-es-orange transition-colors border-2 border-transparent hover:border-foreground"
                        >
-                          {isPending ? <ButtonLoader size="sm" label="Excluindo item" /> : <Trash2 className="w-4 h-4 text-foreground stroke-[2.5]" />}
+                          {isPending ? <ButtonLoader size="sm" label="Desativando item" /> : <Trash2 className="w-4 h-4 text-foreground stroke-[2.5]" />}
                        </button>
                      </div>
                    </div>

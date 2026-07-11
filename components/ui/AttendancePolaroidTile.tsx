@@ -17,6 +17,7 @@ interface AttendancePolaroidTileProps {
   status: "pending" | "saved";
   index: number;
   onSelect: (item: AttendanceStudentListItem) => void;
+  disabled?: boolean;
 }
 
 const ROTATIONS = ["-rotate-1", "rotate-[0.75deg]", "rotate-1", "-rotate-[0.5deg]"];
@@ -26,6 +27,7 @@ export default function AttendancePolaroidTile({
   status,
   index,
   onSelect,
+  disabled = false,
 }: AttendancePolaroidTileProps) {
   const photoSrc = getStudentPhotoSrc(item.student.id, item.student.photo_url);
   const displayName = formatAttendanceStudentName(item.student.full_name);
@@ -35,8 +37,13 @@ export default function AttendancePolaroidTile({
     <button
       type="button"
       onClick={() => onSelect(item)}
-      className={`group ${polaroidTileClass} touch-manipulation text-left active:shadow-editorial-hover focus:outline-none focus-visible:ring-4 focus-visible:ring-es-lilac ${ROTATIONS[index % ROTATIONS.length]}`}
-      aria-label={`Lançar pontos de ${item.student.full_name}`}
+      disabled={disabled}
+      className={`group ${polaroidTileClass} touch-manipulation text-left active:shadow-editorial-hover focus:outline-none focus-visible:ring-4 focus-visible:ring-es-lilac disabled:cursor-not-allowed disabled:opacity-60 ${ROTATIONS[index % ROTATIONS.length]}`}
+      aria-label={disabled
+        ? `Pontuação de ${item.student.full_name} bloqueada neste período`
+        : isSaved
+          ? `Revisar pontos de ${item.student.full_name}`
+          : `Lançar pontos de ${item.student.full_name}`}
     >
       <div className={polaroidMediaClass}>
         {photoSrc ? (

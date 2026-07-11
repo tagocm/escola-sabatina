@@ -15,7 +15,7 @@ export default function DeactivateStudentButton({
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     const confirmed = window.confirm(
-      `Deseja ocultar o cadastro de ${studentName}? O aluno ficará inativo para o responsável e poderá ser reativado pelo professor.`
+      `Deseja remover ${studentName} da sua lista de dependentes? A matrícula, a turma e a pontuação do aluno não serão alteradas.`
     );
 
     if (!confirmed) {
@@ -29,10 +29,10 @@ export default function DeactivateStudentButton({
       onClick={handleClick}
       disabled={pending}
       className="flex h-8 w-8 items-center justify-center border-2 border-foreground bg-surface/95 shadow-editorial-sm transition-all hover:bg-es-orange hover:shadow-editorial-hover"
-      title="Ocultar dependente"
-      aria-label={`Ocultar ${studentName}`}
+      title="Remover da minha lista"
+      aria-label={`Remover ${studentName} da minha lista de dependentes`}
     >
-      {pending ? <ButtonLoader size="sm" label={`Ocultando ${studentName}`} /> : <Trash2 className="w-3.5 h-3.5 stroke-[2.5]" />}
+      {pending ? <ButtonLoader size="sm" label={`Removendo ${studentName}`} /> : <Trash2 className="w-3.5 h-3.5 stroke-[2.5]" />}
     </button>
   );
 }

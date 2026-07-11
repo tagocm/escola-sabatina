@@ -311,6 +311,7 @@ export async function transferStudentsToClassAction(sourceClassId: string, formD
 
   const { supabase } = auth;
   const targetClassId = formData.get("targetClassId") as string | null;
+  const reason = String(formData.get("reason") || "").trim();
 
   if (!targetClassId) {
     return { error: "Selecione a classe de destino." };
@@ -320,16 +321,26 @@ export async function transferStudentsToClassAction(sourceClassId: string, formD
     return { error: "A classe de destino deve ser diferente da atual." };
   }
 
-  const { error } = await supabase
-    .from("students")
-    .update({ class_id: targetClassId })
-    .eq("class_id", sourceClassId)
-    .eq("is_active", true);
+  if (reason.length < 10) {
+    return { error: "Informe o motivo da mudança com pelo menos 10 caracteres." };
+  }
+
+  const { data: movedCount, error } = await supabase.rpc("move_active_students_to_class", {
+    p_source_class_id: sourceClassId,
+    p_target_class_id: targetClassId,
+    p_reason: reason,
+  });
 
   if (error) {
     console.error("Error transferring students:", error);
-    return { error: "Não foi possível transferir os alunos." };
+    const ownerMessage = "Somente o proprietário das duas turmas pode transferir os alunos.";
+    const periodMessage = "A turma de destino precisa ter um período aberto no mesmo trimestre da origem.";
+    const knownMessage = [ownerMessage, periodMessage]
+      .find((message) => error.message.includes(message));
+    return { error: knownMessage || "Não foi possível transferir os alunos." };
   }
+
+  if (Number(movedCount || 0) === 0) return { error: "Não há alunos ativos para transferir." };
 
   revalidatePath("/classes");
   revalidatePath(`/classes/${sourceClassId}`);

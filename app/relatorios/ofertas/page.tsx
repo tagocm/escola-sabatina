@@ -1,8 +1,14 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { getActiveClassContext, getClassById } from "@/app/actions/classes";
+import { getActiveClassContext } from "@/app/actions/classes";
 import { getAttendanceContext } from "@/app/actions/attendance";
+import {
+  getClassScoringPeriodContext,
+  getScoringPeriodOperationalMetrics,
+} from "@/app/actions/scoring-periods";
 import OfferingInput from "@/components/ui/OfferingInput";
+import ScoringPeriodSelector from "@/components/ui/ScoringPeriodSelector";
+import ScoringPeriodStatusPanel from "@/components/ui/ScoringPeriodStatusPanel";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, HandCoins, Target, Thermometer } from "lucide-react";
 import { format } from "date-fns";
@@ -10,23 +16,20 @@ import { ptBR } from "date-fns/locale";
 import Header from "@/components/ui/Header";
 import PageHeader from "@/components/ui/PageHeader";
 import { pageMainClass, pageShellClass } from "@/components/ui/design-system";
+import { getTodayInSaoPaulo } from "@/lib/calendar/sabbath-period";
+import { getScoringPeriodStatusLabel } from "@/lib/scoring/period-status";
 
 interface Params {
-  searchParams: Promise<{ d?: string }>;
+  searchParams: Promise<{ d?: string; period?: string }>;
 }
 
-function computeSaturday(input?: string) {
-  const baseDate = input ? new Date(`${input}T12:00:00`) : new Date();
-
-  if (Number.isNaN(baseDate.getTime())) {
-    return computeSaturday();
-  }
-
-  const saturday = new Date(baseDate);
-  saturday.setHours(12, 0, 0, 0);
-  saturday.setDate(saturday.getDate() + (6 - saturday.getDay()));
-
-  return `${saturday.getFullYear()}-${String(saturday.getMonth() + 1).padStart(2, "0")}-${String(saturday.getDate()).padStart(2, "0")}`;
+function resolveScheduledSaturday(
+  requestedDate: string | undefined,
+  schedule: string[],
+  today: string,
+) {
+  if (requestedDate && schedule.includes(requestedDate)) return requestedDate;
+  return schedule.find((date) => date >= today) || schedule.at(-1) || null;
 }
 
 export default async function LancamentoOfertasPage({ searchParams }: Params) {
@@ -40,47 +43,70 @@ export default async function LancamentoOfertasPage({ searchParams }: Params) {
   const classId = await getActiveClassContext();
   if (!classId) redirect("/classes");
 
-  const d = (await searchParams).d;
-  const saturdayStr = computeSaturday(d);
+  const query = await searchParams;
+  const periodContext = await getClassScoringPeriodContext(classId, {
+    periodId: query.period,
+    date: query.period ? null : query.d,
+  });
+  const selectedPeriod = periodContext.selectedPeriod;
 
-  if (d !== saturdayStr) {
-    redirect(`/relatorios/ofertas?d=${saturdayStr}`);
+  if (!selectedPeriod) {
+    return <div className="p-8 font-black uppercase">Nenhum período de pontuação foi configurado para esta classe.</div>;
+  }
+
+  const saturdayStr = resolveScheduledSaturday(
+    query.d,
+    selectedPeriod.schedule,
+    getTodayInSaoPaulo(),
+  );
+
+  if (!saturdayStr) {
+    return <div className="p-8 font-black uppercase">O calendário deste período não possui sábados configurados.</div>;
+  }
+
+  if (query.d !== saturdayStr || query.period !== selectedPeriod.id) {
+    redirect(`/relatorios/ofertas?period=${selectedPeriod.id}&d=${saturdayStr}`);
   }
 
   const dateStr = saturdayStr;
   const [tY, tM, tD] = saturdayStr.split("-").map(Number);
   const targetDate = new Date(tY, tM - 1, tD, 12, 0, 0);
+  const saturdayIndex = selectedPeriod.schedule.indexOf(saturdayStr);
+  const prevSat = selectedPeriod.schedule[Math.max(0, saturdayIndex - 1)] || saturdayStr;
+  const nextSat = selectedPeriod.schedule[
+    Math.min(selectedPeriod.schedule.length - 1, saturdayIndex + 1)
+  ] || saturdayStr;
 
-  const prevDate = new Date(tY, tM - 1, tD - 7, 12, 0, 0);
-  const nextDate = new Date(tY, tM - 1, tD + 7, 12, 0, 0);
-  const prevSat = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, "0")}-${String(prevDate.getDate()).padStart(2, "0")}`;
-  const nextSat = `${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, "0")}-${String(nextDate.getDate()).padStart(2, "0")}`;
-
-  const [attendanceData, classData] = await Promise.all([
-    getAttendanceContext(classId, dateStr),
-    getClassById(classId),
+  const [attendanceData, periodMetrics, offeringDaysResult] = await Promise.all([
+    getAttendanceContext(classId, dateStr, selectedPeriod.id),
+    getScoringPeriodOperationalMetrics(classId, selectedPeriod.id),
+    supabase
+      .from("attendance_days")
+      .select("day_date, total_offering")
+      .eq("class_id", classId)
+      .eq("period_id", selectedPeriod.id),
   ]);
-
-  const { data: offeringDays } = await supabase
-    .from("attendance_days")
-    .select("day_date, total_offering")
-    .eq("class_id", classId);
 
   if ("error" in attendanceData) {
     return <div className="p-8 font-black uppercase">Erro ao carregar dados de oferta: {attendanceData.error}</div>;
   }
 
+  if (offeringDaysResult.error) {
+    return <div className="p-8 font-black uppercase">Erro ao carregar o histórico de ofertas deste período.</div>;
+  }
+
   const displayDate = format(targetDate, "dd 'de' MMMM", { locale: ptBR });
-  const offeringGoal = Number(classData?.offering_goal || 0);
+  const offeringGoal = selectedPeriod.offeringGoalSnapshot;
   const totalOffering = Number(attendanceData.day?.total_offering || 0);
-  const accumulatedOffering = (offeringDays || []).reduce(
+  const accumulatedOffering = (offeringDaysResult.data || []).reduce(
     (sum, day) => sum + Number(day.total_offering || 0),
     0,
   );
-  const offeringHistory = (offeringDays || [])
+  const offeringHistory = (offeringDaysResult.data || [])
     .filter((day) => Number(day.total_offering || 0) > 0)
     .sort((a, b) => new Date(b.day_date).getTime() - new Date(a.day_date).getTime());
-  const trimesterGoal = offeringGoal * 13;
+  const expectedSaturdays = periodMetrics?.expected ?? selectedPeriod.expectedSaturdays;
+  const trimesterGoal = offeringGoal * expectedSaturdays;
   const thermometerProgress = trimesterGoal > 0 ? Math.min((accumulatedOffering / trimesterGoal) * 100, 100) : 0;
   const currencyFormatter = new Intl.NumberFormat("pt-BR", {
     style: "currency",
@@ -102,7 +128,7 @@ export default async function LancamentoOfertasPage({ searchParams }: Params) {
           />
 
           <div className="flex h-12 w-full shrink-0 overflow-hidden border-4 border-foreground bg-surface shadow-editorial-sm sm:w-auto">
-            <Link href={`?d=${prevSat}`} className="w-12 flex items-center justify-center border-r-4 border-foreground hover:bg-background transition-colors" title="Sábado Anterior">
+            <Link href={`?period=${selectedPeriod.id}&d=${prevSat}`} className="w-12 flex items-center justify-center border-r-4 border-foreground hover:bg-background transition-colors" title="Sábado Anterior">
               <ArrowLeft className="w-4 h-4 stroke-[3]" />
             </Link>
 
@@ -111,11 +137,31 @@ export default async function LancamentoOfertasPage({ searchParams }: Params) {
               <span className="text-[11px] font-black uppercase tracking-tighter">{displayDate}</span>
             </div>
 
-            <Link href={`?d=${nextSat}`} className="w-12 flex items-center justify-center border-l-4 border-foreground hover:bg-background transition-colors" title="Próximo Sábado">
+            <Link href={`?period=${selectedPeriod.id}&d=${nextSat}`} className="w-12 flex items-center justify-center border-l-4 border-foreground hover:bg-background transition-colors" title="Próximo Sábado">
               <ArrowRight className="w-4 h-4 stroke-[3]" />
             </Link>
           </div>
         </div>
+
+        <ScoringPeriodSelector
+          periods={periodContext.periods.map((period) => ({
+            id: period.id,
+            label: period.label,
+            statusLabel: getScoringPeriodStatusLabel(period.status),
+          }))}
+          selectedPeriodId={selectedPeriod.id}
+          pathname="/relatorios/ofertas"
+          query={{ d: saturdayStr }}
+        />
+
+        <ScoringPeriodStatusPanel
+          periodName={selectedPeriod.label}
+          status={selectedPeriod.status}
+          elapsed={periodMetrics?.elapsed || 0}
+          withRecords={periodMetrics?.withRecords || 0}
+          complete={periodMetrics?.complete || 0}
+          expected={expectedSaturdays}
+        />
 
         <section id="oferta-section" className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_1fr_1.15fr] md:gap-6">
           <div className="bg-surface border-4 border-foreground p-6 md:p-8 shadow-editorial flex flex-col gap-5 scroll-mt-24">
@@ -131,7 +177,15 @@ export default async function LancamentoOfertasPage({ searchParams }: Params) {
               </div>
             </div>
 
-            <OfferingInput classId={classId} date={dateStr} initialAmount={totalOffering} />
+            <OfferingInput
+              key={`${selectedPeriod.id}:${dateStr}:${totalOffering}`}
+              classId={classId}
+              periodId={selectedPeriod.id}
+              date={dateStr}
+              initialAmount={totalOffering}
+              readOnly={!selectedPeriod.canWrite}
+              requiresChangeReason={selectedPeriod.requiresChangeReason}
+            />
           </div>
 
           <div className="bg-surface border-4 border-foreground p-6 md:p-8 shadow-editorial flex flex-col gap-5">
@@ -165,7 +219,7 @@ export default async function LancamentoOfertasPage({ searchParams }: Params) {
               <div className="flex flex-col">
                 <h2 className="text-xl font-black uppercase tracking-tighter">Acumulado do Trimestre</h2>
                 <span className="text-[9px] font-bold text-foreground/40 uppercase tracking-widest">
-                  Meta do trimestre: meta por sábado x 13
+                  Meta do trimestre: meta por sábado x {expectedSaturdays}
                 </span>
               </div>
             </div>
@@ -199,7 +253,7 @@ export default async function LancamentoOfertasPage({ searchParams }: Params) {
             </div>
 
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] opacity-50">
-              O termômetro mostra o avanço acumulado da arrecadação da classe em relação à meta projetada para os 13 sábados do trimestre.
+              O termômetro mostra o avanço acumulado da arrecadação da classe em relação à meta projetada para os {expectedSaturdays} sábados deste período.
             </p>
           </div>
         </section>
@@ -208,7 +262,7 @@ export default async function LancamentoOfertasPage({ searchParams }: Params) {
           <div className="flex flex-col gap-1">
             <h2 className="text-2xl font-black uppercase tracking-tighter">Histórico das Ofertas</h2>
             <span className="text-[10px] font-bold text-foreground/40 uppercase tracking-[0.22em]">
-              Cada salvamento cria ou atualiza o lançamento do sábado selecionado
+              Lançamentos do período selecionado, separados dos demais trimestres
             </span>
           </div>
 

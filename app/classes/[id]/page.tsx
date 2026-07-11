@@ -101,7 +101,7 @@ export default async function EditarClassePage({ params }: Params) {
           <section className="flex flex-col gap-5">
             <div className="flex items-center gap-3">
                <div className="w-2 h-6 bg-es-yellow border-2 border-foreground" />
-               <h3 className="text-xl font-black uppercase tracking-tighter">Transferência de Trimestre</h3>
+               <h3 className="text-xl font-black uppercase tracking-tighter">Mudança de Classe</h3>
             </div>
             <div className={`${surfaceClass} p-4 md:p-8 lg:p-10`}>
               <ClassTransferForm

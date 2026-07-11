@@ -43,5 +43,23 @@
     "rationale": "The app is operated in class settings, often on mobile, so touch and focus states must be reliable.",
     "owner": "engineering",
     "date": "2026-05-30"
+  },
+  "scoring_period_governance": {
+    "value": "Classes are permanent and scoring periods are explicit, selectable, status-bearing records with an audit workflow",
+    "status": "confirmed",
+    "confidence": 1,
+    "source": "Approved quarterly scoring remediation plan",
+    "rationale": "Teachers must start a new count without losing access to a previous quarter that is still pending audit.",
+    "owner": "product",
+    "date": "2026-07-10"
+  },
+  "period_status_language": {
+    "value": "Programado, Em andamento, Encerrado - aguardando auditoria, Auditoria em andamento, and Auditado - somente leitura",
+    "status": "confirmed",
+    "confidence": 1,
+    "source": "Approved quarterly scoring remediation plan",
+    "rationale": "Operational and audit states must be understandable without relying on color alone.",
+    "owner": "product",
+    "date": "2026-07-10"
   }
 }

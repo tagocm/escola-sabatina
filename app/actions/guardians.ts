@@ -61,12 +61,13 @@ export async function deactivateGuardianStudent(studentId: string) {
   }
 
   const { error } = await supabase
-    .from("students")
-    .update({ is_active: false })
-    .eq("id", studentId);
+    .from("guardian_students")
+    .delete()
+    .eq("guardian_id", user.id)
+    .eq("student_id", studentId);
 
   if (error) {
-    throw new Error("Não foi possível ocultar o dependente.");
+    throw new Error("Não foi possível remover o dependente da sua lista.");
   }
 
   revalidatePath("/responsavel");
@@ -235,14 +236,19 @@ export async function getAvailableClasses() {
   return (data || []).filter(c => c.is_active);
 }
 
-export async function getGuardianClassOfferingSummary(studentId: string) {
+export async function getGuardianClassOfferingSummary(studentId: string, periodId?: string) {
   const auth = await requireGuardianAction();
   if ("error" in auth) return null;
 
   const { supabase } = auth;
-  const { data, error } = await supabase.rpc("get_guardian_class_offering_summary", {
-    p_student_id: studentId,
-  });
+  const { data, error } = periodId
+    ? await supabase.rpc("get_guardian_class_offering_summary_for_period", {
+        p_student_id: studentId,
+        p_period_id: periodId,
+      })
+    : await supabase.rpc("get_guardian_class_offering_summary", {
+        p_student_id: studentId,
+      });
 
   if (error) {
     console.error("Error fetching guardian class offering summary:", error);
@@ -317,17 +323,122 @@ export interface GuardianStudentProgressPoint {
   class_average: number;
   class_highest: number;
   class_size: number;
+  period_id?: string;
 }
 
-export async function getGuardianStudentProgress(studentId: string): Promise<GuardianStudentProgressPoint[]> {
+export interface GuardianStudentScoringPeriod {
+  id: string;
+  classId: string;
+  className: string | null;
+  label: string;
+  status: "draft" | "open" | "closed_pending_audit" | "audit_in_progress" | "audited_locked";
+  startDate: string;
+  endDate: string;
+  expectedSaturdays: number;
+  participantStatus: "active" | "inactive" | "pending_review" | "excluded";
+  joinedOn: string | null;
+  leftOn: string | null;
+}
+
+export async function getGuardianStudentScoringPeriods(
+  studentId: string,
+): Promise<GuardianStudentScoringPeriod[]> {
+  const auth = await requireGuardianAction();
+  if ("error" in auth) return [];
+
+  const { supabase } = auth;
+  const { data, error } = await supabase
+    .from("class_scoring_period_students")
+    .select(`
+      period_id,
+      status,
+      joined_on,
+      left_on,
+      class_scoring_periods!inner (
+        id,
+        class_id,
+        status,
+        classes (
+          name
+        ),
+        academic_terms!inner (
+          name,
+          start_date,
+          end_date,
+          expected_saturdays
+        )
+      )
+    `)
+    .eq("student_id", studentId)
+    .neq("status", "excluded");
+
+  if (error) {
+    console.error("Error fetching guardian scoring periods:", error);
+    return [];
+  }
+
+  return (data || []).flatMap((participant) => {
+    type PeriodRelation = {
+      id: string;
+      class_id: string;
+      status: GuardianStudentScoringPeriod["status"];
+      classes: { name: string } | Array<{ name: string }> | null;
+      academic_terms: {
+        name: string;
+        start_date: string;
+        end_date: string;
+        expected_saturdays: number;
+      } | Array<{
+        name: string;
+        start_date: string;
+        end_date: string;
+        expected_saturdays: number;
+      }> | null;
+    };
+    const periodRelation = participant.class_scoring_periods as unknown as
+      | PeriodRelation
+      | PeriodRelation[]
+      | null;
+    const period = Array.isArray(periodRelation) ? periodRelation[0] : periodRelation;
+    const periodClass = Array.isArray(period?.classes) ? period.classes[0] : period?.classes;
+    const term = Array.isArray(period?.academic_terms)
+      ? period.academic_terms[0]
+      : period?.academic_terms;
+    if (!period || !term) return [];
+
+    return [{
+      id: period.id,
+      classId: period.class_id,
+      className: periodClass?.name || null,
+      label: term.name,
+      status: period.status,
+      startDate: term.start_date,
+      endDate: term.end_date,
+      expectedSaturdays: term.expected_saturdays,
+      participantStatus: participant.status as GuardianStudentScoringPeriod["participantStatus"],
+      joinedOn: participant.joined_on,
+      leftOn: participant.left_on,
+    } satisfies GuardianStudentScoringPeriod];
+  }).sort((left, right) => right.startDate.localeCompare(left.startDate));
+}
+
+export async function getGuardianStudentProgress(
+  studentId: string,
+  periodId?: string,
+): Promise<GuardianStudentProgressPoint[]> {
   const auth = await requireGuardianAction();
   if ("error" in auth) return [];
 
   const { supabase } = auth;
 
-  const { data, error } = await supabase.rpc("get_guardian_student_progress", {
-    p_student_id: studentId,
-  });
+  const { data, error } = periodId
+    ? await supabase.rpc("get_guardian_student_progress_for_period", {
+        p_student_id: studentId,
+        p_period_id: periodId,
+      })
+    : await supabase.rpc("get_guardian_student_progress", {
+        p_student_id: studentId,
+      });
 
   if (error) {
     console.error("Error fetching guardian progress:", error);
