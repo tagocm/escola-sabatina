@@ -30,20 +30,40 @@ test("attendance reads do not create days and writes use the selected period", (
   assert.match(offeringBody, /savedOffering\.period_id !== selectedPeriod\.id/);
 });
 
-test("teacher report pages preserve period and date across the Q2/Q3 boundary", () => {
+test("attendance preserves the resolved period while class settings centralize period selection", () => {
   const launchPage = readSource("app/relatorios/lancamento/page.tsx");
+  const classPage = readSource("app/classes/[id]/page.tsx");
   const rankingPage = readSource("app/relatorios/pontuacao/page.tsx");
   const offeringPage = readSource("app/relatorios/ofertas/page.tsx");
 
-  for (const source of [launchPage, rankingPage, offeringPage]) {
+  for (const source of [rankingPage, offeringPage, classPage]) {
     assert.match(source, /getClassScoringPeriodContext/);
     assert.match(source, /ScoringPeriodSelector/);
   }
 
   assert.match(launchPage, /getAttendanceContext\(classId, saturdayStr, selectedPeriod\.id\)/);
   assert.match(launchPage, /getScoringPeriodStudents\(classId, selectedPeriod\.id, saturdayStr\)/);
+  assert.match(launchPage, /subtitle=\{selectedPeriod\.label\}/);
+  assert.doesNotMatch(launchPage, /Registro de presença e pontuação da classe na data selecionada/);
+  assert.doesNotMatch(launchPage, /ScoringPeriodSelector/);
+  assert.doesNotMatch(launchPage, /ScoringPeriodStatusPanel/);
+  assert.match(classPage, /ScoringPeriodStatusPanel/);
+  assert.match(classPage, /ScoringPeriodDateGrid/);
+  assert.match(classPage, /schedule=\{selectedPeriod\.schedule\}/);
+  assert.match(classPage, /pathname=\{`\/classes\/\$\{id\}`\}/);
   assert.match(offeringPage, /\.eq\("period_id", selectedPeriod\.id\)/);
   assert.match(rankingPage, /getClassScoringRanking\(classId, selectedPeriod\?\.id \|\| query\.period\)/);
+});
+
+test("class settings offer each scheduled Saturday as a direct period-aware record link", () => {
+  const dateGrid = readSource("components/ui/ScoringPeriodDateGrid.tsx");
+
+  assert.match(dateGrid, /schedule\.map/);
+  assert.match(dateGrid, /Sábado \{index \+ 1\}/);
+  assert.match(dateGrid, /pathname: "\/relatorios\/lancamento"/);
+  assert.match(dateGrid, /query: \{ period: periodId, d: date \}/);
+  assert.match(dateGrid, /canWrite/);
+  assert.match(dateGrid, /requiresChangeReason/);
 });
 
 test("guardian totals and class movement no longer imply a trimester rollover", () => {

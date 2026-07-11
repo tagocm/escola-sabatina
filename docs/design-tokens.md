@@ -82,6 +82,7 @@ Quarter-aware screens must use the same shared patterns instead of creating rout
 
 - `ScoringPeriodSelector`: a labeled, mobile-safe period selector using `compactInputClass`;
 - `ScoringPeriodStatusPanel`: a text-first status and completeness summary that distinguishes elapsed, with-record and completed Saturdays;
+- `ScoringPeriodDateGrid`: an ordered grid of the 13 Saturdays in the selected period. Each date is a keyboard-accessible, 44px-plus navigation target to its attendance record, with editability explained in text;
 - `ScoringPeriodAuditWorkbench`: a `surfaceClass` review surface with explicit pending, resolved and blocked states.
 
 Period state must never be conveyed by color alone. Use the canonical Portuguese labels `Programado`, `Em andamento`, `Encerrado - aguardando auditoria`, `Auditoria em andamento`, and `Auditado - somente leitura`. Corrections in an ended period must display a warning and require an explicit reason; audited periods render all mutation controls disabled or absent.

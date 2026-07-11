@@ -8,6 +8,10 @@ import {
   updateClassAction,
 } from "@/app/actions/classes";
 import { getScoringRules } from "@/app/actions/scoring";
+import {
+  getClassScoringPeriodContext,
+  getScoringPeriodOperationalMetrics,
+} from "@/app/actions/scoring-periods";
 import { getStudents } from "@/app/actions/students";
 import { notFound } from "next/navigation";
 import ScoringSection from "@/components/ui/ScoringSection";
@@ -22,14 +26,20 @@ import {
   getResponsibilityTemplates,
 } from "@/app/actions/responsibilities";
 import WeeklyBibleVerseSection from "@/components/ui/WeeklyBibleVerseSection";
+import ScoringPeriodSelector from "@/components/ui/ScoringPeriodSelector";
+import ScoringPeriodStatusPanel from "@/components/ui/ScoringPeriodStatusPanel";
+import ScoringPeriodDateGrid from "@/components/ui/ScoringPeriodDateGrid";
 import { pageMainClass, pageShellClass, surfaceClass } from "@/components/ui/design-system";
+import { getScoringPeriodStatusLabel } from "@/lib/scoring/period-status";
 
 interface Params {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ period?: string }>;
 }
 
-export default async function EditarClassePage({ params }: Params) {
+export default async function EditarClassePage({ params, searchParams }: Params) {
   const { id } = await params;
+  const query = await searchParams;
   const [
     classData,
     scoringRules,
@@ -38,6 +48,7 @@ export default async function EditarClassePage({ params }: Params) {
     classStudents,
     responsibilityTemplates,
     weeklyBibleVerses,
+    periodContext,
   ] = await Promise.all([
     getClassById(id),
     getScoringRules(id),
@@ -46,6 +57,7 @@ export default async function EditarClassePage({ params }: Params) {
     getStudents(id),
     getResponsibilityTemplates(id),
     getClassWeeklyBibleVerses(id),
+    getClassScoringPeriodContext(id, { periodId: query.period }),
   ]);
 
   if (!classData) {
@@ -59,6 +71,10 @@ export default async function EditarClassePage({ params }: Params) {
   const destinationClasses = (Array.isArray(classOptions) ? classOptions : [])
     .filter((cls: { id: string; is_active?: boolean }) => cls.id !== id && cls.is_active !== false);
   const transferableStudentCount = Array.isArray(classStudents) ? classStudents.length : 0;
+  const selectedPeriod = periodContext.selectedPeriod;
+  const periodMetrics = selectedPeriod
+    ? await getScoringPeriodOperationalMetrics(id, selectedPeriod.id)
+    : null;
 
   return (
     <div className={pageShellClass}>
@@ -110,6 +126,49 @@ export default async function EditarClassePage({ params }: Params) {
                 destinationClasses={destinationClasses}
                 action={transferAction}
               />
+            </div>
+          </section>
+
+          <section className="flex flex-col gap-5">
+            <div className="flex items-center gap-3">
+              <div className="h-6 w-2 border-2 border-foreground bg-es-lilac" />
+              <h3 className="text-xl font-black uppercase tracking-tighter text-foreground">
+                Período de Pontuação
+              </h3>
+            </div>
+
+            <div className={`${surfaceClass} flex flex-col gap-5 p-4 md:p-8 lg:p-10`}>
+              <ScoringPeriodSelector
+                periods={periodContext.periods.map((period) => ({
+                  id: period.id,
+                  label: period.label,
+                  statusLabel: getScoringPeriodStatusLabel(period.status),
+                }))}
+                selectedPeriodId={selectedPeriod?.id}
+                pathname={`/classes/${id}`}
+                emptyMessage="Nenhum período de pontuação foi configurado para esta turma."
+              />
+
+              {selectedPeriod && (
+                <>
+                  <ScoringPeriodStatusPanel
+                    periodName={selectedPeriod.label}
+                    status={selectedPeriod.status}
+                    elapsed={periodMetrics?.elapsed || 0}
+                    withRecords={periodMetrics?.withRecords || 0}
+                    complete={periodMetrics?.complete || 0}
+                    expected={selectedPeriod.expectedSaturdays}
+                  />
+
+                  <ScoringPeriodDateGrid
+                    periodId={selectedPeriod.id}
+                    periodName={selectedPeriod.label}
+                    schedule={selectedPeriod.schedule}
+                    canWrite={selectedPeriod.canWrite}
+                    requiresChangeReason={selectedPeriod.requiresChangeReason}
+                  />
+                </>
+              )}
             </div>
           </section>
 

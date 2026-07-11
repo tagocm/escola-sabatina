@@ -11,20 +11,16 @@ import {
 import { getAttendanceContext } from "@/app/actions/attendance";
 import {
   getClassScoringPeriodContext,
-  getScoringPeriodOperationalMetrics,
   getScoringPeriodRules,
   getScoringPeriodStudents,
 } from "@/app/actions/scoring-periods";
 import Header from "@/components/ui/Header";
 import PageHeader from "@/components/ui/PageHeader";
 import AttendanceStudentLists from "@/components/ui/AttendanceStudentLists";
-import ScoringPeriodSelector from "@/components/ui/ScoringPeriodSelector";
-import ScoringPeriodStatusPanel from "@/components/ui/ScoringPeriodStatusPanel";
 import WeeklyBibleVerseStickyCard from "@/components/ui/WeeklyBibleVerseStickyCard";
 import ClassGallerySection from "@/components/ui/ClassGallerySection";
 import { pageMainClass, pageShellClass } from "@/components/ui/design-system";
 import type { AttendanceDisciplineEvent } from "@/lib/types/attendance";
-import { getScoringPeriodStatusLabel } from "@/lib/scoring/period-status";
 
 interface Params {
   searchParams: Promise<{ d?: string; period?: string }>;
@@ -83,12 +79,11 @@ export default async function LancamentoFrequenciaPage({ searchParams }: Params)
   const prevSat = selectedPeriod.schedule[Math.max(0, saturdayIndex - 1)] || saturdayStr;
   const nextSat = selectedPeriod.schedule[Math.min(selectedPeriod.schedule.length - 1, saturdayIndex + 1)] || saturdayStr;
 
-  const [attendanceData, students, rules, weeklyBibleVerse, periodMetrics] = await Promise.all([
+  const [attendanceData, students, rules, weeklyBibleVerse] = await Promise.all([
     getAttendanceContext(classId, saturdayStr, selectedPeriod.id),
     getScoringPeriodStudents(classId, selectedPeriod.id, saturdayStr),
     getScoringPeriodRules(classId, selectedPeriod.id),
     getClassWeeklyBibleVerseByWeek(classId, saturdayStr),
-    getScoringPeriodOperationalMetrics(classId, selectedPeriod.id),
   ]);
 
   if ("error" in attendanceData) {
@@ -200,7 +195,7 @@ export default async function LancamentoFrequenciaPage({ searchParams }: Params)
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between md:gap-6">
           <PageHeader
             title="Lançar Frequência"
-            subtitle="Registro de presença e pontuação da classe na data selecionada"
+            subtitle={selectedPeriod.label}
             backHref="/"
             backLabel="Voltar ao Painel"
           />
@@ -220,26 +215,6 @@ export default async function LancamentoFrequenciaPage({ searchParams }: Params)
             </Link>
           </div>
         </div>
-
-        <ScoringPeriodSelector
-          periods={periodContext.periods.map((period) => ({
-            id: period.id,
-            label: period.label,
-            statusLabel: getScoringPeriodStatusLabel(period.status),
-          }))}
-          selectedPeriodId={selectedPeriod.id}
-          pathname="/relatorios/lancamento"
-          query={{ d: saturdayStr }}
-        />
-
-        <ScoringPeriodStatusPanel
-          periodName={selectedPeriod.label}
-          status={selectedPeriod.status}
-          elapsed={periodMetrics?.elapsed || 0}
-          withRecords={periodMetrics?.withRecords || 0}
-          complete={periodMetrics?.complete || 0}
-          expected={selectedPeriod.expectedSaturdays}
-        />
 
         <WeeklyBibleVerseStickyCard
           verse={weeklyBibleVerse}
