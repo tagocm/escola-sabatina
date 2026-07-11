@@ -28,13 +28,27 @@ test("tela de chamada busca o verso bíblico do sábado selecionado", () => {
   );
 });
 
-test("cartão do verso mostra a referência bíblica em negrito após o texto", () => {
-  const verseCard = readFileSync(
-    join(repoRoot, "components", "ui", "WeeklyBibleVerseStickyCard.tsx"),
+test("verso aparece apenas na confirmação contextual e exige uma resposta antes de pontuar", () => {
+  const attendancePage = readFileSync(
+    join(repoRoot, "app", "relatorios", "lancamento", "page.tsx"),
+    "utf8",
+  );
+  const scoringSheet = readFileSync(
+    join(repoRoot, "components", "ui", "AttendanceScoringSheet.tsx"),
+    "utf8",
+  );
+  const verseModal = readFileSync(
+    join(repoRoot, "components", "ui", "AttendanceVerseConfirmationModal.tsx"),
     "utf8",
   );
 
-  assert.match(verseCard, /\{verse\.verse_text\}/);
-  assert.match(verseCard, /<strong className="font-black">/);
-  assert.match(verseCard, /\{verse\.bible_book\} \{verse\.chapter_number\}:\{verse\.verse_reference\}/);
+  assert.doesNotMatch(attendancePage, /WeeklyBibleVerseStickyCard/);
+  assert.match(attendancePage, /weeklyBibleVerse=\{weeklyBibleVerse\}/);
+  assert.match(scoringSheet, /AttendanceVerseConfirmationModal/);
+  assert.match(scoringSheet, /rule\.name\.toLowerCase\(\)\.includes\("verso"\)/);
+  assert.match(scoringSheet, /setVerseRulePendingConfirmation\(rule\)/);
+  assert.match(verseModal, /Sabe/);
+  assert.match(verseModal, /Não sabe/);
+  assert.match(verseModal, /backdrop-blur/);
+  assert.match(verseModal, /\{verse\.bible_book\} \{verse\.chapter_number\}:\{verse\.verse_reference\}/);
 });

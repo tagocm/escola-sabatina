@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Check, Clock3, Search, X } from "lucide-react";
 import AttendancePolaroidTile from "@/components/ui/AttendancePolaroidTile";
 import AttendanceScoringSheet from "@/components/ui/AttendanceScoringSheet";
+import type { AttendanceWeeklyBibleVerse } from "@/components/ui/AttendanceVerseConfirmationModal";
 import {
   counterBadgeClass,
   fieldLabelClass,
@@ -24,6 +25,7 @@ interface AttendanceStudentListsProps {
   savedStudents: AttendanceStudentListItem[];
   readOnly?: boolean;
   requiresChangeReason?: boolean;
+  weeklyBibleVerse?: AttendanceWeeklyBibleVerse | null;
 }
 
 type SelectedStudent = {
@@ -48,6 +50,7 @@ export default function AttendanceStudentLists({
   savedStudents,
   readOnly = false,
   requiresChangeReason = false,
+  weeklyBibleVerse = null,
 }: AttendanceStudentListsProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [studentGroups, setStudentGroups] = useState({
@@ -227,6 +230,7 @@ export default function AttendanceStudentLists({
           isSaved={selectedStudent.status === "saved"}
           readOnly={readOnly}
           requiresChangeReason={requiresChangeReason}
+          weeklyBibleVerse={weeklyBibleVerse}
           onClose={() => setSelectedStudent(null)}
           onSaved={handleSaved}
         />

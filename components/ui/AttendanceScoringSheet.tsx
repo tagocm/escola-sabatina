@@ -6,6 +6,9 @@ import Image from "next/image";
 import { AlertTriangle, Check, Minus, Plus, Save, UserCircle, X } from "lucide-react";
 import { saveStudentAttendanceRecord } from "@/app/actions/attendance";
 import AttendanceDisciplinePenaltyModal from "@/components/ui/AttendanceDisciplinePenaltyModal";
+import AttendanceVerseConfirmationModal, {
+  type AttendanceWeeklyBibleVerse,
+} from "@/components/ui/AttendanceVerseConfirmationModal";
 import { ButtonLoader } from "@/components/ui/AppLoader";
 import { bottomSheetClass, fieldLabelClass, iconButtonClass } from "@/components/ui/design-system";
 import { getStudentPhotoSrc } from "@/lib/storage/student-photos";
@@ -25,6 +28,7 @@ interface AttendanceScoringSheetProps {
   isSaved: boolean;
   readOnly?: boolean;
   requiresChangeReason?: boolean;
+  weeklyBibleVerse?: AttendanceWeeklyBibleVerse | null;
   onClose: () => void;
   onSaved: (item: AttendanceStudentListItem) => void;
 }
@@ -71,6 +75,7 @@ export default function AttendanceScoringSheet({
   isSaved,
   readOnly = false,
   requiresChangeReason = false,
+  weeklyBibleVerse = null,
   onClose,
   onSaved,
 }: AttendanceScoringSheetProps) {
@@ -84,6 +89,7 @@ export default function AttendanceScoringSheet({
   );
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isDisciplineModalOpen, setIsDisciplineModalOpen] = useState(false);
+  const [verseRulePendingConfirmation, setVerseRulePendingConfirmation] = useState<AttendanceRule | null>(null);
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -91,7 +97,7 @@ export default function AttendanceScoringSheet({
     document.body.style.overflow = "hidden";
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
+      if (event.key === "Escape" && !isDisciplineModalOpen && !verseRulePendingConfirmation) {
         onClose();
       }
     };
@@ -101,7 +107,7 @@ export default function AttendanceScoringSheet({
       document.body.style.overflow = originalOverflow;
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [onClose]);
+  }, [isDisciplineModalOpen, onClose, verseRulePendingConfirmation]);
 
   const displayName = formatAttendanceStudentName(item.student.full_name);
   const photoSrc = getStudentPhotoSrc(item.student.id, item.student.photo_url);
@@ -169,6 +175,23 @@ export default function AttendanceScoringSheet({
 
       return [...withoutSameSource, ruleId];
     });
+  };
+
+  const handleVerseRule = (rule: AttendanceRule) => {
+    if (readOnly) return;
+
+    if (selectedIds.includes(rule.id)) {
+      handleToggleRule(rule.id);
+      return;
+    }
+
+    if (!weeklyBibleVerse) {
+      setSaveError("Cadastre o verso da semana antes de atribuir os pontos de verso.");
+      return;
+    }
+
+    setSaveError(null);
+    setVerseRulePendingConfirmation(rule);
   };
 
   const handleSave = () => {
@@ -319,7 +342,9 @@ export default function AttendanceScoringSheet({
                     <button
                       key={rule.id}
                       type="button"
-                      onClick={() => handleToggleRule(rule.id)}
+                      onClick={() => (rule.name.toLowerCase().includes("verso")
+                        ? handleVerseRule(rule)
+                        : handleToggleRule(rule.id))}
                       disabled={readOnly}
                       className={`relative flex min-h-[64px] flex-col justify-center border-4 border-foreground px-3 py-3 text-left shadow-editorial-sm transition-all active:translate-y-0.5 ${
                         isSelected ? `${colorClass} translate-y-0.5` : "bg-surface hover:bg-background"
@@ -520,6 +545,19 @@ export default function AttendanceScoringSheet({
             ]);
             setIsDisciplineModalOpen(false);
           }}
+        />
+      ) : null}
+
+      {verseRulePendingConfirmation && weeklyBibleVerse ? (
+        <AttendanceVerseConfirmationModal
+          studentName={displayName.compactName}
+          verse={weeklyBibleVerse}
+          points={verseRulePendingConfirmation.points}
+          onKnow={() => {
+            handleToggleRule(verseRulePendingConfirmation.id);
+            setVerseRulePendingConfirmation(null);
+          }}
+          onDontKnow={() => setVerseRulePendingConfirmation(null)}
         />
       ) : null}
     </div>

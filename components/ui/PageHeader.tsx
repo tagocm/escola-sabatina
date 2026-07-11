@@ -32,12 +32,12 @@ export default function PageHeader({
         <h1 className="text-[clamp(2rem,9vw,3.25rem)] font-black uppercase tracking-tighter leading-none text-foreground">
           {title}
         </h1>
-        <div className="mt-1 flex max-w-2xl flex-wrap items-center gap-x-3 gap-y-2">
-          <p className="text-[10px] font-bold uppercase leading-relaxed tracking-[0.16em] opacity-40 md:text-[11px]">
+        <div className="mt-1 flex w-full max-w-3xl items-center gap-3">
+          <p className="min-w-0 flex-1 text-[10px] font-bold uppercase leading-relaxed tracking-[0.16em] opacity-40 md:text-[11px]">
             {subtitle}
           </p>
           {subtitleAccessory ? (
-            <div className="shrink-0">{subtitleAccessory}</div>
+            <div className="ml-auto shrink-0">{subtitleAccessory}</div>
           ) : null}
         </div>
       </div>

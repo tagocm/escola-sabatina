@@ -17,7 +17,6 @@ import {
 import Header from "@/components/ui/Header";
 import PageHeader from "@/components/ui/PageHeader";
 import AttendanceStudentLists from "@/components/ui/AttendanceStudentLists";
-import WeeklyBibleVerseStickyCard from "@/components/ui/WeeklyBibleVerseStickyCard";
 import ClassGallerySection from "@/components/ui/ClassGallerySection";
 import { pageMainClass, pageShellClass } from "@/components/ui/design-system";
 import type { AttendanceDisciplineEvent } from "@/lib/types/attendance";
@@ -222,10 +221,6 @@ export default async function LancamentoFrequenciaPage({ searchParams }: Params)
           </div>
         </div>
 
-        <WeeklyBibleVerseStickyCard
-          verse={weeklyBibleVerse}
-        />
-
         <AttendanceStudentLists
           key={saturdayStr}
           classId={classId}
@@ -236,6 +231,7 @@ export default async function LancamentoFrequenciaPage({ searchParams }: Params)
           savedStudents={savedStudentItems}
           readOnly={!selectedPeriod.canWrite}
           requiresChangeReason={selectedPeriod.requiresChangeReason}
+          weeklyBibleVerse={weeklyBibleVerse}
         />
       </main>
     </div>
