@@ -4,6 +4,7 @@ import { useTransition, useState } from "react";
 import { ArrowRight, AlertTriangle } from "lucide-react";
 import { signUpWithInvite } from "@/app/actions/auth";
 import { ButtonLoader } from "@/components/ui/AppLoader";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import {
   alertClass,
   compactInputClass,
@@ -49,10 +50,10 @@ export default function InviteSignUpForm({ token }: { token: string }) {
           <input name="email" type="email" required placeholder="EMAIL@EXEMPLO.COM" className={compactInputClass} />
         </div>
         <div className="flex flex-col gap-1 md:col-span-2">
-          <label className={fieldLabelClass}>Senha</label>
-          <input
+          <label className={fieldLabelClass} htmlFor="invite-password">Senha</label>
+          <PasswordInput
+            id="invite-password"
             name="password"
-            type="password"
             required
             minLength={6}
             maxLength={6}

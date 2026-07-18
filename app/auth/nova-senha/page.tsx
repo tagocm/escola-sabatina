@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AlertTriangle, ArrowRight, CheckCircle2, KeyRound } from "lucide-react";
 import { updatePasswordAfterReset } from "@/app/actions/auth";
 import { ButtonLoader } from "@/components/ui/AppLoader";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 
 type FormMessage = {
   type: "success" | "error";
@@ -70,11 +71,10 @@ export default function NewPasswordPage() {
           <label className="text-sm font-black uppercase tracking-widest" htmlFor="password">
             Senha
           </label>
-          <input
+          <PasswordInput
             disabled={isPending || message?.type === "success"}
             id="password"
             name="password"
-            type="password"
             required
             minLength={6}
             maxLength={6}
@@ -91,11 +91,11 @@ export default function NewPasswordPage() {
           <label className="text-sm font-black uppercase tracking-widest" htmlFor="confirmPassword">
             Confirmar senha
           </label>
-          <input
+          <PasswordInput
             disabled={isPending || message?.type === "success"}
             id="confirmPassword"
             name="confirmPassword"
-            type="password"
+            visibilityLabel="confirmação de senha"
             required
             minLength={6}
             maxLength={6}

@@ -44,6 +44,15 @@
     "owner": "engineering",
     "date": "2026-05-30"
   },
+  "password_visibility_control": {
+    "value": "Every password field uses the shared PasswordInput control, with an in-field 44px show or hide button, a dynamic accessible name, and no changes to validation or submitted values.",
+    "status": "confirmed",
+    "confidence": 1,
+    "source": "User request on 2026-07-18",
+    "rationale": "People must be able to verify exactly what they typed while password fields remain masked by default.",
+    "owner": "product",
+    "date": "2026-07-18"
+  },
   "scoring_period_governance": {
     "value": "Classes are permanent and scoring periods are explicit, selectable, status-bearing records with an audit workflow",
     "status": "confirmed",

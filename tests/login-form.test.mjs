@@ -6,7 +6,7 @@ const loginSource = readFileSync(new URL("../app/(auth)/login/page.tsx", import.
 const authActionSource = readFileSync(new URL("../app/actions/auth.ts", import.meta.url), "utf8");
 
 function getInputSource(id) {
-  const inputs = loginSource.match(/<input[\s\S]*?\n\s*\/>/g) || [];
+  const inputs = loginSource.match(/<(?:input|PasswordInput)[\s\S]*?\n\s*\/>/g) || [];
   const input = inputs.find((candidate) => candidate.includes(`id="${id}"`));
   assert.ok(input, `input ${id} should exist`);
   return input;

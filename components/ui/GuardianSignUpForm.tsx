@@ -5,6 +5,7 @@ import { signUpAsGuardian } from "@/app/actions/auth";
 import { useRouter } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { ButtonLoader } from "@/components/ui/AppLoader";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import {
   fieldLabelClass,
   primaryActionCenteredBlockClass,
@@ -55,10 +56,10 @@ export default function GuardianSignUpForm() {
       </div>
 
       <div className="flex flex-col gap-2">
-        <label className={fieldLabelClass}>Senha</label>
-        <input
+        <label className={fieldLabelClass} htmlFor="guardian-password">Senha</label>
+        <PasswordInput
+          id="guardian-password"
           name="password"
-          type="password"
           required
           minLength={6}
           maxLength={6}

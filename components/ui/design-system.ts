@@ -35,6 +35,8 @@ export const pageTitleClass = componentTokens.typography.pageTitle.className;
 
 export const textInputClass = componentTokens.field.text.className;
 
+export const passwordInputClass = componentTokens.field.passwordInput.className;
+
 export const compactInputClass = componentTokens.field.compact.className;
 
 export const mutedInputClass = componentTokens.field.muted.className;
@@ -58,6 +60,8 @@ export const secondaryActionWideClass = `w-full sm:w-1/3 ${secondaryActionClass}
 export const inlinePrimaryActionClass = `${componentTokens.button.primaryCentered.className} cursor-pointer`;
 
 export const iconButtonClass = componentTokens.button.icon.className;
+
+export const passwordToggleClass = componentTokens.button.passwordToggle.className;
 
 export const interactiveTargetClass = componentTokens.interactive.target.className;
 

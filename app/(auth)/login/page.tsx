@@ -8,6 +8,7 @@ import * as z from "zod";
 import { signInWithPassword } from "@/app/actions/auth";
 import { ArrowRight, AlertTriangle } from "lucide-react";
 import { ButtonLoader } from "@/components/ui/AppLoader";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import Link from "next/link";
 
 // Validações
@@ -93,11 +94,10 @@ export default function LoginPage() {
               )}
             </label>
           </div>
-          <input
+          <PasswordInput
             {...form.register("password")}
             disabled={isPending}
             id="password"
-            type="password"
             autoComplete="current-password"
             autoCapitalize="none"
             autoCorrect="off"

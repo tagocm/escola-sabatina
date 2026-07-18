@@ -22,6 +22,8 @@ Prefer exported contracts:
 - `stickySearchBarClass`, `bottomSheetClass`, `modalPanelClass`;
 - `statusBadgeClass`, `counterBadgeClass`.
 
+Use `PasswordInput` for every password field. It keeps the value masked by default and provides the governed 44px accessible show/hide control; do not recreate password visibility toggles inside individual forms.
+
 For quarter-aware scoring flows, reuse `ScoringPeriodSelector`, `ScoringPeriodStatusPanel` and `ScoringPeriodAuditWorkbench`. Always show the period name and written status together; ended periods warn before correction and audited periods are read-only.
 
 In the attendance header, keep quick operational actions as 44px icon controls. The offering action belongs immediately before the camera action and opens a compact accessible dialog for the selected Saturday. Focus and select the currency field when it is writable, always expose explicit `Cancelar` and `Salvar` actions, and reuse the period-aware offering action so closed and audited period rules remain intact.

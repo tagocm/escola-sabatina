@@ -200,6 +200,9 @@ export const designTokens = {
       text: {
         className: "w-full h-12 px-4 bg-surface border-4 border-foreground text-foreground font-black uppercase tracking-[0.08em] outline-none focus:shadow-editorial-sm focus-visible:ring-4 focus-visible:ring-es-lilac transition-all text-base md:h-11 md:text-sm",
       },
+      passwordInput: {
+        className: "min-h-11 pr-16!",
+      },
       compact: {
         className: "w-full h-12 px-4 bg-surface border-4 border-foreground text-foreground font-bold uppercase outline-none focus:bg-es-lilac/10 focus-visible:ring-4 focus-visible:ring-es-lilac transition-colors text-base md:h-10 md:text-sm",
       },
@@ -222,6 +225,9 @@ export const designTokens = {
       },
       icon: {
         className: "flex h-11 w-11 items-center justify-center border-4 border-foreground bg-surface shadow-editorial-sm transition-colors hover:bg-background",
+      },
+      passwordToggle: {
+        className: "absolute right-1 top-1/2 flex h-11 w-11 -translate-y-1/2 touch-manipulation items-center justify-center bg-surface text-foreground transition-colors hover:bg-background focus:outline-none focus-visible:ring-4 focus-visible:ring-es-lilac disabled:cursor-not-allowed disabled:opacity-50",
       },
     },
     interactive: {
