@@ -3,6 +3,7 @@ import type { CookieOptions } from '@supabase/ssr';
 import type { WebSocketLikeConstructor } from '@supabase/realtime-js';
 import { NextResponse, type NextRequest } from 'next/server';
 import WebSocket from 'ws';
+import { isAccountUnderReview } from '@/lib/auth/account-review';
 
 const webSocketTransport = WebSocket as unknown as WebSocketLikeConstructor;
 type CookieToSet = { name: string; value: string; options: CookieOptions };
@@ -82,6 +83,17 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (user) {
+    if (
+      isAccountUnderReview(user) &&
+      request.nextUrl.pathname !== '/conta-em-averiguacao' &&
+      !request.nextUrl.pathname.startsWith('/auth')
+    ) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/conta-em-averiguacao';
+      url.search = '';
+      return NextResponse.redirect(url);
+    }
+
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')

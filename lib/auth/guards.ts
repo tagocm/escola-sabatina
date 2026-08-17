@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { isAccountUnderReview } from "@/lib/auth/account-review";
 
 export type AppRole = "teacher" | "guardian" | null;
 
@@ -23,6 +24,10 @@ export async function requireTeacherPage() {
 
   if (!user) {
     redirect("/login");
+  }
+
+  if (isAccountUnderReview(user)) {
+    redirect("/conta-em-averiguacao");
   }
 
   const role = await resolveRole(supabase, user.id);
@@ -59,6 +64,10 @@ export async function requireTeacherAction() {
 
   if (!user) {
     return { error: "Não autenticado." } as const;
+  }
+
+  if (isAccountUnderReview(user)) {
+    return { error: "A conta está suspensa para averiguação." } as const;
   }
 
   const role = await resolveRole(supabase, user.id);

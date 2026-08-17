@@ -39,6 +39,8 @@ export default function LoginPage() {
       
       if (result?.error) {
         setErrorMsg(result.error);
+      } else if (result?.accountUnderReview) {
+        router.push("/conta-em-averiguacao");
       } else {
         router.push("/");
       }

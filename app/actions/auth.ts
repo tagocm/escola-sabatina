@@ -5,6 +5,7 @@ import type { WebSocketLikeConstructor } from "@supabase/realtime-js";
 import { createClient } from "@/lib/supabase/server";
 import { headers } from "next/headers";
 import WebSocket from "ws";
+import { isAccountUnderReview } from "@/lib/auth/account-review";
 
 const webSocketTransport = WebSocket as unknown as WebSocketLikeConstructor;
 
@@ -178,7 +179,7 @@ export async function signInWithPassword(formData: FormData) {
 
   const supabase = await createClient();
 
-  const { error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
   });
@@ -187,7 +188,10 @@ export async function signInWithPassword(formData: FormData) {
     return { error: "E-mail ou senha inválidos." };
   }
   
-  return { success: true };
+  return {
+    success: true,
+    accountUnderReview: isAccountUnderReview(data.user),
+  };
 }
 
 export async function requestPasswordReset(formData: FormData) {

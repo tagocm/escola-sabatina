@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Users, Calendar, ArrowUpRight, HandCoins, CalendarCheck2, Trophy } from "lucide-react";
 import { getUserRole } from "@/app/actions/guardians";
 import { pageMainClass, pageShellClass } from "@/components/ui/design-system";
+import { isAccountUnderReview } from "@/lib/auth/account-review";
 
 const cardTitleClass = "text-[22px] md:text-[24px] font-black text-foreground tracking-tighter uppercase leading-none";
 const cardDescriptionClass = "mt-4 border-t-4 border-foreground pt-4 text-[11px] md:text-[12px] font-bold uppercase leading-tight tracking-wide text-foreground";
@@ -15,6 +16,10 @@ export default async function Home() {
 
   if (!user) {
     redirect("/login");
+  }
+
+  if (isAccountUnderReview(user)) {
+    redirect("/conta-em-averiguacao");
   }
 
   // Guardian redirect: send to dedicated area
