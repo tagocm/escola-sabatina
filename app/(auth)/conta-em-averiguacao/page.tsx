@@ -35,9 +35,6 @@ export default function AccountUnderReviewPage() {
 
         <div className="flex flex-col gap-6 px-5 py-7 sm:px-10 sm:py-9">
           <div className="flex flex-col gap-3">
-            <p className="text-xl font-black uppercase tracking-tight sm:text-2xl">
-              Ana Paula Lopes
-            </p>
             <p id="review-description" className="max-w-2xl text-base font-bold leading-relaxed sm:text-lg">
               O acesso desta conta foi temporariamente suspenso para uma conferência de segurança.
               Seus dados permanecem preservados durante a análise.
