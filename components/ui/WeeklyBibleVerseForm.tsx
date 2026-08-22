@@ -108,6 +108,9 @@ export default function WeeklyBibleVerseForm({
             defaultValue={initialData?.week_date || getUpcomingSaturdayInput()}
             className={`${compactInputClass} disabled:opacity-50`}
           />
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-foreground/45">
+            Selecione o sábado exato da frequência. A data não será avançada automaticamente.
+          </p>
         </div>
 
         <div className="flex flex-col gap-2">

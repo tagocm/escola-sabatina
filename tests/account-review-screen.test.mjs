@@ -20,3 +20,26 @@ test("the reviewed account is routed to the warning after sign-in", () => {
   assert.match(authSource, /accountUnderReview/);
   assert.match(loginSource, /\/conta-em-averiguacao/);
 });
+
+test("the security hold targets both exact teacher accounts and no guardian account", () => {
+  const reviewSource = readSource("lib/auth/account-review.ts");
+  const migrationSource = readSource(
+    "supabase/migrations/20260822001618_extend_teacher_account_review_hold.sql",
+  );
+
+  for (const teacherId of [
+    "51cc1e11-a35d-4bf3-aa62-78974accb2cb",
+    "5b93da5f-9d96-4f58-9d18-5d26d89bf409",
+  ]) {
+    assert.match(reviewSource, new RegExp(teacherId));
+    assert.match(migrationSource, new RegExp(teacherId));
+  }
+
+  for (const guardianId of [
+    "76e5f97d-7c62-42cd-8937-434c1fc9750c",
+    "237e0163-0204-4c1a-bf01-d338b310e044",
+  ]) {
+    assert.doesNotMatch(reviewSource, new RegExp(guardianId));
+    assert.doesNotMatch(migrationSource, new RegExp(guardianId));
+  }
+});

@@ -1,6 +1,7 @@
 "use server";
 
 import { requireTeacherAction } from "@/lib/auth/guards";
+import { isDateOnly, isSaturdayDate } from "@/lib/calendar/sabbath-period";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -30,16 +31,11 @@ function parsePositiveInt(value: FormDataEntryValue | null) {
 
 function normalizeWeekDateInput(value: FormDataEntryValue | null) {
   const raw = String(value || "").trim();
-  if (!raw) return null;
+  if (!raw || !isDateOnly(raw) || !isSaturdayDate(raw)) return null;
 
-  const baseDate = new Date(`${raw}T12:00:00`);
-  if (Number.isNaN(baseDate.getTime())) return null;
-
-  const saturday = new Date(baseDate);
-  saturday.setHours(12, 0, 0, 0);
-  saturday.setDate(saturday.getDate() + (6 - saturday.getDay()));
-
-  return `${saturday.getFullYear()}-${String(saturday.getMonth() + 1).padStart(2, "0")}-${String(saturday.getDate()).padStart(2, "0")}`;
+  // A verse is keyed to the exact Sabbath used by the attendance screen.
+  // Do not silently roll another weekday forward to the following Sabbath.
+  return raw;
 }
 
 function isUniqueConstraintError(error: { code?: string } | null) {
@@ -178,7 +174,7 @@ export async function saveClassWeeklyBibleVerseAction(classId: string, formData:
   const verseReference = String(formData.get("verse_reference") || "").trim();
 
   if (!weekDate) {
-    return { error: "Selecione uma semana válida para o verso." };
+    return { error: "Selecione o sábado exato da semana para o verso." };
   }
 
   if (!verseText || !bibleBook || !chapterNumber || !verseReference) {
