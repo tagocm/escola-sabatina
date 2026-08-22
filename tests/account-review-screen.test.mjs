@@ -21,19 +21,19 @@ test("the reviewed account is routed to the warning after sign-in", () => {
   assert.match(loginSource, /\/conta-em-averiguacao/);
 });
 
-test("the security hold targets both exact teacher accounts and no guardian account", () => {
+test("the restored Tiago account is no longer under review", () => {
   const reviewSource = readSource("lib/auth/account-review.ts");
   const migrationSource = readSource(
-    "supabase/migrations/20260822001618_extend_teacher_account_review_hold.sql",
+    "supabase/migrations/20260822120338_restore_tiago_teacher_account_access.sql",
   );
 
-  for (const teacherId of [
-    "51cc1e11-a35d-4bf3-aa62-78974accb2cb",
-    "5b93da5f-9d96-4f58-9d18-5d26d89bf409",
-  ]) {
-    assert.match(reviewSource, new RegExp(teacherId));
-    assert.match(migrationSource, new RegExp(teacherId));
-  }
+  const remainingReviewedTeacherId = "51cc1e11-a35d-4bf3-aa62-78974accb2cb";
+  const restoredTiagoTeacherId = "5b93da5f-9d96-4f58-9d18-5d26d89bf409";
+
+  assert.match(reviewSource, new RegExp(remainingReviewedTeacherId));
+  assert.match(migrationSource, new RegExp(remainingReviewedTeacherId));
+  assert.doesNotMatch(reviewSource, new RegExp(restoredTiagoTeacherId));
+  assert.doesNotMatch(migrationSource, new RegExp(restoredTiagoTeacherId));
 
   for (const guardianId of [
     "76e5f97d-7c62-42cd-8937-434c1fc9750c",
