@@ -14,7 +14,7 @@ export interface AttendanceWeeklyBibleVerse {
 
 interface AttendanceVerseConfirmationModalProps {
   studentName: string;
-  verse: AttendanceWeeklyBibleVerse;
+  verse: AttendanceWeeklyBibleVerse | null;
   points: number;
   onKnow: () => void;
   onDontKnow: () => void;
@@ -71,12 +71,18 @@ export default function AttendanceVerseConfirmationModal({
         </div>
 
         <div className="flex flex-col gap-5 p-4 md:p-5">
-          <blockquote className="border-4 border-foreground bg-background p-4 text-sm font-semibold leading-relaxed">
-            {verse.verse_text}{" "}
-            <strong className="font-black">
-              {verse.bible_book} {verse.chapter_number}:{verse.verse_reference}
-            </strong>
-          </blockquote>
+          {verse ? (
+            <blockquote className="border-4 border-foreground bg-background p-4 text-sm font-semibold leading-relaxed">
+              {verse.verse_text}{" "}
+              <strong className="font-black">
+                {verse.bible_book} {verse.chapter_number}:{verse.verse_reference}
+              </strong>
+            </blockquote>
+          ) : (
+            <p className="border-4 border-foreground bg-background p-4 text-sm font-semibold leading-relaxed">
+              Confirme se o aluno sabe o verso. Você pode atribuir os pontos mesmo sem o texto cadastrado.
+            </p>
+          )}
 
           <p className="text-center text-[10px] font-black uppercase tracking-[0.16em] opacity-50">
             A resposta define se {points} {points === 1 ? "ponto será adicionado" : "pontos serão adicionados"}.
@@ -107,3 +113,4 @@ export default function AttendanceVerseConfirmationModal({
 
   return createPortal(modal, document.body);
 }
+

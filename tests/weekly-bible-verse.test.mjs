@@ -5,7 +5,7 @@ import test from "node:test";
 
 const repoRoot = process.cwd();
 
-test("tela de chamada exibe no sábado seguinte o verso cadastrado para a semana", () => {
+test("tela de chamada exibe o verso cadastrado para o mesmo sábado da frequência", () => {
   const attendancePageSource = readFileSync(
     join(repoRoot, "app", "relatorios", "lancamento", "page.tsx"),
     "utf8",
@@ -13,18 +13,13 @@ test("tela de chamada exibe no sábado seguinte o verso cadastrado para a semana
 
   assert.match(
     attendancePageSource,
-    /const\s+verseWeekStr\s*=\s*addDaysToDateOnly\(saturdayStr,\s*-7\)/,
-    "attendance page should resolve the verse from the preceding weekly reference",
-  );
-  assert.match(
-    attendancePageSource,
-    /getClassWeeklyBibleVerseByWeek\(classId,\s*verseWeekStr\)/,
-    "attendance page should show that verse on the following sabbath",
+    /getClassWeeklyBibleVerseByWeek\(classId,\s*saturdayStr\)/,
+    "attendance and verse registration must use the same class and exact Sabbath",
   );
   assert.doesNotMatch(
     attendancePageSource,
-    /getClassWeeklyBibleVerseByWeek\(classId,\s*saturdayStr\)/,
-    "attendance page should not show the verse one sabbath too early",
+    /addDaysToDateOnly\(saturdayStr,\s*-7\)/,
+    "attendance must not silently look for a different week's verse",
   );
 });
 
@@ -65,8 +60,20 @@ test("verso aparece apenas na confirmação contextual e exige uma resposta ante
   assert.match(scoringSheet, /AttendanceVerseConfirmationModal/);
   assert.match(scoringSheet, /rule\.name\.toLowerCase\(\)\.includes\("verso"\)/);
   assert.match(scoringSheet, /setVerseRulePendingConfirmation\(rule\)/);
+  assert.doesNotMatch(scoringSheet, /Cadastre o verso da semana antes de atribuir/);
+  assert.doesNotMatch(scoringSheet, /verseRulePendingConfirmation && weeklyBibleVerse/);
+  assert.match(verseModal, /verse: AttendanceWeeklyBibleVerse \| null/);
   assert.match(verseModal, /Sabe/);
   assert.match(verseModal, /Não sabe/);
   assert.match(verseModal, /backdrop-blur/);
   assert.match(verseModal, /\{verse\.bible_book\} \{verse\.chapter_number\}:\{verse\.verse_reference\}/);
 });
+
+test("cadastro e destaque da semana usam o mesmo fuso da chamada", () => {
+  for (const file of ["WeeklyBibleVerseForm.tsx", "WeeklyBibleVerseSection.tsx"]) {
+    const source = readFileSync(join(repoRoot, "components", "ui", file), "utf8");
+    assert.match(source, /getCurrentOrNextSabbathInSaoPaulo\(\)/);
+    assert.doesNotMatch(source, /getDay\(\)/);
+  }
+});
+

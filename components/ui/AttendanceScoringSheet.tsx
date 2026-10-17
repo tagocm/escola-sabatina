@@ -185,11 +185,6 @@ export default function AttendanceScoringSheet({
       return;
     }
 
-    if (!weeklyBibleVerse) {
-      setSaveError("Cadastre o verso da semana antes de atribuir os pontos de verso.");
-      return;
-    }
-
     setSaveError(null);
     setVerseRulePendingConfirmation(rule);
   };
@@ -548,7 +543,7 @@ export default function AttendanceScoringSheet({
         />
       ) : null}
 
-      {verseRulePendingConfirmation && weeklyBibleVerse ? (
+      {verseRulePendingConfirmation ? (
         <AttendanceVerseConfirmationModal
           studentName={displayName.compactName}
           verse={weeklyBibleVerse}
@@ -569,3 +564,4 @@ export default function AttendanceScoringSheet({
 
   return createPortal(sheet, document.body);
 }
+

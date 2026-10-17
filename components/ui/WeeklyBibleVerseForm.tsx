@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { AlertTriangle, ArrowRight, X } from "lucide-react";
 import { saveClassWeeklyBibleVerseAction } from "@/app/actions/classes";
+import { getCurrentOrNextSabbathInSaoPaulo } from "@/lib/calendar/sabbath-period";
 import { ButtonLoader } from "@/components/ui/AppLoader";
 import {
   alertClass,
@@ -28,15 +29,6 @@ const sentenceInputClass =
   "w-full min-h-12 border-4 border-foreground bg-surface px-4 text-base font-semibold text-foreground outline-none transition-all focus:shadow-editorial-sm md:text-sm normal-case tracking-normal";
 
 const sentenceTextareaClass = `${sentenceInputClass} min-h-[144px] py-3 leading-6 resize-y`;
-
-function getUpcomingSaturdayInput() {
-  const today = new Date();
-  const saturday = new Date(today);
-  saturday.setHours(12, 0, 0, 0);
-  saturday.setDate(today.getDate() + ((6 - today.getDay() + 7) % 7));
-
-  return `${saturday.getFullYear()}-${String(saturday.getMonth() + 1).padStart(2, "0")}-${String(saturday.getDate()).padStart(2, "0")}`;
-}
 
 export default function WeeklyBibleVerseForm({
   classId,
@@ -74,7 +66,7 @@ export default function WeeklyBibleVerseForm({
             {initialData ? "Editar Verso" : "Novo Verso da Semana"}
           </h3>
           <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-foreground/40">
-            Este verso ficará disponível no topo do controle de frequência
+            Este verso aparecerá ao confirmar os pontos no sábado selecionado
           </p>
         </div>
         <button
@@ -97,7 +89,7 @@ export default function WeeklyBibleVerseForm({
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         <div className="flex flex-col gap-2">
           <label className={fieldLabelClass} htmlFor="week_date">
-            Semana / Sábado de Referência
+            Sábado da Frequência
           </label>
           <input
             id="week_date"
@@ -105,7 +97,7 @@ export default function WeeklyBibleVerseForm({
             type="date"
             required
             disabled={isPending}
-            defaultValue={initialData?.week_date || getUpcomingSaturdayInput()}
+            defaultValue={initialData?.week_date || getCurrentOrNextSabbathInSaoPaulo()}
             className={`${compactInputClass} disabled:opacity-50`}
           />
           <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-foreground/45">
@@ -190,3 +182,4 @@ export default function WeeklyBibleVerseForm({
     </div>
   );
 }
+

@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { AlertTriangle, CalendarDays, Pencil, Plus, Trash2 } from "lucide-react";
 import { deleteClassWeeklyBibleVerseAction } from "@/app/actions/classes";
+import { getCurrentOrNextSabbathInSaoPaulo } from "@/lib/calendar/sabbath-period";
 import { ButtonLoader } from "@/components/ui/AppLoader";
 import { alertClass } from "@/components/ui/design-system";
 import WeeklyBibleVerseForm from "@/components/ui/WeeklyBibleVerseForm";
@@ -29,15 +30,6 @@ function formatWeekLabel(weekDate: string) {
   }).format(new Date(`${weekDate}T12:00:00`));
 }
 
-function getCurrentSaturdayInput() {
-  const today = new Date();
-  const saturday = new Date(today);
-  saturday.setHours(12, 0, 0, 0);
-  saturday.setDate(today.getDate() + ((6 - today.getDay() + 7) % 7));
-
-  return `${saturday.getFullYear()}-${String(saturday.getMonth() + 1).padStart(2, "0")}-${String(saturday.getDate()).padStart(2, "0")}`;
-}
-
 export default function WeeklyBibleVerseSection({
   classId,
   verses,
@@ -46,7 +38,7 @@ export default function WeeklyBibleVerseSection({
   const [isPending, startTransition] = useTransition();
   const [isAdding, setIsAdding] = useState(false);
   const [editingVerse, setEditingVerse] = useState<WeeklyBibleVerse | null>(null);
-  const currentSaturday = getCurrentSaturdayInput();
+  const currentSaturday = getCurrentOrNextSabbathInSaoPaulo();
 
   const handleDelete = (verse: WeeklyBibleVerse) => {
     const confirmed = window.confirm(
@@ -96,7 +88,7 @@ export default function WeeklyBibleVerseSection({
             Verso Bíblico da Semana
           </h2>
           <p className="max-w-2xl text-[11px] font-bold uppercase tracking-[0.18em] text-foreground/45">
-            Cadastre os versos que ficarão fixos no topo do controle de frequência de cada semana.
+            Cadastre o texto para consultar ao confirmar os pontos do verso no sábado escolhido. O cadastro é opcional para pontuar.
           </p>
         </div>
 
@@ -194,3 +186,4 @@ export default function WeeklyBibleVerseSection({
     </div>
   );
 }
+
