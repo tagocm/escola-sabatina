@@ -18,7 +18,6 @@ import Header from "@/components/ui/Header";
 import PageHeader from "@/components/ui/PageHeader";
 import AttendanceStudentLists from "@/components/ui/AttendanceStudentLists";
 import ClassGallerySection from "@/components/ui/ClassGallerySection";
-import { addDaysToDateOnly } from "@/lib/calendar/sabbath-period";
 import { pageMainClass, pageShellClass } from "@/components/ui/design-system";
 import type { AttendanceDisciplineEvent } from "@/lib/types/attendance";
 
@@ -78,13 +77,12 @@ export default async function LancamentoFrequenciaPage({ searchParams }: Params)
   const saturdayIndex = selectedPeriod.schedule.indexOf(saturdayStr);
   const prevSat = selectedPeriod.schedule[Math.max(0, saturdayIndex - 1)] || saturdayStr;
   const nextSat = selectedPeriod.schedule[Math.min(selectedPeriod.schedule.length - 1, saturdayIndex + 1)] || saturdayStr;
-  const verseWeekStr = addDaysToDateOnly(saturdayStr, -7);
 
   const [attendanceData, students, rules, weeklyBibleVerse] = await Promise.all([
     getAttendanceContext(classId, saturdayStr, selectedPeriod.id),
     getScoringPeriodStudents(classId, selectedPeriod.id, saturdayStr),
     getScoringPeriodRules(classId, selectedPeriod.id),
-    getClassWeeklyBibleVerseByWeek(classId, verseWeekStr),
+    getClassWeeklyBibleVerseByWeek(classId, saturdayStr),
   ]);
 
   if ("error" in attendanceData) {
@@ -243,3 +241,4 @@ export default async function LancamentoFrequenciaPage({ searchParams }: Params)
     </div>
   );
 }
+
