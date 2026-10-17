@@ -4,6 +4,7 @@ import { useTransition, useState, useEffect } from "react";
 import PolaroidPhoto from "@/components/ui/PolaroidPhoto";
 import { ArrowRight, AlertTriangle } from "lucide-react";
 import Link from "next/link";
+import { unstable_rethrow } from "next/navigation";
 import { updateGuardianStudent } from "@/app/actions/guardians";
 import { ButtonLoader, PageLoader } from "@/components/ui/AppLoader";
 import PageHeader from "@/components/ui/PageHeader";
@@ -40,6 +41,8 @@ export default function EditarFilhoPage({ params }: Props) {
   const [isPending, startTransition] = useTransition();
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [isPhotoProcessing, setIsPhotoProcessing] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const previewPhotoUrl = student ? getStudentPhotoSrc(student.id, student.photo_url) : null;
 
@@ -60,20 +63,26 @@ export default function EditarFilhoPage({ params }: Props) {
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (isPending || isPhotoProcessing || photoError) return;
     setErrorMsg(null);
     const formData = new FormData(e.currentTarget);
 
     if (photoFile) {
-      formData.append("photo", photoFile);
+      formData.set("photo", photoFile);
     }
     if (student?.photo_url) {
       formData.append("currentPhotoPath", student.photo_url);
     }
 
     startTransition(async () => {
-      const result = await updateGuardianStudent(studentId, formData);
-      if (result?.error) {
-        setErrorMsg(result.error);
+      try {
+        const result = await updateGuardianStudent(studentId, formData);
+        if (result?.error) {
+          setErrorMsg(result.error);
+        }
+      } catch (error) {
+        unstable_rethrow(error);
+        setErrorMsg("Não foi possível salvar. Verifique sua conexão e tente novamente.");
       }
     });
   };
@@ -110,7 +119,9 @@ export default function EditarFilhoPage({ params }: Props) {
 
           <div className="grid grid-cols-1 gap-x-10 gap-y-6 xl:grid-cols-[256px_1fr] md:gap-y-8">
             <div className="flex flex-col items-center lg:items-start">
-              <PolaroidPhoto currentPhotoUrl={previewPhotoUrl} onFileChange={setPhotoFile} disabled={isPending} />
+              <PolaroidPhoto currentPhotoUrl={previewPhotoUrl} onFileChange={setPhotoFile}
+            onProcessingChange={setIsPhotoProcessing}
+            onErrorChange={setPhotoError} disabled={isPending} />
             </div>
 
             <div className="flex flex-col gap-6">
@@ -171,10 +182,10 @@ export default function EditarFilhoPage({ params }: Props) {
                 </Link>
                 <button
                   type="submit"
-                  disabled={isPending}
+                  disabled={isPending || isPhotoProcessing || Boolean(photoError)}
                   className={primaryActionWideClass}
                 >
-                  <span>{isPending ? "SALVANDO..." : "SALVAR ALTERAÇÕES"}</span>
+                  <span>{isPending ? "SALVANDO..." : isPhotoProcessing ? "PREPARANDO FOTO..." : "SALVAR ALTERAÇÕES"}</span>
                   {isPending ? (
                     <ButtonLoader />
                   ) : (
@@ -189,3 +200,4 @@ export default function EditarFilhoPage({ params }: Props) {
     </div>
   );
 }
+

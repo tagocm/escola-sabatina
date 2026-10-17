@@ -1,15 +1,17 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { Camera, X, Image as ImageIcon } from "lucide-react";
 import { PhotoSkeletonLoader } from "@/components/ui/AppLoader";
-import { compressImage } from "@/lib/utils/image";
+import { prepareStudentPhoto } from "@/lib/utils/image";
 
 interface PolaroidPhotoProps {
   currentPhotoUrl?: string | null;
   onFileChange?: (file: File | null) => void;
+  onProcessingChange?: (processing: boolean) => void;
+  onErrorChange?: (error: string | null) => void;
   disabled?: boolean;
   emptyState?: ReactNode;
   emptyLabel?: string;
@@ -19,6 +21,8 @@ interface PolaroidPhotoProps {
 export default function PolaroidPhoto({
   currentPhotoUrl,
   onFileChange,
+  onProcessingChange,
+  onErrorChange,
   disabled,
   emptyState,
   emptyLabel = "Adicionar Foto",
@@ -26,33 +30,64 @@ export default function PolaroidPhoto({
 }: PolaroidPhotoProps) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(currentPhotoUrl || null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const isMountedRef = useRef(true);
+  const previewObjectUrlRef = useRef<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isInteractive = Boolean(onFileChange) && !disabled && !isProcessing;
 
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      if (previewObjectUrlRef.current) URL.revokeObjectURL(previewObjectUrlRef.current);
+    };
+  }, []);
+
+  const clearPreparedPhoto = () => {
+    if (previewObjectUrlRef.current) URL.revokeObjectURL(previewObjectUrlRef.current);
+    previewObjectUrlRef.current = null;
+    setPreviewUrl(currentPhotoUrl || null);
+    onFileChange?.(null);
+  };
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] || null;
-    if (file) {
-      setIsProcessing(true);
-      try {
-        const compressedFile = await compressImage(file);
-        const url = URL.createObjectURL(compressedFile);
-        setPreviewUrl(url);
-        if (onFileChange) onFileChange(compressedFile);
-      } catch (error) {
-        console.error("Falha na compressão. Usando arquivo original.", error);
-        const url = URL.createObjectURL(file);
-        setPreviewUrl(url);
-        if (onFileChange) onFileChange(file);
-      } finally {
+    const file = e.target.files?.[0];
+    // The native input is a picker only; only the prepared file is submitted.
+    e.target.value = "";
+    if (!file || disabled || isProcessing) return;
+
+    setIsProcessing(true);
+    onProcessingChange?.(true);
+    setPhotoError(null);
+    onErrorChange?.(null);
+    clearPreparedPhoto();
+    try {
+      const preparedFile = await prepareStudentPhoto(file);
+      if (!isMountedRef.current) return;
+      const url = URL.createObjectURL(preparedFile);
+      previewObjectUrlRef.current = url;
+      setPreviewUrl(url);
+      onFileChange?.(preparedFile);
+    } catch (error) {
+      if (!isMountedRef.current) return;
+      const message = error instanceof Error ? error.message : "Não foi possível preparar a foto. Tente outra imagem.";
+      setPhotoError(message);
+      onErrorChange?.(message);
+    } finally {
+      if (isMountedRef.current) {
         setIsProcessing(false);
+        onProcessingChange?.(false);
       }
     }
   };
 
   const removePhoto = () => {
+    clearPreparedPhoto();
     setPreviewUrl(null);
+    setPhotoError(null);
+    onErrorChange?.(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
-    if (onFileChange) onFileChange(null);
   };
 
   return (
@@ -92,6 +127,8 @@ export default function PolaroidPhoto({
           {/* Overlays for interaction */}
           {isInteractive && previewUrl && (
             <button
+              type="button"
+              aria-label="Descartar foto selecionada"
               onClick={(e) => {
                 e.stopPropagation();
                 removePhoto();
@@ -123,14 +160,24 @@ export default function PolaroidPhoto({
         <div className="absolute bottom-1 right-1 w-full h-full border-b-2 border-r-2 border-foreground/5 pointer-events-none" />
       </div>
 
+      {photoError && (
+        <div role="alert" className="mt-3 max-w-xs text-sm font-bold text-danger">
+          <p>{photoError}</p>
+          <button type="button" onClick={removePhoto} disabled={disabled} className="mt-2 min-h-11 underline">
+            Descartar seleção
+          </button>
+        </div>
+      )}
+
       <input
         type="file"
         ref={fileInputRef}
         onChange={handleFileChange}
         accept="image/*"
         className="hidden"
-        name="photo_input"
+        disabled={disabled || isProcessing}
       />
     </>
   );
 }
+

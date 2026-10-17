@@ -4,6 +4,7 @@ import { useTransition, useState } from "react";
 import PolaroidPhoto from "./PolaroidPhoto";
 import { ArrowRight, AlertTriangle } from "lucide-react";
 import Link from "next/link";
+import { unstable_rethrow } from "next/navigation";
 import { upsertStudentAction } from "@/app/actions/students";
 import { getStudentPhotoSrc } from "@/lib/storage/student-photos";
 import { ButtonLoader } from "@/components/ui/AppLoader";
@@ -40,6 +41,8 @@ export default function StudentForm({ classes = [], defaultClassId, initialData 
   const [isPending, startTransition] = useTransition();
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [isPhotoProcessing, setIsPhotoProcessing] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
   const availableClasses = Array.isArray(classes) ? classes : [];
   const previewPhotoUrl = initialData ? getStudentPhotoSrc(initialData.id, initialData.photo_url) : null;
   const dateInputClass =
@@ -47,12 +50,13 @@ export default function StudentForm({ classes = [], defaultClassId, initialData 
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (isPending || isPhotoProcessing || photoError) return;
     setErrorMsg(null);
     const formData = new FormData(e.currentTarget);
     
     // Add photo file to form data if selected
     if (photoFile) {
-      formData.append("photo", photoFile);
+      formData.set("photo", photoFile);
     }
     
     // Add current photo url if editing
@@ -61,9 +65,14 @@ export default function StudentForm({ classes = [], defaultClassId, initialData 
     }
 
     startTransition(async () => {
-      const result = await upsertStudentAction(initialData?.id, formData);
-      if (result?.error) {
-        setErrorMsg(result.error);
+      try {
+        const result = await upsertStudentAction(initialData?.id, formData);
+        if (result?.error) {
+          setErrorMsg(result.error);
+        }
+      } catch (error) {
+        unstable_rethrow(error);
+        setErrorMsg("Não foi possível salvar. Verifique sua conexão e tente novamente.");
       }
     });
   };
@@ -82,6 +91,8 @@ export default function StudentForm({ classes = [], defaultClassId, initialData 
           <PolaroidPhoto 
             currentPhotoUrl={previewPhotoUrl} 
             onFileChange={setPhotoFile} 
+            onProcessingChange={setIsPhotoProcessing}
+            onErrorChange={setPhotoError}
             disabled={isPending}
           />
         </div>
@@ -173,10 +184,10 @@ export default function StudentForm({ classes = [], defaultClassId, initialData 
               </Link>
               <button
                 type="submit"
-                disabled={isPending}
+                disabled={isPending || isPhotoProcessing || Boolean(photoError)}
                 className={primaryActionWideClass}
               >
-                <span>{isPending ? "SALVANDO..." : "REGISTRAR ALUNO"}</span>
+                <span>{isPending ? "SALVANDO..." : isPhotoProcessing ? "PREPARANDO FOTO..." : "REGISTRAR ALUNO"}</span>
                 {isPending ? (
                   <ButtonLoader />
                 ) : (
@@ -190,3 +201,4 @@ export default function StudentForm({ classes = [], defaultClassId, initialData 
     </form>
   );
 }
+

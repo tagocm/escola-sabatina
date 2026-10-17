@@ -4,6 +4,7 @@ import { useTransition, useState } from "react";
 import PolaroidPhoto from "@/components/ui/PolaroidPhoto";
 import { ArrowRight, AlertTriangle } from "lucide-react";
 import Link from "next/link";
+import { unstable_rethrow } from "next/navigation";
 import { createGuardianStudent } from "@/app/actions/guardians";
 import { ButtonLoader } from "@/components/ui/AppLoader";
 import {
@@ -32,20 +33,28 @@ export default function GuardianStudentForm({
   const [isPending, startTransition] = useTransition();
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [isPhotoProcessing, setIsPhotoProcessing] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (isPending || isPhotoProcessing || photoError) return;
     setErrorMsg(null);
     const formData = new FormData(e.currentTarget);
 
     if (photoFile) {
-      formData.append("photo", photoFile);
+      formData.set("photo", photoFile);
     }
 
     startTransition(async () => {
-      const result = await createGuardianStudent(formData);
-      if (result?.error) {
-        setErrorMsg(result.error);
+      try {
+        const result = await createGuardianStudent(formData);
+        if (result?.error) {
+          setErrorMsg(result.error);
+        }
+      } catch (error) {
+        unstable_rethrow(error);
+        setErrorMsg("Não foi possível salvar. Verifique sua conexão e tente novamente.");
       }
     });
   };
@@ -62,7 +71,9 @@ export default function GuardianStudentForm({
       <div className="grid grid-cols-1 gap-x-10 gap-y-6 xl:grid-cols-[256px_1fr] md:gap-y-8">
         {/* Photo Column */}
         <div className="flex flex-col items-center lg:items-start">
-          <PolaroidPhoto onFileChange={setPhotoFile} disabled={isPending} />
+          <PolaroidPhoto onFileChange={setPhotoFile}
+            onProcessingChange={setIsPhotoProcessing}
+            onErrorChange={setPhotoError} disabled={isPending} />
         </div>
 
         {/* Fields Column */}
@@ -142,10 +153,10 @@ export default function GuardianStudentForm({
             </Link>
             <button
               type="submit"
-              disabled={isPending}
+              disabled={isPending || isPhotoProcessing || Boolean(photoError)}
               className={primaryActionWideClass}
             >
-              <span>{isPending ? "SALVANDO..." : "CADASTRAR FILHO"}</span>
+              <span>{isPending ? "SALVANDO..." : isPhotoProcessing ? "PREPARANDO FOTO..." : "CADASTRAR FILHO"}</span>
               {isPending ? (
                 <ButtonLoader />
               ) : (
@@ -158,3 +169,4 @@ export default function GuardianStudentForm({
     </form>
   );
 }
+
